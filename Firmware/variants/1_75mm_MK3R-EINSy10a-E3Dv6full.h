@@ -46,7 +46,7 @@
 
 // Direction inverting
 #define INVERT_X_DIR 1    // for Mendel set to 0, for Orca set to 1
-#define INVERT_Y_DIR 0    // for Mendel set to 1, for Orca set to 0
+#define INVERT_Y_DIR 1    // for Mendel set to 1, for Orca set to 0
 #define INVERT_Z_DIR 1     // for Mendel set to 0, for Orca set to 1
 #define INVERT_E0_DIR 0   // for direct drive extruder v9 set to 1, for geared extruder set to 0
 #define INVERT_E1_DIR 0    // for direct drive extruder v9 set to 1, for geared extruder set to 0
@@ -62,7 +62,7 @@
 #define X_MIN_POS 0
 #define Y_MAX_POS 212.5
 #define Y_MIN_POS -4 //orig -4
-#define Z_MAX_POS 210
+#define Z_MAX_POS 207
 #define Z_MIN_POS 0.15
 
 // Canceled home position
@@ -85,7 +85,7 @@
 /**
  * [0,0] steel sheet print area point Y coordinate in bed print area coordinates
  */
-#define SHEET_PRINT_ZERO_REF_Y -2.f
+#define SHEET_PRINT_ZERO_REF_Y 0.f
 
 #define DEFAULT_MAX_FEEDRATE                {200, 200, 12, 120}      // (mm/sec)   max feedrate (M203)
 #define DEFAULT_MAX_FEEDRATE_SILENT         {100, 100, 12, 120}      // (mm/sec)   max feedrate (M203), silent mode
