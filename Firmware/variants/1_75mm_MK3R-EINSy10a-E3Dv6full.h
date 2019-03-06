@@ -85,7 +85,7 @@
 /**
  * [0,0] steel sheet print area point Y coordinate in bed print area coordinates
  */
-#define SHEET_PRINT_ZERO_REF_Y 0.f
+#define SHEET_PRINT_ZERO_REF_Y 1.f
 
 #define DEFAULT_MAX_FEEDRATE                {200, 200, 12, 120}      // (mm/sec)   max feedrate (M203)
 #define DEFAULT_MAX_FEEDRATE_SILENT         {100, 100, 12, 120}      // (mm/sec)   max feedrate (M203), silent mode
