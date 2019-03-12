@@ -19,6 +19,7 @@
 
 // Electronics
 #define MOTHERBOARD BOARD_RAMBO_MINI_1_3
+#define SYSTEM_TIMER_2
 
 #define HEATBED_V2
 #define STEEL_SHEET

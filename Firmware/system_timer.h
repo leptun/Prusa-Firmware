@@ -4,7 +4,7 @@
 #define FIRMWARE_SYSTEM_TIMER_H_
 
 #include "Arduino.h"
-#define SYSTEM_TIMER_2
+#include "Configuration_Prusa.h"
 
 #ifdef SYSTEM_TIMER_2
 #include "timer02.h"

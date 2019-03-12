@@ -19,6 +19,7 @@ GENERAL SETTINGS
 
 // Electronics
 #define MOTHERBOARD BOARD_RAMBO_MINI_1_3
+#define SYSTEM_TIMER_2
 
 // Prusa Single extruder multiple material suport
 //#define SNMM
