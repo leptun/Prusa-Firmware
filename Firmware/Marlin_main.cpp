@@ -407,6 +407,7 @@ static void get_arc_coordinates();
 static bool setTargetedHotend(int code, uint8_t &extruder);
 static void print_time_remaining_init();
 static void wait_for_heater(long codenum, uint8_t extruder);
+static void gcode_G28(bool home_x_axis, bool home_y_axis, bool home_z_axis);
 
 uint16_t gcode_in_progress = 0;
 uint16_t mcode_in_progress = 0;
@@ -2126,7 +2127,11 @@ bool calibrate_z_auto()
 }
 #endif //TMC2130
 
+#ifdef TMC2130
 void homeaxis(int axis, uint8_t cnt, uint8_t* pstep)
+#else
+void homeaxis(int axis, uint8_t cnt)
+#endif //TMC2130
 {
 	bool endstops_enabled  = enable_endstops(true); //RP: endstops should be allways enabled durring homing
 #define HOMEAXIS_DO(LETTER) \
@@ -2435,11 +2440,12 @@ void force_high_power_mode(bool start_high_power_section) {
 }
 #endif //TMC2130
 
-void gcode_G28(bool home_x_axis, bool home_y_axis, bool home_z_axis) {
-	gcode_G28(home_x_axis, 0, home_y_axis, 0, home_z_axis, 0, false, true);
-}
-
-void gcode_G28(bool home_x_axis, long home_x_value, bool home_y_axis, long home_y_value, bool home_z_axis, long home_z_value, bool calib, bool without_mbl) {
+#ifdef TMC2130
+static void gcode_G28(bool home_x_axis, long home_x_value, bool home_y_axis, long home_y_value, bool home_z_axis, long home_z_value, bool calib, bool without_mbl)
+#else
+static void gcode_G28(bool home_x_axis, long home_x_value, bool home_y_axis, long home_y_value, bool home_z_axis, long home_z_value, bool without_mbl)
+#endif //TMC2130
+{
 	st_synchronize();
 
 #if 0
@@ -2722,6 +2728,15 @@ void gcode_G28(bool home_x_axis, long home_x_value, bool home_y_axis, long home_
       SERIAL_ECHOPGM("G28, final ");  print_physical_coordinates();
       SERIAL_ECHOPGM("G28, final ");  print_mesh_bed_leveling_table();
 #endif
+}
+
+static void gcode_G28(bool home_x_axis, bool home_y_axis, bool home_z_axis)
+{
+#ifdef TMC2130
+    gcode_G28(home_x_axis, 0, home_y_axis, 0, home_z_axis, 0, false, true);
+#else
+    gcode_G28(home_x_axis, 0, home_y_axis, 0, home_z_axis, 0, true);
+#endif //TMC2130
 }
 
 void adjust_bed_reset()
@@ -3040,12 +3055,12 @@ static void gcode_M600(bool automatic, float x_position, float y_position, float
                 manage_response(false, false);
             }
         }
-        mmu_M600_load_filament(automatic);
+        mmu_M600_load_filament(automatic, HotendTempBckp);
     }
     else
         M600_load_filament();
 
-    if (!automatic) M600_check_state();
+    if (!automatic) M600_check_state(HotendTempBckp);
 
 		lcd_update_enable(true);
 
@@ -3463,11 +3478,6 @@ void process_commands()
 	}
 #endif //BACKLASH_Y
 #endif //TMC2130
-#ifdef FILAMENT_SENSOR
-	else if (code_seen("FSENSOR_RECOVER")) { //! FSENSOR_RECOVER
-		fsensor_restore_print_and_continue();
-  }
-#endif //FILAMENT_SENSOR
   else if(code_seen("PRUSA")){
 		if (code_seen("Ping")) {  //! PRUSA Ping
 			if (farm_mode) {
@@ -3498,6 +3508,12 @@ void process_commands()
                eeprom_update_byte((uint8_t*)EEPROM_UVLO,0); 
                enquecommand_P(PSTR("M24")); 
 		}	
+#ifdef FILAMENT_SENSOR
+		else if (code_seen("fsensor_recover")) //! PRUSA fsensor_recover
+		{
+               fsensor_restore_print_and_continue();
+		}	
+#endif //FILAMENT_SENSOR
 		else if (code_seen("MMURES")) //! PRUSA MMURES
 		{
 			mmu_reset();
@@ -3830,8 +3846,12 @@ if((eSoundMode==e_SOUND_MODE_LOUD)||(eSoundMode==e_SOUND_MODE_ONCE))
       home_z_value = code_value_long();
       bool without_mbl = code_seen('W');
       // calibrate?
+#ifdef TMC2130
       bool calib = code_seen('C');
       gcode_G28(home_x, home_x_value, home_y, home_y_value, home_z, home_z_value, calib, without_mbl);
+#else
+      gcode_G28(home_x, home_x_value, home_y, home_y_value, home_z, home_z_value, without_mbl);
+#endif //TMC2130
       if ((home_x || home_y || without_mbl || home_z) == false) {
          // Push the commands to the front of the message queue in the reverse order!
          // There shall be always enough space reserved for these commands.
@@ -7495,11 +7515,18 @@ static void handleSafetyTimer()
 
 void manage_inactivity(bool ignore_stepper_queue/*=false*/) //default argument set in Marlin.h
 {
+bool bInhibitFlag;
 #ifdef FILAMENT_SENSOR
 	if (mmu_enabled == false)
 	{
 //-//		if (mcode_in_progress != 600) //M600 not in progress
-          if ((mcode_in_progress != 600) && (eFilamentAction != e_FILAMENT_ACTION_autoLoad) && (menu_menu!=lcd_menu_extruder_info)) //M600 not in progress, preHeat @ autoLoad menu not active, Support::ExtruderInfo menu not active
+#ifdef PAT9125
+          bInhibitFlag=(menu_menu==lcd_menu_extruder_info); // Support::ExtruderInfo menu active
+#endif // PAT9125
+#ifdef IR_SENSOR
+          bInhibitFlag=(menu_menu==lcd_menu_show_sensors_state); // Support::SensorInfo menu active
+#endif // IR_SENSOR
+          if ((mcode_in_progress != 600) && (eFilamentAction != e_FILAMENT_ACTION_autoLoad) && (!bInhibitFlag)) //M600 not in progress, preHeat @ autoLoad menu not active, Support::ExtruderInfo/SensorInfo menu not active
 		{
 			if (!moves_planned() && !IS_SD_PRINTING && !is_usb_printing && (lcd_commands_type != LCD_COMMAND_V2_CAL) && !wizard_active)
 			{
@@ -9090,38 +9117,41 @@ void load_filament_final_feed()
 	plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS], FILAMENTCHANGE_EFEED_FINAL, active_extruder);
 }
 
-void M600_check_state()
+//! @brief Wait for user to check the state
+//! @par nozzle_temp nozzle temperature to load filament
+void M600_check_state(float nozzle_temp)
 {
-		//Wait for user to check the state
-		lcd_change_fil_state = 0;
-		while (lcd_change_fil_state != 1){
-			lcd_change_fil_state = 0;
-			KEEPALIVE_STATE(PAUSED_FOR_USER);
-			lcd_alright();
-			KEEPALIVE_STATE(IN_HANDLER);
-			switch(lcd_change_fil_state){
-				// Filament failed to load so load it again
-				case 2:
-					if (mmu_enabled)
-						mmu_M600_load_filament(false); //nonautomatic load; change to "wrong filament loaded" option?
-					else
-						M600_load_filament_movements();
-					break;
+    lcd_change_fil_state = 0;
+    while (lcd_change_fil_state != 1)
+    {
+        lcd_change_fil_state = 0;
+        KEEPALIVE_STATE(PAUSED_FOR_USER);
+        lcd_alright();
+        KEEPALIVE_STATE(IN_HANDLER);
+        switch(lcd_change_fil_state)
+        {
+        // Filament failed to load so load it again
+        case 2:
+            if (mmu_enabled)
+                mmu_M600_load_filament(false, nozzle_temp); //nonautomatic load; change to "wrong filament loaded" option?
+            else
+                M600_load_filament_movements();
+            break;
 
-				// Filament loaded properly but color is not clear
-				case 3:
-					st_synchronize();
-					load_filament_final_feed();
-					lcd_loading_color();
-					st_synchronize();
-					break;
-                 
-				// Everything good             
-				default:
-					lcd_change_success();
-					break;
-			}
-		}
+        // Filament loaded properly but color is not clear
+        case 3:
+            st_synchronize();
+            load_filament_final_feed();
+            lcd_loading_color();
+            st_synchronize();
+            break;
+
+        // Everything good
+        default:
+            lcd_change_success();
+            break;
+        }
+    }
 }
 
 //! @brief Wait for user action
