@@ -21,7 +21,6 @@
 #define MOTHERBOARD BOARD_EINSY_1_0a
 #define STEEL_SHEET
 #define HAS_SECOND_SERIAL_PORT
-#define SYSTEM_TIMER_2
 
 
 // Uncomment the below for the E3D PT100 temperature sensor (with or without PT100 Amplifier)
