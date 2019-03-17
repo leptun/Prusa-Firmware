@@ -526,4 +526,5 @@ echo "$(tput setaf 2) "
 echo " "
 echo "Build done, please use Slic3rPE > 1.41.0 to upload the firmware"
 echo "more information how to flash firmware https://www.prusa3d.com/drivers/ $(tput sgr 0)"
+echo -ne '\007'
 #### End building
