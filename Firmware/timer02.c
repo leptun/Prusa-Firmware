@@ -39,7 +39,7 @@ void timer02_init(void)
 	TIMSK0 &= ~(1<<OCIE0B);
 	//setup timer0
 	TCCR0A = 0x00; //COM_A-B=00, WGM_0-1=00
-	TCCR0B = (1 << CS00); //WGM_2=0, CS_0-2=011
+	TCCR0B = (5 << CS00); //WGM_2=0, CS_0-2=011
 	//switch timer0 to fast pwm mode
 	TCCR0A |= (3 << WGM00); //WGM_0-1=11
 	//set OCR0B register to zero
