@@ -116,7 +116,7 @@
 #define CRASHDET_COUNTER_MAX 3 
 
 // New XYZ calibration
-// #define NEW_XYZCAL
+#define NEW_XYZCAL
 
 // Watchdog support
 // #define WATCHDOG

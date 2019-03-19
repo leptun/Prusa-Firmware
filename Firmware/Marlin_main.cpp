@@ -2897,9 +2897,8 @@ bool gcode_M45(bool onlyZ, int8_t verbosity_level)
 //#ifndef NEW_XYZCAL
 				if (result >= 0)
 				{
-					#ifdef HEATBED_V2
 					sample_z();
-					#else //HEATBED_V2
+					/*
 					point_too_far_mask = 0;
 					// Second half: The fine adjustment.
 					// Let the planner use the uncorrected coordinates.
@@ -2914,8 +2913,8 @@ bool gcode_M45(bool onlyZ, int8_t verbosity_level)
 					current_position[Z_AXIS] = MESH_HOME_Z_SEARCH;
 					plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS], homing_feedrate[Z_AXIS] / 40, active_extruder);
 					st_synchronize();
-					// if (result >= 0) babystep_apply();					
-					#endif //HEATBED_V2
+					// if (result >= 0) babystep_apply();	
+					*/					
 				}
 //#endif //NEW_XYZCAL
 				lcd_update_enable(true);
