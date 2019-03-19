@@ -2736,14 +2736,14 @@ canceled:
 bool sample_z() {
 	bool sampled = true;
 	//make space
-	#ifdef HEATBED_V2
+	#if ( defined HEATBED_V2 && defined STEEL_SHEET )
 		current_position[Z_AXIS] += 150;
 	#else
 		current_position[Z_AXIS] += 10;
 	#endif
 	go_to_current(homing_feedrate[Z_AXIS] / 60);
 	//plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS], feedrate, active_extruder););
-	#ifdef HEATBED_V2
+	#if ( defined HEATBED_V2 && defined STEEL_SHEET )
 	lcd_show_fullscreen_message_and_wait_P(_T(MSG_PLACE_STEEL_SHEET));
 	#endif
 	// Sample Z heights for the mesh bed leveling.
