@@ -49,7 +49,7 @@
 #define Y_MS1_PIN           -1
 #define Y_MS2_PIN           -1
 
-#define Z_TMC2130_CS        21
+#define Z_TMC2130_CS        23
 #define Z_TMC2130_DIAG      32
 #define Z_STEP_PIN          35
 #define Z_DIR_PIN           47
@@ -78,7 +78,7 @@
 
 
 
-#define E0_TMC2130_CS       20
+#define E0_TMC2130_CS       21
 #define E0_TMC2130_DIAG     32
 #define E0_STEP_PIN         34
 #define E0_DIR_PIN          43
@@ -119,7 +119,7 @@
 // #define TACH_0                 79 // !!! changed from 81 (EINY03)
 // #define TACH_1                 80 
 
-#define IR_SENSOR_PIN 23 //idler sensor @PK0 (digital pin 62/A8)
+#define IR_SENSOR_PIN 20 //idler sensor
 
 // Support for an 8 bit logic analyzer, for example the Saleae.
 // Channels 0-2 are fast, they could generate 2.667Mhz waveform with a software loop.
