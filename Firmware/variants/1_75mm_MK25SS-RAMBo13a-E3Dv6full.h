@@ -15,12 +15,15 @@
 #define DEVELOPER
 
 // Printer name
-#define CUSTOM_MENDEL_NAME "Prusa i3 MK2SS"
+#define CUSTOM_MENDEL_NAME "Prusa i3 MK25SS"
 
 // Electronics
 #define MOTHERBOARD BOARD_EINSY_1_0a
 #define GHETTO_TMC
 
+#define HEATBED_V2
+#define STEEL_SHEET
+// #define TACH0PULLUP
 
 // Uncomment the below for the E3D PT100 temperature sensor (with or without PT100 Amplifier)
 //#define E3D_PT100_EXTRUDER_WITH_AMP
@@ -60,7 +63,7 @@
 #define X_MAX_POS 255
 #define X_MIN_POS 0
 #define Y_MAX_POS 212.5
-#define Y_MIN_POS -4 //orig -4
+#define Y_MIN_POS -4
 #define Z_MAX_POS 207
 #define Z_MIN_POS 0.15
 
@@ -132,8 +135,8 @@
 #define DEFAULT_SAFETYTIMER_TIME_MINS 30
 
 // Filament sensor
-// #define FILAMENT_SENSOR
-// #define PAT9125
+#define FILAMENT_SENSOR
+#define IR_SENSOR
 
 // Backlash - 
 //#define BACKLASH_X
@@ -166,7 +169,7 @@
 //#define DEBUG_DISABLE_YMAXLIMIT  //y max limit ignored
 //#define DEBUG_DISABLE_ZMINLIMIT  //z min limit ignored
 //#define DEBUG_DISABLE_ZMAXLIMIT  //z max limit ignored
-#define DEBUG_DISABLE_STARTMSGS //no startup messages 
+//#define DEBUG_DISABLE_STARTMSGS //no startup messages 
 //#define DEBUG_DISABLE_MINTEMP   //mintemp error ignored
 //#define DEBUG_DISABLE_SWLIMITS  //sw limits ignored
 //#define DEBUG_DISABLE_LCD_STATUS_LINE  //empty four lcd line
@@ -177,10 +180,10 @@
 //#define DEBUG_YSTEP_DUP_PIN 21   //duplicate y-step output to pin 21 (SCL on P3)
 //#define DEBUG_DISABLE_FANCHECK     //disable fan check (no ISR INT7, check disabled)
 //#define DEBUG_DISABLE_FSENSORCHECK //disable fsensor check (no ISR INT7, check disabled)
-#define DEBUG_DUMP_TO_2ND_SERIAL   //dump received characters to 2nd serial line
-#define DEBUG_STEPPER_TIMER_MISSED // Stop on stepper timer overflow, beep and display a message.
-#define PLANNER_DIAGNOSTICS // Show the planner queue status on printer display.
-#define CMD_DIAGNOSTICS //Show cmd queue length on printer display
+//#define DEBUG_DUMP_TO_2ND_SERIAL   //dump received characters to 2nd serial line
+//#define DEBUG_STEPPER_TIMER_MISSED // Stop on stepper timer overflow, beep and display a message.
+//#define PLANNER_DIAGNOSTICS // Show the planner queue status on printer display.
+//#define CMD_DIAGNOSTICS //Show cmd queue length on printer display
 #endif /* DEBUG_BUILD */
 
 //#define FSENSOR_QUALITY
@@ -306,9 +309,9 @@
 //#define  DEFAULT_Kp 40.925
 //#define  DEFAULT_Ki 4.875
 //#define  DEFAULT_Kd 86.085
-#define  DEFAULT_Kp 40.925
-#define  DEFAULT_Ki 4.875
-#define  DEFAULT_Kd 86.085
+#define  DEFAULT_Kp 16.13
+#define  DEFAULT_Ki 1.1625
+#define  DEFAULT_Kd 56.23
 #endif
 
 // Extrude mintemp
@@ -350,7 +353,7 @@
 #define FILAMENTCHANGE_FINALRETRACT -80
 
 #define FILAMENTCHANGE_FIRSTFEED 70 //E distance in mm for fast filament loading sequence used used in filament change (M600)
-#define FILAMENTCHANGE_FINALFEED 50 //E distance in mm for slow filament loading sequence used used in filament change (M600) and filament load (M701) 
+#define FILAMENTCHANGE_FINALFEED 25 //E distance in mm for slow filament loading sequence used used in filament change (M600) and filament load (M701) 
 #define FILAMENTCHANGE_RECFEED 5
 
 #define FILAMENTCHANGE_XYFEED 50
@@ -399,10 +402,10 @@
 #define MBL_Z_STEP 0.01
 
 // Mesh definitions
-#define MESH_MIN_X 35
-#define MESH_MAX_X 238
+#define MESH_MIN_X 24
+#define MESH_MAX_X 228
 #define MESH_MIN_Y 6
-#define MESH_MAX_Y 202
+#define MESH_MAX_Y 210
 
 // Mesh upsample definition
 #define MESH_NUM_X_POINTS 7
@@ -418,7 +421,7 @@
 #define MESH_HOME_Z_SEARCH 5 //Z lift for homing, mesh bed leveling etc.
 
 #define X_PROBE_OFFSET_FROM_EXTRUDER 23     // Z probe to nozzle X offset: -left  +right
-#define Y_PROBE_OFFSET_FROM_EXTRUDER 9     // Z probe to nozzle Y offset: -front +behind
+#define Y_PROBE_OFFSET_FROM_EXTRUDER 5     // Z probe to nozzle Y offset: -front +behind
 #define Z_PROBE_OFFSET_FROM_EXTRUDER -0.4  // Z probe to nozzle Z offset: -below (always!)
 #endif
 
@@ -615,16 +618,15 @@
 // If power panic occured, and the current temperature is higher then target temperature before interrupt minus this offset, print will be recovered automatically. 
 #define AUTOMATIC_UVLO_BED_TEMP_OFFSET 5 
 
-// #define HEATBED_V2
-
 #define M600_TIMEOUT 600  //seconds
 
 //#define SUPPORT_VERBOSITY
 
-#define MMU_REQUIRED_FW_BUILDNR 83
-#define MMU_HWRESET
+#define MMU_REQUIRED_FW_BUILDNR 132
+#define MMU_FORCE_STEALTH_MODE
 #define MMU_DEBUG //print communication between MMU2 and printer on serial
 //#define MMU_HAS_CUTTER
+
 #define MMU_IDLER_SENSOR_ATTEMPTS_NR 21 //max. number of attempts to load filament if first load failed; value for max bowden length and case when loading fails right at the beginning
 
 #endif //__CONFIGURATION_PRUSA_H
