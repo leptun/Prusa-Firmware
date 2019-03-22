@@ -119,7 +119,7 @@ if ! type zip > /dev/null; then
 fi
 ###End prepare bash enviroment
 
-BUILD_ENV="1.0.2B"
+BUILD_ENV="1.0.2"
 SCRIPT_PATH="$( cd "$(dirname "$0")" ; pwd -P )"
 
 # List few useful data
@@ -150,7 +150,7 @@ if [ $OSTYPE == "msys" ]; then
 	if [ ! -f "PF-build-env-Win-$BUILD_ENV.zip" ]; then
 		echo "$(tput setaf 6)Downloding Windows build enviroment...$(tput setaf 2)"
 		sleep 2
-		wget https://github.com/leptun/PF-build-env/archive/Win-$BUILD_ENV.zip || exit 4
+		wget https://github.com/3d-gussner/PF-build-env/releases/download/Win-$BUILD_ENV/PF-build-env-Win-$BUILD_ENV.zip || exit 4
 		#cp -f ../../PF-build-env/PF-build-env-Win-$BUILD_ENV.zip PF-build-env-Win-$BUILD_ENV.zip || exit4
 		echo "$(tput sgr 0)"
 	fi
