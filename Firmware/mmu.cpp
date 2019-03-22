@@ -143,6 +143,8 @@ int8_t mmu_rx_start(void)
 //initialize mmu2 unit - first part - should be done at begining of startup process
 void mmu_init(void)
 {
+#ifndef NO_MMU
+
 #ifdef MMU_HWRESET
 	digitalWrite(MMU_RST_PIN, HIGH);
 	pinMode(MMU_RST_PIN, OUTPUT);              //setup reset pin
@@ -151,6 +153,7 @@ void mmu_init(void)
 	_delay_ms(10);                             //wait 10ms for sure
 	mmu_reset();                               //reset mmu (HW or SW), do not wait for response
 	mmu_state = S::Init;
+#endif //NO_MMU
 	PIN_INP(IR_SENSOR_PIN); //input mode
 	PIN_SET(IR_SENSOR_PIN); //pullup
 }

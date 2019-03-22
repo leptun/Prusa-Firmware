@@ -628,5 +628,6 @@
 //#define MMU_HAS_CUTTER
 
 #define MMU_IDLER_SENSOR_ATTEMPTS_NR 21 //max. number of attempts to load filament if first load failed; value for max bowden length and case when loading fails right at the beginning
+#define NO_MMU
 
 #endif //__CONFIGURATION_PRUSA_H
