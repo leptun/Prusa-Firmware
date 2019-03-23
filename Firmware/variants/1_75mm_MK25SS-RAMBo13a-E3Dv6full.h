@@ -23,7 +23,7 @@
 
 #define HEATBED_V2
 #define STEEL_SHEET
-// #define TACH0PULLUP
+#define TACH0PULLUP
 
 // Uncomment the below for the E3D PT100 temperature sensor (with or without PT100 Amplifier)
 //#define E3D_PT100_EXTRUDER_WITH_AMP
@@ -128,7 +128,7 @@
 // #define UVLO_SUPPORT
 
 // Fan check
-// #define FANCHECK
+#define FANCHECK
 
 // Safety timer
 #define SAFETYTIMER

@@ -49,8 +49,8 @@
 #define Y_MS1_PIN           -1
 #define Y_MS2_PIN           -1
 
-#define Z_TMC2130_CS        23
-#define Z_TMC2130_DIAG      32
+#define Z_TMC2130_CS        16
+#define Z_TMC2130_DIAG      17
 #define Z_STEP_PIN          35
 #define Z_DIR_PIN           47
 #define Z_MIN_PIN           10
@@ -95,7 +95,7 @@
 #define PS_ON_PIN           -1
 #define KILL_PIN            -1  // 80 with Smart Controller LCD
 #define SUICIDE_PIN         -1  // PIN that has to be turned on right after start, to keep power flowing.
-//#define TACH_0				30	// noctua extruder fan
+#define TACH_0				23	// noctua extruder fan
 
 
 //#define KILL_PIN            32
