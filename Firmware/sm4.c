@@ -11,6 +11,7 @@
 #define true 1
 #include "Configuration_prusa.h"
 
+#define SM4_DIR_BITS (uint8_t)(((!INVERT_E0_DIR) << 3) | ((!INVERT_Z_DIR) << 2) | ((!INVERT_Y_DIR) << 1) | ((!INVERT_X_DIR) << 0))
 
 #ifdef NEW_XYZCAL
 
@@ -50,16 +51,14 @@ uint8_t sm4_get_dir(uint8_t axis)
 	switch (axis)
 	{
 #if ((MOTHERBOARD == BOARD_RAMBO_MINI_1_0) || (MOTHERBOARD == BOARD_RAMBO_MINI_1_3))
-	case 0: return (PORTL & 2)?0:1;
-	case 1: return (PORTL & 1)?0:1;
-	case 2: return (PORTL & 4)?0:1;
-	case 3: return (PORTL & 64)?1:0;
+	case 0: return (PORTL & 2)^(bool)(INVERT_X_DIR);
+	case 1: return (PORTL & 1)^(bool)(INVERT_Y_DIR);
 #elif ((MOTHERBOARD == BOARD_EINSY_1_0a))
-	case 0: return (PORTL & 1)?1:0;
-	case 1: return (PORTL & 2)?0:1;
-	case 2: return (PORTL & 4)?1:0;
-	case 3: return (PORTL & 64)?0:1;
+	case 0: return (PORTL & 1)^(bool)(INVERT_X_DIR);
+	case 1: return (PORTL & 2)^(bool)(INVERT_Y_DIR);
 #endif
+	case 2: return (PORTL & 4)^(bool)(INVERT_Z_DIR);
+	case 3: return (PORTL & 64)^(bool)(INVERT_E0_DIR);
 	}
 	return 0;
 }
@@ -69,16 +68,14 @@ void sm4_set_dir(uint8_t axis, uint8_t dir)
 	switch (axis)
 	{
 #if ((MOTHERBOARD == BOARD_RAMBO_MINI_1_0) || (MOTHERBOARD == BOARD_RAMBO_MINI_1_3))
-	case 0: if (!dir) PORTL |= 2; else PORTL &= ~2; break;
-	case 1: if (!dir) PORTL |= 1; else PORTL &= ~1; break;
-	case 2: if (!dir) PORTL |= 4; else PORTL &= ~4; break;
-	case 3: if (dir) PORTL |= 64; else PORTL &= ~64; break;
+	case 0: if ((dir)^(bool)(INVERT_X_DIR)) PORTL |= 2; else PORTL &= ~2; break;
+	case 1: if ((dir)^(bool)(INVERT_Y_DIR)) PORTL |= 1; else PORTL &= ~1; break;
 #elif ((MOTHERBOARD == BOARD_EINSY_1_0a))
-	case 0: if (dir) PORTL |= 1; else PORTL &= ~1; break;
-	case 1: if (!dir) PORTL |= 2; else PORTL &= ~2; break;
-	case 2: if (dir) PORTL |= 4; else PORTL &= ~4; break;
-	case 3: if (!dir) PORTL |= 64; else PORTL &= ~64; break;
+	case 0: if ((dir)^(bool)(INVERT_Z_DIR)) PORTL |= 1; else PORTL &= ~1; break;
+	case 1: if ((dir)^(bool)(INVERT_E0_DIR)) PORTL |= 2; else PORTL &= ~2; break;
 #endif
+	case 2: if (dir) PORTL |= 4; else PORTL &= ~4; break;
+	case 3: if (dir) PORTL |= 64; else PORTL &= ~64; break;
 	}
 	asm("nop");
 }
@@ -91,16 +88,13 @@ uint8_t sm4_get_dir_bits(void)
 #if ((MOTHERBOARD == BOARD_RAMBO_MINI_1_0) || (MOTHERBOARD == BOARD_RAMBO_MINI_1_3))
 	if (portL & 2) dir_bits |= 1;
 	if (portL & 1) dir_bits |= 2;
-	if (portL & 4) dir_bits |= 4;
-	if (portL & 64) dir_bits |= 8;
-	dir_bits ^= 0x07; //invert XYZ, do not invert E
 #elif ((MOTHERBOARD == BOARD_EINSY_1_0a))
 	if (portL & 1) dir_bits |= 1;
-	if (portL & 2) dir_bits |= 2;
+	if (portL & 2) dir_bits |= 2;	
+#endif
 	if (portL & 4) dir_bits |= 4;
 	if (portL & 64) dir_bits |= 8;
-	dir_bits ^= 0x0a; //invert YE, do not invert XZ
-#endif
+	dir_bits ^= SM4_DIR_BITS;
 	return dir_bits;
 }
 
@@ -110,18 +104,15 @@ void sm4_set_dir_bits(uint8_t dir_bits)
 	portL &= 0xb8; //set direction bits to zero
 	//TODO -optimize in asm
 #if ((MOTHERBOARD == BOARD_RAMBO_MINI_1_0) || (MOTHERBOARD == BOARD_RAMBO_MINI_1_3))
-	dir_bits ^= 0x07; //invert XYZ, do not invert E
+	dir_bits ^= SM4_DIR_BITS;
 	if (dir_bits & 1) portL |= 2;  //set X direction bit
 	if (dir_bits & 2) portL |= 1;  //set Y direction bit
-	if (dir_bits & 4) portL |= 4;  //set Z direction bit
-	if (dir_bits & 8) portL |= 64; //set E direction bit
 #elif ((MOTHERBOARD == BOARD_EINSY_1_0a))
-	dir_bits ^= 0x0a; //invert YE, do not invert XZ
 	if (dir_bits & 1) portL |= 1;  //set X direction bit
 	if (dir_bits & 2) portL |= 2;  //set Y direction bit
+#endif
 	if (dir_bits & 4) portL |= 4;  //set Z direction bit
 	if (dir_bits & 8) portL |= 64; //set E direction bit
-#endif
 	PORTL = portL;
 	asm("nop");
 }
