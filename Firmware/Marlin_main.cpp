@@ -7300,7 +7300,7 @@ void ClearToSend()
 		SERIAL_PROTOCOLLNRPGM(MSG_OK);
 }
 
-#if MOTHERBOARD == BOARD_RAMBO_MINI_1_0 || MOTHERBOARD == BOARD_RAMBO_MINI_1_3
+#if (MOTHERBOARD == BOARD_RAMBO_MINI_1_0 || MOTHERBOARD == BOARD_RAMBO_MINI_1_3) && !defined GHETTO_TMC
 void update_currents() {
 	float current_high[3] = DEFAULT_PWM_MOTOR_CURRENT_LOUD;
 	float current_low[3] = DEFAULT_PWM_MOTOR_CURRENT;
@@ -7360,7 +7360,7 @@ void get_coordinates()
       if (relative)
         destination[i] += current_position[i];
       seen[i]=true;
-#if MOTHERBOARD == BOARD_RAMBO_MINI_1_0 || MOTHERBOARD == BOARD_RAMBO_MINI_1_3
+#if (MOTHERBOARD == BOARD_RAMBO_MINI_1_0 || MOTHERBOARD == BOARD_RAMBO_MINI_1_3) && !defined GHETTO_TMC
 	  if (i == Z_AXIS && SilentModeMenu == SILENT_MODE_AUTO) update_currents();
 #endif //MOTHERBOARD == BOARD_RAMBO_MINI_1_0 || MOTHERBOARD == BOARD_RAMBO_MINI_1_3
     }

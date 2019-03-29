@@ -14,7 +14,11 @@
 #endif //MOTHERBOARD == BOARD_RAMBO_MINI_1_0
 
 #if MOTHERBOARD == BOARD_RAMBO_MINI_1_3 //203 - orig 302
-#include "pins_Rambo_1_3.h"
+  #ifdef GHETTO_TMC
+    #include "pins_Rambo_1_3T.h"
+  #else
+    #include "pins_Rambo_1_3.h"
+  #endif
 #endif //MOTHERBOARD == BOARD_RAMBO_MINI_1_3
 
 #if MOTHERBOARD == BOARD_EINSY_1_0a //310 - new
