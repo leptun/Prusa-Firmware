@@ -122,7 +122,7 @@
 #define NEW_XYZCAL
 
 // Watchdog support
-// #define WATCHDOG
+#define WATCHDOG
 
 // Power panic
 // #define UVLO_SUPPORT
