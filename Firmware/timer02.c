@@ -35,7 +35,7 @@ void timer02_init(void)
 	OCR0B = 0; //current PWM value
 	//switch timer0 to mode 5 (Phase Correct PWM)
 	TCCR0A |= (1 << WGM00); //WGM_0-1=01
-	TCCR0B = (1 << CS00) | (1 << WGM02); //WGM_2=1, CS_0-2=001 (no prescaling)
+	TCCR0B = (1 << CS02) | (1 << CS00) | (1 << WGM02); //WGM_2=1, CS_0-2=001 (no prescaling)
 	TCCR0A |= (2 << COM0B0); //switch OC0B to OCR mode
 	//setup timer2
 	TCCR2A = 0x00; //COM_A-B=00, WGM_0-1=00
