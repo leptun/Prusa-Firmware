@@ -5,7 +5,7 @@ P3:
 	// 8:SDA:20:IR_SENSOR
 	
 P2:
-	10:PC5:32:YOK
+	10:PC5:32:++ // DIAG_E in software. Not used.
 ICSP:
 	MISO
 	MOSI

@@ -26,7 +26,7 @@
 
 
 #define X_TMC2130_CS           30
-#define X_TMC2130_DIAG         12 // !!! changed from 40 (EINY03)
+#define X_TMC2130_DIAG         12
 #define X_STEP_PIN             37
 #define X_DIR_PIN              48
 #define X_MIN_PIN            16
@@ -95,7 +95,6 @@
 #define PS_ON_PIN           -1
 #define KILL_PIN            -1  // 80 with Smart Controller LCD
 #define SUICIDE_PIN         -1  // PIN that has to be turned on right after start, to keep power flowing.
-#define TACH_0				23	// noctua extruder fan
 
 
 //#define KILL_PIN            32
@@ -116,7 +115,7 @@
 
 #define SDCARDDETECT           15
 
-// #define TACH_0                 79 // !!! changed from 81 (EINY03)
+#define TACH_0                 23
 // #define TACH_1                 80 
 
 #define IR_SENSOR_PIN 20 //idler sensor
