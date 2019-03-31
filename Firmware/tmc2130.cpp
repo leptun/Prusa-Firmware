@@ -1011,7 +1011,7 @@ uint8_t tmc2130_cur2val(float cur)
 
 float tmc2130_val2cur(uint8_t val)
 {
-	float rsense = 0.2; //0.2 ohm sense resistors
+	float rsense = R_SENSE; //0.2 ohm sense resistors
 	uint8_t vsense = (val & 0x20)?0:1; //vsense bit = val>31
 	float vfs = vsense?0.18:0.32; //vfs depends on vsense bit
 	uint8_t val2 = vsense?val:(val >> 1); //vals 32..63 shifted right (16..31)
