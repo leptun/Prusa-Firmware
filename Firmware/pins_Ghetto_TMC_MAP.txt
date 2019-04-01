@@ -1,11 +1,13 @@
 P3:
-	3:TX2:17:DIAG_Z
-	5:RX2:16:CS_Z
-	6:SCL:21:CS_E
+	3:TX2:16:DIAG_Z
+	5:RX2:17:CS_Z
+	6:SCL:21:++ //DIAG_E
 	// 8:SDA:20:IR_SENSOR
 	
 P2:
-	10:PC5:32:++ // DIAG_E in software. Not used.
+	10:PC5:32:CS_E
+NC:
+	79:PJ7:74:MIN_XY
 ICSP:
 	MISO
 	MOSI

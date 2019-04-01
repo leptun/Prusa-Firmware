@@ -29,7 +29,7 @@
 #define X_TMC2130_DIAG         12
 #define X_STEP_PIN             37
 #define X_DIR_PIN              48
-#define X_MIN_PIN            16
+#define X_MIN_PIN            74
 //#define X_MAX_PIN            30
 //#define X_MIN_PIN              X_TMC2130_DIAG
 #define X_MAX_PIN              X_TMC2130_DIAG
@@ -41,7 +41,7 @@
 #define Y_TMC2130_DIAG      11
 #define Y_STEP_PIN          36
 #define Y_DIR_PIN           49
-#define Y_MIN_PIN           17
+#define Y_MIN_PIN           74
 //#define Y_MAX_PIN           24
 //#define Y_MIN_PIN           Y_TMC2130_DIAG
 #define Y_MAX_PIN           Y_TMC2130_DIAG
@@ -49,8 +49,8 @@
 #define Y_MS1_PIN           -1
 #define Y_MS2_PIN           -1
 
-#define Z_TMC2130_CS        16
-#define Z_TMC2130_DIAG      17
+#define Z_TMC2130_CS        17
+#define Z_TMC2130_DIAG      16
 #define Z_STEP_PIN          35
 #define Z_DIR_PIN           47
 #define Z_MIN_PIN           10
@@ -78,8 +78,8 @@
 
 
 
-#define E0_TMC2130_CS       21
-#define E0_TMC2130_DIAG     32
+#define E0_TMC2130_CS       32
+#define E0_TMC2130_DIAG     21
 #define E0_STEP_PIN         34
 #define E0_DIR_PIN          43
 #define E0_ENABLE_PIN       26
