@@ -60,11 +60,11 @@
 #define MANUAL_Z_HOME_POS 0.2
 
 // Travel limits after homing
-#define X_MAX_POS 255
+#define X_MAX_POS 250
 #define X_MIN_POS 0
-#define Y_MAX_POS 212.5
+#define Y_MAX_POS 210.3
 #define Y_MIN_POS -4
-#define Z_MAX_POS 207
+#define Z_MAX_POS 210
 #define Z_MIN_POS 0.15
 
 // Canceled home position
@@ -244,17 +244,17 @@
 #define TMC2130_TPWMTHRS  0         // TPWMTHRS - Sets the switching speed threshold based on TSTEP from stealthChop to spreadCycle mode
 #define TMC2130_THIGH     0         // THIGH - unused
 
-//#define TMC2130_TCOOLTHRS_X 450       // TCOOLTHRS - coolstep treshold
-//#define TMC2130_TCOOLTHRS_Y 450       // TCOOLTHRS - coolstep treshold
-#define TMC2130_TCOOLTHRS_X 430       // TCOOLTHRS - coolstep treshold
-#define TMC2130_TCOOLTHRS_Y 430       // TCOOLTHRS - coolstep treshold
+#define TMC2130_TCOOLTHRS_X 450       // TCOOLTHRS - coolstep treshold
+#define TMC2130_TCOOLTHRS_Y 450       // TCOOLTHRS - coolstep treshold
+//#define TMC2130_TCOOLTHRS_X 430       // TCOOLTHRS - coolstep treshold
+//#define TMC2130_TCOOLTHRS_Y 430       // TCOOLTHRS - coolstep treshold
 #define TMC2130_TCOOLTHRS_Z 500       // TCOOLTHRS - coolstep treshold
 #define TMC2130_TCOOLTHRS_E 500       // TCOOLTHRS - coolstep treshold
 
 #define TMC2130_SG_HOMING       1     // stallguard homing
-#define TMC2130_SG_THRS_X       3     // stallguard sensitivity for X axis
-#define TMC2130_SG_THRS_Y       3     // stallguard sensitivity for Y axis
-#define TMC2130_SG_THRS_Z       4     // stallguard sensitivity for Z axis
+#define TMC2130_SG_THRS_X       32     // stallguard sensitivity for X axis
+#define TMC2130_SG_THRS_Y       32     // stallguard sensitivity for Y axis
+#define TMC2130_SG_THRS_Z       8     // stallguard sensitivity for Z axis
 #define TMC2130_SG_THRS_E       3     // stallguard sensitivity for E axis
 
 //new settings is possible for vsense = 1, running current value > 31 set vsense to zero and shift both currents by 1 bit right (Z axis only)
