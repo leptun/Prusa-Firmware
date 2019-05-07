@@ -303,7 +303,7 @@ int fanSpeed=0;
 
 bool cancel_heatup = false ;
 
-int busy_state = NOT_BUSY;
+int8_t busy_state = NOT_BUSY;
 static long prev_busy_signal_ms = -1;
 uint8_t host_keepalive_interval = HOST_KEEPALIVE_INTERVAL;
 
@@ -977,6 +977,12 @@ void list_sec_lang_from_external_flash()
 #endif //(LANG_MODE != 0)
 
 
+static void w25x20cl_err_msg()
+{
+    lcd_puts_P(_n(ESC_2J ESC_H(0,0) "External SPI flash" ESC_H(0,1) "W25X20CL is not res-"
+            ESC_H(0,2) "ponding. Language" ESC_H(0,3) "switch unavailable."));
+}
+
 // "Setup" function is called by the Arduino framework on startup.
 // Before startup, the Timers-functions (PWM)/Analog RW and HardwareSerial provided by the Arduino-code 
 // are initialized by the main() routine provided by the Arduino framework.
@@ -993,21 +999,25 @@ void setup()
 	spi_init();
 
 	lcd_splash();
-     Sound_Init();                                // also guarantee "SET_OUTPUT(BEEPER)"
+    Sound_Init();                                // also guarantee "SET_OUTPUT(BEEPER)"
 
 #ifdef W25X20CL
-	if (!w25x20cl_init())
-		kill(_i("External SPI flash W25X20CL not responding."));
-	// Enter an STK500 compatible Optiboot boot loader waiting for flashing the languages to an external flash memory.
-	optiboot_w25x20cl_enter();
-#endif
-
+    bool w25x20cl_success = w25x20cl_init();
+	if (w25x20cl_success)
+	{
+	    optiboot_w25x20cl_enter();
 #if (LANG_MODE != 0) //secondary language support
-#ifdef W25X20CL
-	if (w25x20cl_init())
-		update_sec_lang_from_external_flash();
-#endif //W25X20CL
+        update_sec_lang_from_external_flash();
 #endif //(LANG_MODE != 0)
+	}
+	else
+	{
+	    w25x20cl_err_msg();
+	}
+#else
+	const bool w25x20cl_success = true;
+#endif //W25X20CL
+
 
 	setup_killpin();
 	setup_powerhold();
@@ -1213,12 +1223,17 @@ void setup()
 
 	tp_init();    // Initialize temperature loop
 
-	lcd_splash(); // we need to do this again, because tp_init() kills lcd
+	if (w25x20cl_success) lcd_splash(); // we need to do this again, because tp_init() kills lcd
+	else
+	{
+	    w25x20cl_err_msg();
+	    printf_P(_n("W25X20CL not responding.\n"));
+	}
 
 	plan_init();  // Initialize planner;
 
 	factory_reset();
-     lcd_encoder_diff=0;
+    lcd_encoder_diff=0;
 
 #ifdef TMC2130
 	uint8_t silentMode = eeprom_read_byte((uint8_t*)EEPROM_SILENT);
@@ -3523,7 +3538,7 @@ void process_commands()
 		else if (code_seen("RESET")) { //! PRUSA RESET
             // careful!
             if (farm_mode) {
-#if defined(WATCHDOG) && defined(BOOTAPP)
+#if (defined(WATCHDOG) && (MOTHERBOARD == BOARD_EINSY_1_0a))
                 boot_app_magic = BOOT_APP_MAGIC;
                 boot_app_flags = BOOT_APP_FLG_RUN;
 				wdt_enable(WDTO_15MS);
@@ -4962,13 +4977,7 @@ if((eSoundMode==e_SOUND_MODE_LOUD)||(eSoundMode==e_SOUND_MODE_ONCE))
 		KEEPALIVE_STATE(IN_HANDLER);
         lcd_ignore_click(false);
       }else{
-		KEEPALIVE_STATE(PAUSED_FOR_USER);
-        while(!lcd_clicked()){
-          manage_heater();
-          manage_inactivity(true);
-          lcd_update(0);
-        }
-		KEEPALIVE_STATE(IN_HANDLER);
+        marlin_wait_for_click();
       }
       if (IS_SD_PRINTING)
         LCD_MESSAGERPGM(_T(MSG_RESUMING_PRINT));
@@ -7014,7 +7023,7 @@ if((eSoundMode==e_SOUND_MODE_LOUD)||(eSoundMode==e_SOUND_MODE_ONCE))
 	  	if (mmu_enabled) 
 		{
 			st_synchronize();
-			mmu_continue_loading();
+			mmu_continue_loading(is_usb_printing);
 			mmu_extruder = tmp_extruder; //filament change is finished
 			mmu_load_to_nozzle();
 		}
@@ -7052,7 +7061,8 @@ if((eSoundMode==e_SOUND_MODE_LOUD)||(eSoundMode==e_SOUND_MODE_ONCE))
 				  mmu_command(MmuCmd::T0 + tmp_extruder);
 
 				  manage_response(true, true, MMU_TCODE_MOVE);
-				  mmu_continue_loading();
+		          mmu_continue_loading(is_usb_printing);
+
 				  mmu_extruder = tmp_extruder; //filament change is finished
 
 				  if (load_to_nozzle)// for single material usage with mmu
@@ -7164,9 +7174,9 @@ if((eSoundMode==e_SOUND_MODE_LOUD)||(eSoundMode==e_SOUND_MODE_ONCE))
   {
     switch((int)code_value())
     {
-#ifdef DEBUG_DCODES
 	case -1: //! D-1 - Endless loop
 		dcode__1(); break;
+#ifdef DEBUG_DCODES
 	case 0: //! D0 - Reset
 		dcode_0(); break;
 	case 1: //! D1 - Clear EEPROM
@@ -9612,6 +9622,24 @@ if((eSoundMode==e_SOUND_MODE_LOUD)||(eSoundMode==e_SOUND_MODE_ONCE))
 	}
 #endif //FSENSOR_QUALITY
 	lcd_update_enable(false);
+}
+
+
+//! @brief Wait for click
+//!
+//! Set
+void marlin_wait_for_click()
+{
+    int8_t busy_state_backup = busy_state;
+    KEEPALIVE_STATE(PAUSED_FOR_USER);
+    lcd_consume_click();
+    while(!lcd_clicked())
+    {
+        manage_heater();
+        manage_inactivity(true);
+        lcd_update(0);
+    }
+    KEEPALIVE_STATE(busy_state);
 }
 
 #define FIL_LOAD_LENGTH 60
