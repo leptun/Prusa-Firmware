@@ -202,10 +202,29 @@ enum class TestError : uint_least8_t
 
 static int  lcd_selftest_screen(testScreen screen, int _progress, int _progress_scale, bool _clear, int _delay);
 static void lcd_selftest_screen_step(int _row, int _col, int _state, const char *_name, const char *_indicator);
-static bool lcd_selftest_manual_fan_check(int _fan, bool check_opposite);
+static bool lcd_selftest_manual_fan_check(int _fan, bool check_opposite,
+	bool _default=false);
+
 #ifdef FANCHECK
-static bool lcd_selftest_fan_dialog(int _fan);
+/** Enumerate for lcd_selftest_fan_auto function.
+ */
+enum class FanCheck : uint_least8_t {
+    success,
+    printFan = TestError::printFan,
+    extruderFan = TestError::extruderFan,
+    swappedFan = TestError::swappedFan,
+};
+
+/**
+ * Try to check fan working and wiring.
+ *
+ * @param _fan i fan number 0 means extruder fan, 1 means print fan.
+ *
+ * @returns a TestError noerror, extruderFan, printFan or swappedFan.
+ */
+static FanCheck lcd_selftest_fan_auto(int _fan);
 #endif //FANCHECK
+
 #ifdef PAT9125
 static bool lcd_selftest_fsensor();
 #endif //PAT9125
@@ -3060,7 +3079,7 @@ static void _lcd_move(const char *name, int axis, int min, int max)
 	if (lcd_draw_update)
 	{
 	    lcd_set_cursor(0, 1);
-		menu_draw_float31(' ', name, current_position[axis]);
+		menu_draw_float31(name, current_position[axis]);
 	}
 	if (menu_leaving || LCD_CLICKED) (void)enable_endstops(_md->endstopsEnabledPrevious);
 	if (LCD_CLICKED) menu_back();
@@ -3085,7 +3104,9 @@ static void lcd_move_e()
 		if (lcd_draw_update)
 		{
 		    lcd_set_cursor(0, 1);
-			menu_draw_float31(' ', PSTR("Extruder"), current_position[E_AXIS]);
+			// Note: the colon behind the text is necessary to greatly shorten
+			// the implementation of menu_draw_float31
+			menu_draw_float31(PSTR("Extruder:"), current_position[E_AXIS]);
 		}
 		if (LCD_CLICKED) menu_back();
 	}
@@ -3205,14 +3226,16 @@ void EEPROM_read_B(int pos, int* value)
 }
 
 
+// Note: the colon behind the text (X, Y, Z) is necessary to greatly shorten
+// the implementation of menu_draw_float31
 static void lcd_move_x() {
-  _lcd_move(PSTR("X"), X_AXIS, X_MIN_POS, X_MAX_POS);
+  _lcd_move(PSTR("X:"), X_AXIS, X_MIN_POS, X_MAX_POS);
 }
 static void lcd_move_y() {
-  _lcd_move(PSTR("Y"), Y_AXIS, Y_MIN_POS, Y_MAX_POS);
+  _lcd_move(PSTR("Y:"), Y_AXIS, Y_MIN_POS, Y_MAX_POS);
 }
 static void lcd_move_z() {
-  _lcd_move(PSTR("Z"), Z_AXIS, Z_MIN_POS, Z_MAX_POS);
+  _lcd_move(PSTR("Z:"), Z_AXIS, Z_MIN_POS, Z_MAX_POS);
 }
 
 
@@ -3285,7 +3308,7 @@ static void _lcd_babystep(int axis, const char *msg)
 	if (lcd_draw_update)
 	{
 	    lcd_set_cursor(0, 1);
-		menu_draw_float13(' ', msg, _md->babystepMemMM[axis]);
+		menu_draw_float13(msg, _md->babystepMemMM[axis]);
 	}
 	if (LCD_CLICKED || menu_leaving)
 	{
@@ -3301,7 +3324,7 @@ static void _lcd_babystep(int axis, const char *msg)
 
 static void lcd_babystep_z()
 {
-	_lcd_babystep(Z_AXIS, (_i("Adjusting Z")));////MSG_BABYSTEPPING_Z c=20
+	_lcd_babystep(Z_AXIS, (_i("Adjusting Z:")));////MSG_BABYSTEPPING_Z c=15 Beware: must include the ':' as its last character
 }
 
 
@@ -5923,54 +5946,48 @@ static void lcd_disable_farm_mode()
 
 static void fil_load_menu()
 {
-	MENU_BEGIN();
-	MENU_ITEM_BACK_P(_T(MSG_MAIN));
-	MENU_ITEM_FUNCTION_P(_i("Load all"), load_all);////MSG_LOAD_ALL c=17
-	MENU_ITEM_FUNCTION_P(_i("Load filament 1"), extr_adj_0);////MSG_LOAD_FILAMENT_1 c=17
-	MENU_ITEM_FUNCTION_P(_i("Load filament 2"), extr_adj_1);////MSG_LOAD_FILAMENT_2 c=17
-	MENU_ITEM_FUNCTION_P(_i("Load filament 3"), extr_adj_2);////MSG_LOAD_FILAMENT_3 c=17
-	MENU_ITEM_FUNCTION_P(_i("Load filament 4"), extr_adj_3);////MSG_LOAD_FILAMENT_4 c=17
+    MENU_BEGIN();
+    MENU_ITEM_BACK_P(_T(MSG_MAIN));
+    MENU_ITEM_FUNCTION_P(_i("Load all"), load_all); ////MSG_LOAD_ALL c=17
+    MENU_ITEM_FUNCTION_NR_P(_T(MSG_LOAD_FILAMENT), '1', extr_adj, 0); ////MSG_LOAD_FILAMENT_1 c=16
+    MENU_ITEM_FUNCTION_NR_P(_T(MSG_LOAD_FILAMENT), '2', extr_adj, 1); ////MSG_LOAD_FILAMENT_2 c=17
+    MENU_ITEM_FUNCTION_NR_P(_T(MSG_LOAD_FILAMENT), '3', extr_adj, 2); ////MSG_LOAD_FILAMENT_3 c=17
+    MENU_ITEM_FUNCTION_NR_P(_T(MSG_LOAD_FILAMENT), '4', extr_adj, 3); ////MSG_LOAD_FILAMENT_4 c=17
 
-	if (mmu_enabled)
-		MENU_ITEM_FUNCTION_P(_i("Load filament 5"), extr_adj_4);
-
-	MENU_END();
-}
-
-template <uint8_t filament>
-static void mmu_load_to_nozzle()
-{
-    menu_back();
-    lcd_mmu_load_to_nozzle(filament);
+    if (mmu_enabled)
+    {
+        MENU_ITEM_FUNCTION_NR_P(_T(MSG_LOAD_FILAMENT), '5', extr_adj, 3);
+    }
+    MENU_END();
 }
 
 static void mmu_load_to_nozzle_menu()
 {
-if(bFilamentAction)
-{
-	MENU_BEGIN();
-	MENU_ITEM_BACK_P(_T(MSG_MAIN));
-	MENU_ITEM_FUNCTION_P(_i("Load filament 1"), mmu_load_to_nozzle<0>);
-	MENU_ITEM_FUNCTION_P(_i("Load filament 2"), mmu_load_to_nozzle<1>);
-	MENU_ITEM_FUNCTION_P(_i("Load filament 3"), mmu_load_to_nozzle<2>);
-	MENU_ITEM_FUNCTION_P(_i("Load filament 4"), mmu_load_to_nozzle<3>);
-	MENU_ITEM_FUNCTION_P(_i("Load filament 5"), mmu_load_to_nozzle<4>);
-	MENU_END();
-}
-else {
-     eFilamentAction=e_FILAMENT_ACTION_mmuLoad;
-     bFilamentFirstRun=false;
-     if(target_temperature[0]>=EXTRUDE_MINTEMP)
-          {
-          bFilamentPreheatState=true;
-          mFilamentItem(target_temperature[0],target_temperature_bed);
-          }
-     else mFilamentMenu();
-     }
+    if (bFilamentAction)
+    {
+        MENU_BEGIN();
+        MENU_ITEM_BACK_P(_T(MSG_MAIN));
+        MENU_ITEM_FUNCTION_NR_P(_T(MSG_LOAD_FILAMENT), '1', lcd_mmu_load_to_nozzle, 0);
+        MENU_ITEM_FUNCTION_NR_P(_T(MSG_LOAD_FILAMENT), '2', lcd_mmu_load_to_nozzle, 1);
+        MENU_ITEM_FUNCTION_NR_P(_T(MSG_LOAD_FILAMENT), '3', lcd_mmu_load_to_nozzle, 2);
+        MENU_ITEM_FUNCTION_NR_P(_T(MSG_LOAD_FILAMENT), '4', lcd_mmu_load_to_nozzle, 3);
+        MENU_ITEM_FUNCTION_NR_P(_T(MSG_LOAD_FILAMENT), '5', lcd_mmu_load_to_nozzle, 4);
+        MENU_END();
+    }
+    else
+    {
+        eFilamentAction = e_FILAMENT_ACTION_mmuLoad;
+        bFilamentFirstRun = false;
+        if (target_temperature[0] >= EXTRUDE_MINTEMP)
+        {
+            bFilamentPreheatState = true;
+            mFilamentItem(target_temperature[0], target_temperature_bed);
+        }
+        else mFilamentMenu();
+    }
 }
 
-template <uint8_t filament>
-static void mmu_eject_filament()
+static void mmu_eject_filament(uint8_t filament)
 {
     menu_back();
     mmu_eject_filament(filament, true);
@@ -5978,20 +5995,48 @@ static void mmu_eject_filament()
 
 static void mmu_fil_eject_menu()
 {
-    if(bFilamentAction)
+    if (bFilamentAction)
     {
         MENU_BEGIN();
         MENU_ITEM_BACK_P(_T(MSG_MAIN));
-        MENU_ITEM_FUNCTION_P(_i("Eject filament 1"), mmu_eject_filament<0>);
-        MENU_ITEM_FUNCTION_P(_i("Eject filament 2"), mmu_eject_filament<1>);
-        MENU_ITEM_FUNCTION_P(_i("Eject filament 3"), mmu_eject_filament<2>);
-        MENU_ITEM_FUNCTION_P(_i("Eject filament 4"), mmu_eject_filament<3>);
-        MENU_ITEM_FUNCTION_P(_i("Eject filament 5"), mmu_eject_filament<4>);
+        MENU_ITEM_FUNCTION_NR_P(_T(MSG_EJECT_FILAMENT), '1', mmu_eject_filament, 0);
+        MENU_ITEM_FUNCTION_NR_P(_T(MSG_EJECT_FILAMENT), '2', mmu_eject_filament, 1);
+        MENU_ITEM_FUNCTION_NR_P(_T(MSG_EJECT_FILAMENT), '3', mmu_eject_filament, 2);
+        MENU_ITEM_FUNCTION_NR_P(_T(MSG_EJECT_FILAMENT), '4', mmu_eject_filament, 3);
+        MENU_ITEM_FUNCTION_NR_P(_T(MSG_EJECT_FILAMENT), '5', mmu_eject_filament, 4);
         MENU_END();
     }
     else
     {
-        eFilamentAction=e_FILAMENT_ACTION_mmuEject;
+        eFilamentAction = e_FILAMENT_ACTION_mmuEject;
+        bFilamentFirstRun = false;
+        if (target_temperature[0] >= EXTRUDE_MINTEMP)
+        {
+            bFilamentPreheatState = true;
+            mFilamentItem(target_temperature[0], target_temperature_bed);
+        }
+        else mFilamentMenu();
+    }
+}
+
+#ifdef MMU_HAS_CUTTER
+
+static void mmu_cut_filament_menu()
+{
+    if(bFilamentAction)
+    {
+        MENU_BEGIN();
+        MENU_ITEM_BACK_P(_T(MSG_MAIN));
+        MENU_ITEM_FUNCTION_NR_P(_T(MSG_EJECT_FILAMENT), '1', mmu_cut_filament, 0);
+        MENU_ITEM_FUNCTION_NR_P(_T(MSG_EJECT_FILAMENT), '2', mmu_cut_filament, 1);
+        MENU_ITEM_FUNCTION_NR_P(_T(MSG_EJECT_FILAMENT), '3', mmu_cut_filament, 2);
+        MENU_ITEM_FUNCTION_NR_P(_T(MSG_EJECT_FILAMENT), '4', mmu_cut_filament, 3);
+        MENU_ITEM_FUNCTION_NR_P(_T(MSG_EJECT_FILAMENT), '5', mmu_cut_filament, 4);
+        MENU_END();
+    }
+    else
+    {
+        eFilamentAction=e_FILAMENT_ACTION_mmuCut;
         bFilamentFirstRun=false;
         if(target_temperature[0]>=EXTRUDE_MINTEMP)
         {
@@ -6000,39 +6045,6 @@ static void mmu_fil_eject_menu()
         }
         else mFilamentMenu();
     }
-}
-
-#ifdef MMU_HAS_CUTTER
-template <uint8_t filament>
-static void mmu_cut_filament()
-{
-    menu_back();
-    mmu_cut_filament(filament);
-}
-
-static void mmu_cut_filament_menu()
-{
-if(bFilamentAction)
-{
-    MENU_BEGIN();
-    MENU_ITEM_BACK_P(_T(MSG_MAIN));
-    MENU_ITEM_FUNCTION_P(_i("Cut filament 1"), mmu_cut_filament<0>);
-    MENU_ITEM_FUNCTION_P(_i("Cut filament 2"), mmu_cut_filament<1>);
-    MENU_ITEM_FUNCTION_P(_i("Cut filament 3"), mmu_cut_filament<2>);
-    MENU_ITEM_FUNCTION_P(_i("Cut filament 4"), mmu_cut_filament<3>);
-    MENU_ITEM_FUNCTION_P(_i("Cut filament 5"), mmu_cut_filament<4>);
-    MENU_END();
-}
-else {
-     eFilamentAction=e_FILAMENT_ACTION_mmuCut;
-     bFilamentFirstRun=false;
-     if(target_temperature[0]>=EXTRUDE_MINTEMP)
-          {
-          bFilamentPreheatState=true;
-          mFilamentItem(target_temperature[0],target_temperature_bed);
-          }
-     else mFilamentMenu();
-     }
 }
 #endif //MMU_HAS_CUTTER
 
@@ -6923,6 +6935,7 @@ bool lcd_selftest()
 {
 	int _progress = 0;
 	bool _result = true;
+	bool _swapped_fan = false;
 	lcd_wait_for_cool_down();
 	lcd_clear();
 	lcd_set_cursor(0, 0); lcd_puts_P(_i("Self test start  "));////MSG_SELFTEST_START c=20
@@ -6934,29 +6947,63 @@ bool lcd_selftest()
 
 	_progress = lcd_selftest_screen(testScreen::extruderFan, _progress, 3, true, 2000);
 #if (defined(FANCHECK) && defined(TACH_0))
-	_result = lcd_selftest_fan_dialog(0);
+	switch (lcd_selftest_fan_auto(0)){		// check extruder Fan
+		case FanCheck::extruderFan:
+			_result = false;
+			break;
+		case FanCheck::swappedFan:
+			_swapped_fan = true;
+			// no break
+		default:
+			_result = true;
+			break;
+	}
 #else //defined(TACH_0)
 	_result = lcd_selftest_manual_fan_check(0, false);
+#endif //defined(TACH_0)
 	if (!_result)
 	{
 		lcd_selftest_error(TestError::extruderFan, "", "");
 	}
-#endif //defined(TACH_0)
-	
 
 	if (_result)
 	{
 		_progress = lcd_selftest_screen(testScreen::printFan, _progress, 3, true, 2000);
-#if (defined(FANCHECK) && defined(TACH_1)) 		
-		_result = lcd_selftest_fan_dialog(1);
+#if (defined(FANCHECK) && defined(TACH_1))
+	switch (lcd_selftest_fan_auto(1)){		// check print fan
+		case FanCheck::printFan:
+			_result = false;
+			break;
+		case FanCheck::swappedFan:
+			_swapped_fan = true;
+			// no break
+		default:
+			_result = true;
+			break;
+	}
 #else //defined(TACH_1)
 		_result = lcd_selftest_manual_fan_check(1, false);
+#endif //defined(TACH_1)
 		if (!_result)
-		{			
+		{
 			lcd_selftest_error(TestError::printFan, "", ""); //print fan not spinning
 		}
+	}
 
-#endif //defined(TACH_1)
+	if (_swapped_fan) {
+		//turn on print fan and check that left extruder fan is not spinning
+		_result = lcd_selftest_manual_fan_check(1, true);
+		if (_result) {
+			//print fan is stil turned on; check that it is spinning
+			_result = lcd_selftest_manual_fan_check(1, false, true);
+			if (!_result){
+				lcd_selftest_error(TestError::printFan, "", "");
+			}
+		}
+		else {
+			// fans are swapped
+			lcd_selftest_error(TestError::swappedFan, "", "");
+		}
 	}
 
 	if (_result)
@@ -7729,19 +7776,20 @@ static bool selftest_irsensor()
 }
 #endif //FILAMENT_SENSOR
 
-static bool lcd_selftest_manual_fan_check(int _fan, bool check_opposite)
+static bool lcd_selftest_manual_fan_check(int _fan, bool check_opposite,
+	bool _default)
 {
 
 	bool _result = check_opposite;
 	lcd_clear();
 
 	lcd_set_cursor(0, 0); lcd_puts_P(_T(MSG_SELFTEST_FAN));
-	
+
 	switch (_fan)
 	{
 	case 0:
 		// extruder cooling fan
-		lcd_set_cursor(0, 1); 
+		lcd_set_cursor(0, 1);
 		if(check_opposite == true) lcd_puts_P(_T(MSG_SELFTEST_COOLING_FAN)); 
 		else lcd_puts_P(_T(MSG_SELFTEST_EXTRUDER_FAN));
 		SET_OUTPUT(EXTRUDER_0_AUTO_FAN_PIN);
@@ -7767,10 +7815,11 @@ static bool lcd_selftest_manual_fan_check(int _fan, bool check_opposite)
 	lcd_set_cursor(0, 3); lcd_print(">");
 	lcd_set_cursor(1, 3); lcd_puts_P(_T(MSG_SELFTEST_FAN_NO));
 
-	int8_t enc_dif = 0;
+	int8_t enc_dif = int(_default)*3;
+
 	KEEPALIVE_STATE(PAUSED_FOR_USER);
 
-	lcd_button_pressed = false; 
+	lcd_button_pressed = false;
 	do
 	{
 		switch (_fan)
@@ -7790,7 +7839,6 @@ static bool lcd_selftest_manual_fan_check(int _fan, bool check_opposite)
 #endif //FAN_SOFT_PWM
 			break;
 		}
-
 		if (abs((enc_dif - lcd_encoder_diff)) > 2) {
 			if (enc_dif > lcd_encoder_diff) {
 				_result = !check_opposite;
@@ -7829,14 +7877,11 @@ static bool lcd_selftest_manual_fan_check(int _fan, bool check_opposite)
 	manage_heater();
 
 	return _result;
-
 }
 
 #ifdef FANCHECK
-static bool lcd_selftest_fan_dialog(int _fan)
+static FanCheck lcd_selftest_fan_auto(int _fan)
 {
-	bool _result = true;
-	TestError testError = TestError::extruderFan;
 	switch (_fan) {
 	case 0:
 		fanSpeed = 0;
@@ -7849,23 +7894,26 @@ static bool lcd_selftest_fan_dialog(int _fan)
 		_delay(2000);				//delay_keep_alive would turn off extruder fan, because temerature is too low
 
 		manage_heater();			//count average fan speed from 2s delay and turn off fans
-		if (!fan_speed[0]) _result = false;
 
-		
 		printf_P(PSTR("Test 1:\n"));
 		printf_P(PSTR("Print fan speed: %d \n"), fan_speed[1]);
 		printf_P(PSTR("Extr fan speed: %d \n"), fan_speed[0]);
-		//SERIAL_ECHOPGM("Extruder fan speed: ");
-		//MYSERIAL.println(fan_speed[0]);
-		//SERIAL_ECHOPGM("Print fan speed: ");
-		//MYSERIAL.print(fan_speed[1]);
+
+		if (!fan_speed[0]) {
+			return FanCheck::extruderFan;
+		}
+#ifdef FAN_SOFT_PWM
+		else if (fan_speed[0] > 50 ) { // printerFan is faster
+			return FanCheck::swappedFan;
+		}
 		break;
+#endif
 
 	case 1:
 		//will it work with Thotend > 50 C ?
-#ifdef FAN_SOFT_PWM		
-		fanSpeed = 255;	
-		fanSpeedSoftPwm = 255;	
+#ifdef FAN_SOFT_PWM
+		fanSpeed = 255;
+		fanSpeedSoftPwm = 255;
 		extruder_autofan_last_check = _millis(); //store time when measurement starts
 		fan_measuring = true; //start fan measuring, rest is on manage_heater
 #else //FAN_SOFT_PWM
@@ -7879,11 +7927,11 @@ static bool lcd_selftest_fan_dialog(int _fan)
 			lcd_set_cursor(18, 3);
 			lcd_print("|");
 		}
+		fanSpeed = 0;
+
 #ifdef FAN_SOFT_PWM
-		fanSpeed = 0;
-		fanSpeedSoftPwm = 0;	
+		fanSpeedSoftPwm = 0;
 #else //FAN_SOFT_PWM
-		fanSpeed = 0;
 		manage_heater();			//turn off fan
 		manage_inactivity(true);	//to turn off print fan
 #endif //FAN_SOFT_PWM
@@ -7891,35 +7939,37 @@ static bool lcd_selftest_fan_dialog(int _fan)
 		printf_P(PSTR("Print fan speed: %d \n"), fan_speed[1]);
 		printf_P(PSTR("Extr fan speed: %d \n"), fan_speed[0]);
 		if (!fan_speed[1]) {
-			_result = false; testError = TestError::printFan;
-		}
-#ifdef FAN_SOFT_PWM 
-		else {
-#else //FAN_SOFT_PWM
-		else if (fan_speed[1] < 34) { //fan is spinning, but measured RPM are too low for print fan, it must be left extruder fan
-#endif //FAN_SOFT_PWM
-			//check fans manually
-			_result = lcd_selftest_manual_fan_check(1, true); //turn on print fan and check that left extruder fan is not spinning
-			if (_result) {
-				_result = lcd_selftest_manual_fan_check(1, false); //print fan is stil turned on; check that it is spinning
-				if (!_result) testError = TestError::printFan;
-			}
-			else {
-			    testError = TestError::swappedFan;
-			}
+			return FanCheck::printFan;
 		}
 
-		//SERIAL_ECHOPGM("Extruder fan speed: ");
-		//MYSERIAL.println(fan_speed[0]);
-		//SERIAL_ECHOPGM("Print fan speed: ");
-		//MYSERIAL.println(fan_speed[1]);
+#ifdef FAN_SOFT_PWM
+		fanSpeed = 80;
+		fanSpeedSoftPwm = 80;
+
+		for (uint8_t i = 0; i < 5; i++) {
+			delay_keep_alive(1000);
+			lcd_set_cursor(18, 3);
+			lcd_print("-");
+			delay_keep_alive(1000);
+			lcd_set_cursor(18, 3);
+			lcd_print("|");
+		}
+		fanSpeed = 0;
+
+		// noctua speed is between 17 and 24, turbine more then 30
+		if (fan_speed[1] < 30) {
+			return FanCheck::swappedFan;
+		}
+#else
+		// fan is spinning, but measured RPM are too low for print fan, it must
+		// be left extruder fan
+		else if (fan_speed[1] < 34) {
+			return FanCheck::swappedFan;
+		}
+#endif //FAN_SOFT_PWM
 		break;
 	}
-	if (!_result)
-	{
-		lcd_selftest_error(testError, "", "");
-	}
-	return _result;
+	return FanCheck::success;
 }
 
 #endif //FANCHECK

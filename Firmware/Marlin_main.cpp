@@ -865,23 +865,23 @@ void show_fw_version_warnings() {
 	lcd_update_enable(true);
 }
 
-//try to check if firmware is on right type of printer 
-void check_if_fw_is_on_right_printer(){
-  #ifdef FILAMENT_SENSOR
-    swi2c_init();
-    uint8_t pat9125_detected = swi2c_readByte_A8(PAT9125_I2C_ADDR,0x00,NULL);
-    uint8_t ir_detected = !(PIN_GET(IR_SENSOR_PIN)); //will return 1 only if IR can detect filament in bondtech extruder so this may fail even when we have IR sensor
-  
+//! @brief try to check if firmware is on right type of printer
+static void check_if_fw_is_on_right_printer(){
+#ifdef FILAMENT_SENSOR
     #ifdef IR_SENSOR
+    swi2c_init();
+    const uint8_t pat9125_detected = swi2c_readByte_A8(PAT9125_I2C_ADDR,0x00,NULL);
       if (pat9125_detected){
         lcd_show_fullscreen_message_and_wait_P(_i("MK3S firmware detected on MK3 printer"));}
-    #endif
+    #endif //IR_SENSOR
 
     #ifdef PAT9125
+      //will return 1 only if IR can detect filament in bondtech extruder so this may fail even when we have IR sensor
+      const uint8_t ir_detected = !(PIN_GET(IR_SENSOR_PIN));
       if (ir_detected){
         lcd_show_fullscreen_message_and_wait_P(_i("MK3 firmware detected on MK3S printer"));}
-    #endif
-  #endif
+    #endif //PAT9125
+#endif //FILAMENT_SENSOR
 }
 
 uint8_t check_printer_version()
@@ -1284,18 +1284,10 @@ void setup()
 #endif //TMC2130_LINEARITY_CORRECTION
 
 #ifdef TMC2130_VARIABLE_RESOLUTION
-	tmc2130_mres[X_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_X_MRES);
-	tmc2130_mres[Y_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_Y_MRES);
-	tmc2130_mres[Z_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_Z_MRES);
-	tmc2130_mres[E_AXIS] = eeprom_read_byte((uint8_t*)EEPROM_TMC2130_E_MRES);
-	if (tmc2130_mres[X_AXIS] == 0xff) tmc2130_mres[X_AXIS] = tmc2130_usteps2mres(TMC2130_USTEPS_XY);
-	if (tmc2130_mres[Y_AXIS] == 0xff) tmc2130_mres[Y_AXIS] = tmc2130_usteps2mres(TMC2130_USTEPS_XY);
-	if (tmc2130_mres[Z_AXIS] == 0xff) tmc2130_mres[Z_AXIS] = tmc2130_usteps2mres(TMC2130_USTEPS_Z);
-	if (tmc2130_mres[E_AXIS] == 0xff) tmc2130_mres[E_AXIS] = tmc2130_usteps2mres(TMC2130_USTEPS_E);
-	eeprom_update_byte((uint8_t*)EEPROM_TMC2130_X_MRES, tmc2130_mres[X_AXIS]);
-	eeprom_update_byte((uint8_t*)EEPROM_TMC2130_Y_MRES, tmc2130_mres[Y_AXIS]);
-	eeprom_update_byte((uint8_t*)EEPROM_TMC2130_Z_MRES, tmc2130_mres[Z_AXIS]);
-	eeprom_update_byte((uint8_t*)EEPROM_TMC2130_E_MRES, tmc2130_mres[E_AXIS]);
+	tmc2130_mres[X_AXIS] = tmc2130_usteps2mres(cs.axis_ustep_resolution[X_AXIS]);
+	tmc2130_mres[Y_AXIS] = tmc2130_usteps2mres(cs.axis_ustep_resolution[Y_AXIS]);
+	tmc2130_mres[Z_AXIS] = tmc2130_usteps2mres(cs.axis_ustep_resolution[Z_AXIS]);
+	tmc2130_mres[E_AXIS] = tmc2130_usteps2mres(cs.axis_ustep_resolution[E_AXIS]);
 #else //TMC2130_VARIABLE_RESOLUTION
 	tmc2130_mres[X_AXIS] = tmc2130_usteps2mres(TMC2130_USTEPS_XY);
 	tmc2130_mres[Y_AXIS] = tmc2130_usteps2mres(TMC2130_USTEPS_XY);
@@ -3143,7 +3135,14 @@ static void gcode_M600(bool automatic, float x_position, float y_position, float
 }
 
 
-
+//! @brief Rise Z if too low to avoid blob/jam before filament loading
+//!
+//! It doesn't plan_buffer_line(), as it expects plan_buffer_line() to be called after
+//! during extruding (loading) filament.
+void marlin_rise_z(void)
+{
+    if (current_position[Z_AXIS] < 20) current_position[Z_AXIS] += 30;
+}
 
 void gcode_M701()
 {
@@ -3168,7 +3167,7 @@ void gcode_M701()
 		plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS], 400 / 60, active_extruder); //fast sequence
 		st_synchronize();
 
-		if (current_position[Z_AXIS] < 20) current_position[Z_AXIS] += 30;
+		marlin_rise_z();
 		current_position[E_AXIS] += 30;
 		plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS], 400 / 60, active_extruder); //fast sequence
 		
@@ -6918,6 +6917,7 @@ if((eSoundMode==e_SOUND_MODE_LOUD)||(eSoundMode==e_SOUND_MODE_ONCE))
 				uint8_t axis = E_AXIS;
 				uint16_t res = tmc2130_get_res(axis);
 				tmc2130_set_res(axis, res_new);
+				cs.axis_ustep_resolution[axis] = res_new;
 				if (res_new > res)
 				{
 					uint16_t fac = (res_new / res);
@@ -9659,7 +9659,7 @@ void marlin_wait_for_click()
         manage_inactivity(true);
         lcd_update(0);
     }
-    KEEPALIVE_STATE(busy_state);
+    KEEPALIVE_STATE(busy_state_backup);
 }
 
 #define FIL_LOAD_LENGTH 60
