@@ -867,7 +867,7 @@ void show_fw_version_warnings() {
 
 //! @brief try to check if firmware is on right type of printer
 static void check_if_fw_is_on_right_printer(){
-#ifdef FILAMENT_SENSOR
+#if (defined(FILAMENT_SENSOR) && !defined(GHETTO_TMC))
     #ifdef IR_SENSOR
     swi2c_init();
     const uint8_t pat9125_detected = swi2c_readByte_A8(PAT9125_I2C_ADDR,0x00,NULL);
