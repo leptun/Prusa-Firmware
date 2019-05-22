@@ -255,7 +255,7 @@
 #define TMC2130_TCOOLTHRS_E 500       // TCOOLTHRS - coolstep treshold
 
 #define TMC2130_SG_HOMING       1     // stallguard homing
-#define TMC2130_SG_THRS_X       42     // stallguard sensitivity for X axis
+#define TMC2130_SG_THRS_X       32     // stallguard sensitivity for X axis
 #define TMC2130_SG_THRS_Y       32     // stallguard sensitivity for Y axis
 #define TMC2130_SG_THRS_Z       8     // stallguard sensitivity for Z axis
 #define TMC2130_SG_THRS_E       3     // stallguard sensitivity for E axis
