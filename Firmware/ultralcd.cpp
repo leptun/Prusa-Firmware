@@ -555,10 +555,10 @@ static uint8_t menu_item_sdfile(const char*
 }
 
 // Print temperature (nozzle/bed) (9 chars total)
-void lcdui_print_temp(char type, int val_current, int val_target)
+void lcdui_print_temp(char type, float val_current, int val_target)
 {
-	int chars = lcd_printf_P(_N("%c%3d/%d%c"), type, val_current, val_target, LCD_STR_DEGREE[0]);
-	lcd_space(9 - chars);
+	int chars = lcd_printf_P(_N("%c%5.1f/%d%c"), type, val_current, val_target, LCD_STR_DEGREE[0]);
+	lcd_space(11 - chars);
 }
 
 // Print Z-coordinate (8 chars total)
@@ -869,8 +869,8 @@ void lcdui_print_status_line(void)
 void lcdui_print_status_screen(void)
 {
 //|01234567890123456789|
-//|N 000/000D  Z000.0  |
-//|B 000/000D  F100%   |
+//|N000.0/000D Z000.0  |
+//|B000.0/000D F100%   |
 //|USB100% T0  t--:--  |
 //|Status line.........|
 //----------------------
@@ -882,9 +882,9 @@ void lcdui_print_status_screen(void)
     lcd_set_cursor(0, 0); //line 0
 
     //Print the hotend temperature (9 chars total)
-	lcdui_print_temp(LCD_STR_THERMOMETER[0], (int)(degHotend(0) + 0.5), (int)(degTargetHotend(0) + 0.5));
+	lcdui_print_temp(LCD_STR_THERMOMETER[0], degHotend(0), (int)(degTargetHotend(0) + 0.5));
 
-	lcd_space(3); //3 spaces
+	lcd_space(1); //1 spaces
 
     //Print Z-coordinate (8 chars total)
 	lcdui_print_Z_coord();
@@ -892,9 +892,9 @@ void lcdui_print_status_screen(void)
     lcd_set_cursor(0, 1); //line 1
 
 	//Print the Bed temperature (9 chars total)
-	lcdui_print_temp(LCD_STR_BEDTEMP[0], (int)(degBed() + 0.5), (int)(degTargetBed() + 0.5));
+	lcdui_print_temp(LCD_STR_BEDTEMP[0], degBed(), (int)(degTargetBed() + 0.5));
 
-	lcd_space(3); //3 spaces
+	lcd_space(1); //1 spaces
 
 #ifdef PLANNER_DIAGNOSTICS
 	//Print planner diagnostics (8 chars)
@@ -2374,7 +2374,7 @@ static void mFilamentPrompt()
 uint8_t nLevel;
 
 lcd_set_cursor(0,0);
-lcdui_print_temp(LCD_STR_THERMOMETER[0],(int)degHotend(0),(int)degTargetHotend(0));
+lcdui_print_temp(LCD_STR_THERMOMETER[0],degHotend(0),(int)degTargetHotend(0));
 lcd_set_cursor(0,2);
 lcd_puts_P(_i("Press the knob"));                 ////MSG_ c=20 r=1
 lcd_set_cursor(0,3);
@@ -2439,7 +2439,7 @@ setTargetHotend0((float)nTemp);
 setTargetBed((float)nTempBed);
 lcd_timeoutToStatus.stop();
 lcd_set_cursor(0,0);
-lcdui_print_temp(LCD_STR_THERMOMETER[0],(int)degHotend(0),(int)degTargetHotend(0));
+lcdui_print_temp(LCD_STR_THERMOMETER[0],degHotend(0),(int)degTargetHotend(0));
 lcd_set_cursor(0,1);
 switch(eFilamentAction)
      {
@@ -2599,7 +2599,7 @@ if(current_temperature[0]>(target_temperature[0]*0.95))
 else {
      bFilamentWaitingFlag=true;
      lcd_set_cursor(0,0);
-     lcdui_print_temp(LCD_STR_THERMOMETER[0],(int)degHotend(0),(int)degTargetHotend(0));
+     lcdui_print_temp(LCD_STR_THERMOMETER[0],degHotend(0),(int)degTargetHotend(0));
      lcd_set_cursor(0,1);
      switch(eFilamentAction)
           {
@@ -4934,7 +4934,7 @@ static void wait_preheat()
 
         lcd_set_cursor(0, 4);
 	    //Print the hotend temperature (9 chars total)
-		lcdui_print_temp(LCD_STR_THERMOMETER[0], (int)(degHotend(0) + 0.5), (int)(degTargetHotend(0) + 0.5));
+		lcdui_print_temp(LCD_STR_THERMOMETER[0], degHotend(0), (int)(degTargetHotend(0) + 0.5));
         delay_keep_alive(1000);
     }
 	
