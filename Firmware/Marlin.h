@@ -124,7 +124,7 @@ FORCE_INLINE void serialprintPGM(const char *str)
 bool is_buffer_empty();
 void get_command();
 void process_commands();
-void raise_z_above(float target, bool plan=true);
+void ramming();
 
 void manage_inactivity(bool ignore_stepper_queue=false);
 
@@ -505,3 +505,4 @@ void M600_wait_for_user(float HotendTempBckp);
 void M600_check_state(float nozzle_temp);
 void load_filament_final_feed();
 void marlin_wait_for_click();
+void marlin_rise_z(void);
