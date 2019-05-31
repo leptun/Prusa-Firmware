@@ -11,6 +11,9 @@
 #define FILAMENT_SIZE "1_75mm_MK3"
 #define NOZZLE_TYPE "E3Dv6full"
 
+// Custom Firmware by leptun flag
+#define MKP
+
 // Developer flag
 #define DEVELOPER
 
