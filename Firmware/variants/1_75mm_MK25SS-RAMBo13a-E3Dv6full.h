@@ -247,10 +247,10 @@
 #define TMC2130_TPWMTHRS  0         // TPWMTHRS - Sets the switching speed threshold based on TSTEP from stealthChop to spreadCycle mode
 #define TMC2130_THIGH     0         // THIGH - unused
 
-#define TMC2130_TCOOLTHRS_X 450       // TCOOLTHRS - coolstep treshold
-#define TMC2130_TCOOLTHRS_Y 450       // TCOOLTHRS - coolstep treshold
-//#define TMC2130_TCOOLTHRS_X 430       // TCOOLTHRS - coolstep treshold
-//#define TMC2130_TCOOLTHRS_Y 430       // TCOOLTHRS - coolstep treshold
+//#define TMC2130_TCOOLTHRS_X 450       // TCOOLTHRS - coolstep treshold
+//#define TMC2130_TCOOLTHRS_Y 450       // TCOOLTHRS - coolstep treshold
+#define TMC2130_TCOOLTHRS_X 430       // TCOOLTHRS - coolstep treshold
+#define TMC2130_TCOOLTHRS_Y 430       // TCOOLTHRS - coolstep treshold
 #define TMC2130_TCOOLTHRS_Z 500       // TCOOLTHRS - coolstep treshold
 #define TMC2130_TCOOLTHRS_E 500       // TCOOLTHRS - coolstep treshold
 
@@ -261,8 +261,8 @@
 #define TMC2130_SG_THRS_E       3     // stallguard sensitivity for E axis
 
 //new settings is possible for vsense = 1, running current value > 31 set vsense to zero and shift both currents by 1 bit right (Z axis only)
-#define TMC2130_CURRENTS_H {16, 20, 35, 30}  // default holding currents for all axes
-#define TMC2130_CURRENTS_R {16, 20, 35, 30}  // default running currents for all axes
+#define TMC2130_CURRENTS_H {20, 20, 35, 30}  // default holding currents for all axes
+#define TMC2130_CURRENTS_R {20, 20, 35, 30}  // default running currents for all axes
 #define TMC2130_UNLOAD_CURRENT_R 12			 // lowe current for M600 to protect filament sensor 
 
 #define TMC2130_STEALTH_Z
