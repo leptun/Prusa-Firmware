@@ -23,6 +23,7 @@
 // Electronics
 #define MOTHERBOARD BOARD_RAMBO_MINI_1_3
 #define GHETTO_TMC
+#define BRICKED_Z
 
 #define HEATBED_V2
 #define STEEL_SHEET

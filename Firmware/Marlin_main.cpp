@@ -2693,6 +2693,9 @@ static void gcode_G28(bool home_x_axis, long home_x_value, bool home_y_axis, lon
               current_position[Y_AXIS] = destination[Y_AXIS];
               enable_endstops(true);
               endstops_hit_on_purpose();
+#ifdef BRICKED_Z
+			  if (!axis_known_position[Z_AXIS]) calibrate_z_auto();
+#endif
               homeaxis(Z_AXIS);
             #else // MESH_BED_LEVELING
               homeaxis(Z_AXIS);
