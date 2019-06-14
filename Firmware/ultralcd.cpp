@@ -1690,6 +1690,7 @@ void lcd_preheat_pla()
   fanSpeed = 0;
   lcd_return_to_status();
   setWatch(); // heater sanity check timer
+  raise_z_above(MIN_Z_FOR_PREHEAT);
   if (wizard_active) lcd_wizard(WizState::Unload);
 }
 
@@ -1700,6 +1701,7 @@ void lcd_preheat_abs()
   fanSpeed = 0;
   lcd_return_to_status();
   setWatch(); // heater sanity check timer
+  raise_z_above(MIN_Z_FOR_PREHEAT);
   if (wizard_active) lcd_wizard(WizState::Unload);
 }
 
@@ -1710,6 +1712,7 @@ void lcd_preheat_pp()
   fanSpeed = 0;
   lcd_return_to_status();
   setWatch(); // heater sanity check timer
+  raise_z_above(MIN_Z_FOR_PREHEAT);
   if (wizard_active) lcd_wizard(WizState::Unload);
 }
 
@@ -1720,6 +1723,7 @@ void lcd_preheat_pet()
   fanSpeed = 0;
   lcd_return_to_status();
   setWatch(); // heater sanity check timer
+  raise_z_above(MIN_Z_FOR_PREHEAT);
   if (wizard_active) lcd_wizard(WizState::Unload);
 }
 
@@ -1730,6 +1734,7 @@ void lcd_preheat_hips()
   fanSpeed = 0;
   lcd_return_to_status();
   setWatch(); // heater sanity check timer
+  raise_z_above(MIN_Z_FOR_PREHEAT);
   if (wizard_active) lcd_wizard(WizState::Unload);
 }
 
@@ -1740,6 +1745,7 @@ void lcd_preheat_flex()
   fanSpeed = 0;
   lcd_return_to_status();
   setWatch(); // heater sanity check timer
+  raise_z_above(MIN_Z_FOR_PREHEAT);
   if (wizard_active) lcd_wizard(WizState::Unload);
 }
 
@@ -6011,6 +6017,8 @@ void unload_filament()
 {
 	custom_message_type = CustomMsg::FilamentLoading;
 	lcd_setstatuspgm(_T(MSG_UNLOADING_FILAMENT));
+
+    raise_z_above(MIN_Z_FOR_UNLOAD);
 
 	//		extr_unload2();
 
