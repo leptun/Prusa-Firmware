@@ -8252,7 +8252,7 @@ uint8_t get_message_level()
 
 void menu_lcd_longpress_func(void)
 {
-    if (homing_flag || (lcd_commands_type == LCD_COMMAND_V2_CAL))
+    if (homing_flag || mesh_bed_leveling_flag)
     {
         // disable longpress while homing or calibration
         return;
