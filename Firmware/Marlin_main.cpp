@@ -1070,7 +1070,7 @@ void setup()
 	}
 	MYSERIAL.begin(BAUDRATE);
 	fdev_setup_stream(uartout, uart_putchar, NULL, _FDEV_SETUP_WRITE); //setup uart out stream
-#if (!defined(W25X20CL) || (defined(W25X20CL) && LANG_MODE == 0))
+#ifndef W25X20CL
 	SERIAL_PROTOCOLLNPGM("start");
 #endif //W25X20CL
 	stdout = uartout;
