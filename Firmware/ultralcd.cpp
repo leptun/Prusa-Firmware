@@ -988,6 +988,8 @@ static void lcd_status_screen()
 			{
 			case 8:
 				prusa_statistics(21);
+				if(loading_flag)
+					prusa_statistics(22);
 				break;
 			case 5:
 				if (IS_SD_PRINTING)
@@ -3970,7 +3972,7 @@ void prusa_statistics(int _message, uint8_t _fil_nr) {
 			SERIAL_ECHOLN("}");
 			status_number = 14;
 		}
-		else if (IS_SD_PRINTING)
+		else if (IS_SD_PRINTING || loading_flag)
 		{
 			SERIAL_ECHO("{");
 			prusa_stat_printerstatus(4);
@@ -4009,7 +4011,7 @@ void prusa_statistics(int _message, uint8_t _fil_nr) {
 		status_number = 3;
 		farm_timer = 1;
 
-		if (IS_SD_PRINTING)
+		if (IS_SD_PRINTING || loading_flag)
 		{
 			farm_status = 4;
 			SERIAL_ECHO("{");
