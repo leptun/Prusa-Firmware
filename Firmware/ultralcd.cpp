@@ -307,6 +307,7 @@ bool wait_for_unclick;
 #endif
 
 bool bMain;                                       // flag (i.e. 'fake parameter') for 'lcd_sdcard_menu()' function
+bool bSettings;                                   // flag (i.e. 'fake parameter') for 'lcd_hw_setup_menu()' function
 
 
 
@@ -1657,6 +1658,7 @@ void lcd_pause_print()
     {
         lcd_commands_type = LcdCommands::LongPause;
     }
+	SERIAL_PROTOCOLLNRPGM(MSG_OCTOPRINT_PAUSE); //pause for octoprint
 }
 
 
@@ -1776,8 +1778,8 @@ void lcd_menu_extruder_info()                     // NOT static due to using ins
 
 	lcd_timeoutToStatus.stop(); //infinite timeout
 
+	lcd_home();
 	lcd_printf_P(_N(
-	  ESC_H(0,0)
 	  "%S: %4d RPM\n"
 	  "%S:  %4d RPM\n"
 	 ),
@@ -1838,8 +1840,8 @@ static void lcd_menu_fails_stats_mmu_print()
 	lcd_timeoutToStatus.stop(); //infinite timeout
     uint8_t fails = eeprom_read_byte((uint8_t*)EEPROM_MMU_FAIL);
     uint16_t load_fails = eeprom_read_byte((uint8_t*)EEPROM_MMU_LOAD_FAIL);
-//	lcd_printf_P(PSTR(ESC_H(0,0) "Last print failures" ESC_H(1,1) "Power failures  %-3d" ESC_H(1,2) "Filam. runouts  %-3d" ESC_H(1,3) "Crash  X %-3d  Y %-3d"), power, filam, crashX, crashY);
-	lcd_printf_P(PSTR(ESC_H(0,0) "%S" ESC_H(1,1) "%S  %-3d" ESC_H(1,2) "%S  %-3d" ESC_H(1,3)), _i("Last print failures"), _i("MMU fails"), fails, _i("MMU load fails"), load_fails);
+	lcd_home();
+	lcd_printf_P(PSTR("%S\n" " %S  %-3d\n" " %S  %-3d"), _i("Last print failures"), _i("MMU fails"), fails, _i("MMU load fails"), load_fails);
 	menu_back_if_clicked_fb();
 }
 
@@ -1855,8 +1857,8 @@ static void lcd_menu_fails_stats_mmu_total()
 	lcd_timeoutToStatus.stop(); //infinite timeout
     uint8_t fails = eeprom_read_byte((uint8_t*)EEPROM_MMU_FAIL_TOT);
     uint16_t load_fails = eeprom_read_byte((uint8_t*)EEPROM_MMU_LOAD_FAIL_TOT);
-//	lcd_printf_P(PSTR(ESC_H(0,0) "Last print failures" ESC_H(1,1) "Power failures  %-3d" ESC_H(1,2) "Filam. runouts  %-3d" ESC_H(1,3) "Crash  X %-3d  Y %-3d"), power, filam, crashX, crashY);
-	lcd_printf_P(PSTR(ESC_H(0,0) "%S" ESC_H(1,1) "%S  %-3d" ESC_H(1,2) "%S  %-3d" ESC_H(1,3) "%S %-3d"), _i("Total failures"), _i("MMU fails"), fails, _i("MMU load fails"), load_fails, _i("MMU power fails"), mmu_power_failures);
+	lcd_home();
+	lcd_printf_P(PSTR("%S\n" " %S  %-3d\n" " %S  %-3d\n" " %S %-3d"), _i("Total failures"), _i("MMU fails"), fails, _i("MMU load fails"), load_fails, _i("MMU power fails"), mmu_power_failures);
 	menu_back_if_clicked_fb();
 }
 
@@ -1874,8 +1876,8 @@ static void lcd_menu_fails_stats_total()
     uint16_t filam = eeprom_read_word((uint16_t*)EEPROM_FERROR_COUNT_TOT);
     uint16_t crashX = eeprom_read_word((uint16_t*)EEPROM_CRASH_COUNT_X_TOT);
     uint16_t crashY = eeprom_read_word((uint16_t*)EEPROM_CRASH_COUNT_Y_TOT);
-//	lcd_printf_P(PSTR(ESC_H(0,0) "Total failures" ESC_H(1,1) "Power failures  %-3d" ESC_H(1,2) "Filam. runouts  %-3d" ESC_H(1,3) "Crash  X %-3d  Y %-3d"), power, filam, crashX, crashY);
-	lcd_printf_P(PSTR(ESC_H(0,0) "%S" ESC_H(1,1) "%S  %-3d" ESC_H(1,2) "%S  %-3d" ESC_H(1,3) "%S  X %-3d  Y %-3d"), _i("Total failures"), _i("Power failures"), power, _i("Filam. runouts"), filam, _i("Crash"), crashX, crashY);
+	lcd_home();
+	lcd_printf_P(PSTR("%S\n" " %S  %-3d\n" " %S  %-3d\n" " %S  X %-3d  Y %-3d"), _i("Total failures"), _i("Power failures"), power, _i("Filam. runouts"), filam, _i("Crash"), crashX, crashY);
 	menu_back_if_clicked_fb();
 }
 
@@ -1892,8 +1894,8 @@ static void lcd_menu_fails_stats_print()
     uint8_t filam = eeprom_read_byte((uint8_t*)EEPROM_FERROR_COUNT);
     uint8_t crashX = eeprom_read_byte((uint8_t*)EEPROM_CRASH_COUNT_X);
     uint8_t crashY = eeprom_read_byte((uint8_t*)EEPROM_CRASH_COUNT_Y);
-//	lcd_printf_P(PSTR(ESC_H(0,0) "Last print failures" ESC_H(1,1) "Power failures  %-3d" ESC_H(1,2) "Filam. runouts  %-3d" ESC_H(1,3) "Crash  X %-3d  Y %-3d"), power, filam, crashX, crashY);
-	lcd_printf_P(PSTR(ESC_H(0,0) "%S" ESC_H(1,1) "%S  %-3d" ESC_H(1,2) "%S  %-3d" ESC_H(1,3) "%S  X %-3d  Y %-3d"), _i("Last print failures"), _i("Power failures"), power, _i("Filam. runouts"), filam, _i("Crash"), crashX, crashY);
+	lcd_home();
+	lcd_printf_P(PSTR("%S\n" " %S  %-3d\n" " %S  %-3d\n" " %S  X %-3d  Y %-3d"), _i("Last print failures"), _i("Power failures"), power, _i("Filam. runouts"), filam, _i("Crash"), crashX, crashY);
 	menu_back_if_clicked_fb();
 }
 
@@ -1934,7 +1936,8 @@ static void lcd_menu_fails_stats()
 	lcd_timeoutToStatus.stop(); //infinite timeout
     uint8_t filamentLast = eeprom_read_byte((uint8_t*)EEPROM_FERROR_COUNT);
     uint16_t filamentTotal = eeprom_read_word((uint16_t*)EEPROM_FERROR_COUNT_TOT);
-    lcd_printf_P(PSTR(ESC_H(0,0) "Last print failures" ESC_H(1,1) "Filam. runouts  %-3d" ESC_H(0,2) "Total failures" ESC_H(1,3) "Filam. runouts  %-3d"), filamentLast, filamentTotal);
+	lcd_home();
+    lcd_printf_P(PSTR("Last print failures\n" " Filam. runouts  %-3d\n" "Total failures\n" " Filam. runouts  %-3d"), filamentLast, filamentTotal);
     menu_back_if_clicked();
 }
 #else
@@ -1958,7 +1961,8 @@ extern char* __malloc_heap_end;
 static void lcd_menu_debug()
 {
 #ifdef DEBUG_STACK_MONITOR
-	lcd_printf_P(PSTR(ESC_H(1,1) "RAM statistics" ESC_H(5,1) "SP_min: 0x%04x" ESC_H(1,2) "heap_start: 0x%04x" ESC_H(3,3) "heap_end: 0x%04x"), SP_min, __malloc_heap_start, __malloc_heap_end);
+	lcd_home();
+	lcd_printf_P(PSTR("RAM statistics\n" " SP_min: 0x%04x\n" " heap_start: 0x%04x\n" " heap_end: 0x%04x"), SP_min, __malloc_heap_start, __malloc_heap_end);
 #endif //DEBUG_STACK_MONITOR
 
 	menu_back_if_clicked_fb();
@@ -1968,12 +1972,13 @@ static void lcd_menu_debug()
 static void lcd_menu_temperatures()
 {
 	lcd_timeoutToStatus.stop(); //infinite timeout
-
-	lcd_printf_P(PSTR(ESC_H(1,0) "%S:   %d%c" ESC_H(1,1) "%S:      %d%c"), _i("Nozzle"), (int)current_temperature[0], '\x01', _i("Bed"), (int)current_temperature_bed, '\x01');
+	
+	lcd_home();
+	lcd_printf_P(PSTR(" %S:   %d%c \n" " %S:      %d%c \n"), _i("Nozzle"), (int)current_temperature[0], '\x01', _i("Bed"), (int)current_temperature_bed, '\x01');
 #ifdef AMBIENT_THERMISTOR
-	lcd_printf_P(PSTR(ESC_H(1,2) "%S:  %d%c" ESC_H(1,3) "PINDA:    %d%c"), _i("Ambient"), (int)current_temperature_ambient, '\x01', (int)current_temperature_pinda, '\x01');
+	lcd_printf_P(PSTR(" %S:  %d%c\n" " PINDA:    %d%c"), _i("Ambient"), (int)current_temperature_ambient, '\x01', (int)current_temperature_pinda, '\x01');
 #else //AMBIENT_THERMISTOR
-	lcd_printf_P(PSTR(ESC_H(1,2) "PINDA:    %d%c"), (int)current_temperature_pinda, '\x01');
+	lcd_printf_P(PSTR(" PINDA:    %d%c"), (int)current_temperature_pinda, '\x01');
 #endif //AMBIENT_THERMISTOR
 
     menu_back_if_clicked();
@@ -1989,7 +1994,8 @@ static void lcd_menu_voltages()
 	lcd_timeoutToStatus.stop(); //infinite timeout
 	float volt_pwr = VOLT_DIV_REF * ((float)current_voltage_raw_pwr / (1023 * OVERSAMPLENR)) / VOLT_DIV_FAC;
 	float volt_bed = VOLT_DIV_REF * ((float)current_voltage_raw_bed / (1023 * OVERSAMPLENR)) / VOLT_DIV_FAC;
-	lcd_printf_P(PSTR(ESC_H(1,1)"PWR:      %d.%01dV" ESC_H(1,2)"BED:      %d.%01dV"), (int)volt_pwr, (int)(10*fabs(volt_pwr - (int)volt_pwr)), (int)volt_bed, (int)(10*fabs(volt_bed - (int)volt_bed)));
+	lcd_home();
+	lcd_printf_P(PSTR(" PWR:      %d.%01dV\n" " BED:      %d.%01dV"), (int)volt_pwr, (int)(10*fabs(volt_pwr - (int)volt_pwr)), (int)volt_bed, (int)(10*fabs(volt_bed - (int)volt_bed)));
     menu_back_if_clicked();
 }
 #endif //defined VOLT_BED_PIN || defined VOLT_PWR_PIN
@@ -1997,7 +2003,8 @@ static void lcd_menu_voltages()
 #ifdef TMC2130
 static void lcd_menu_belt_status()
 {
-    lcd_printf_P(PSTR(ESC_H(1,0) "%S" ESC_H(2,1) "X %d" ESC_H(2,2) "Y %d" ), _i("Belt status"), eeprom_read_word((uint16_t*)(EEPROM_BELTSTATUS_X)), eeprom_read_word((uint16_t*)(EEPROM_BELTSTATUS_Y)));
+	lcd_home();
+    lcd_printf_P(PSTR("%S\n" " X %d\n" " Y %d"), _i("Belt status"), eeprom_read_word((uint16_t*)(EEPROM_BELTSTATUS_X)), eeprom_read_word((uint16_t*)(EEPROM_BELTSTATUS_Y)));
     menu_back_if_clicked();
 }
 #endif //TMC2130
@@ -2691,10 +2698,12 @@ void lcd_alright() {
 
         if (cursor_pos > 3) {
           cursor_pos = 3;
+					Sound_MakeSound(e_SOUND_TYPE_BlindAlert);
         }
 
         if (cursor_pos < 1) {
           cursor_pos = 1;
+					Sound_MakeSound(e_SOUND_TYPE_BlindAlert);
         }
         lcd_set_cursor(0, 1);
         lcd_print(" ");
@@ -2705,6 +2714,7 @@ void lcd_alright() {
         lcd_set_cursor(0, cursor_pos);
         lcd_print(">");
         enc_dif = lcd_encoder_diff;
+				Sound_MakeSound(e_SOUND_TYPE_EncoderMove);
         _delay(100);
       }
 
@@ -2712,7 +2722,7 @@ void lcd_alright() {
 
 
     if (lcd_clicked()) {
-
+			Sound_MakeSound(e_SOUND_TYPE_ButtonEcho);
       lcd_change_fil_state = cursor_pos;
       _delay(500);
 
@@ -2819,18 +2829,14 @@ void lcd_menu_statistics()
 		const int _m = (_t - (_h * 3600ul)) / 60ul;
 		const int _s = _t - ((_h * 3600ul) + (_m * 60ul));
 
+		lcd_clear();
 		lcd_printf_P(_N(
-		  ESC_2J
-		  "%S:"
-		  ESC_H(6,1) "%8.2fm \n"
-		  "%S :"
-		  ESC_H(8,3) "%2dh %02dm %02ds"
-		  ),
-		 _i("Filament used"),
-		 _met,
-		 _i("Print time"),
-		 _h, _m, _s
-		);
+			"%S:\n"
+			"%8.2fm\n"
+			"%S:\n"
+			"%2dh %02dm %02ds"
+		),_i("Filament used"), _met, _i("Print time"), _h, _m, _s);
+		
 		menu_back_if_clicked_fb();
 	}
 	else
@@ -2846,18 +2852,14 @@ void lcd_menu_statistics()
 		_hours = (_time - (_days * 1440)) / 60;
 		_minutes = _time - ((_days * 1440) + (_hours * 60));
 
+		lcd_clear();
 		lcd_printf_P(_N(
-		  ESC_2J
-		  "%S :"
-		  ESC_H(9,1) "%8.2f m\n"
-		  "%S :\n"
-		  "%7ldd :%2hhdh :%02hhd m"
-		 ),
-		 _i("Total filament"),
-		 _filament_m,
-		 _i("Total print time"),
-		 _days, _hours, _minutes
-		);
+			"%S:\n"
+			"%8.2fm\n"
+			"%S:\n"
+			"%7ldd :%2hhdh :%02hhdm"
+		), _i("Total filament"), _filament_m, _i("Total print time"), _days, _hours, _minutes);
+		
 		KEEPALIVE_STATE(PAUSED_FOR_USER);
 		while (!lcd_clicked())
 		{
@@ -2955,8 +2957,8 @@ static void lcd_menu_xyz_y_min()
 //----------------------
 	float distanceMin[2];
     count_xyz_details(distanceMin);
+	lcd_home();
 	lcd_printf_P(_N(
-	  ESC_H(0,0)
 	  "%S:\n"
 	  "%S\n"
 	  "%S:\n"
@@ -2992,8 +2994,8 @@ static void lcd_menu_xyz_skew()
 //|Severe skew:   0.25d|
 //----------------------
     float angleDiff = eeprom_read_float((float*)(EEPROM_XYZ_CAL_SKEW));
+	lcd_home();
 	lcd_printf_P(_N(
-	  ESC_H(0,0)
 	  "%S:\n"
 	  "%S\n"
 	  "%S:  %5.2f\x01\n"
@@ -3004,10 +3006,14 @@ static void lcd_menu_xyz_skew()
 	 _i("Slight skew"), _deg(bed_skew_angle_mild),
 	 _i("Severe skew"), _deg(bed_skew_angle_extreme)
 	);
-	if (angleDiff < 100)
-		lcd_printf_P(_N(ESC_H(15,0)"%4.2f\x01"), _deg(angleDiff));
-	else
-		lcd_puts_P(_N(ESC_H(15,0)"N/A"));
+	if (angleDiff < 100){
+		lcd_set_cursor(15,0);
+		lcd_printf_P(_N("%4.2f\x01"), _deg(angleDiff));
+	}
+	else{
+		lcd_set_cursor(15,0);
+		lcd_puts_P(_N("N/A"));
+	}
     if (lcd_clicked())
         menu_goto(lcd_menu_xyz_offset, 0, true, true);
 }
@@ -3074,13 +3080,13 @@ static void lcd_move_z() {
  * other value leads to storing Z_AXIS
  * @param msg text to be displayed
  */
-static void _lcd_babystep(int axis, const char *msg) 
+static void lcd_babystep_z()
 {
 	typedef struct
-	{	// 19bytes total
-		int8_t status;                 // 1byte
-		int babystepMem[3];            // 6bytes
-		float babystepMemMM[3];        // 12bytes
+	{
+		int8_t status;
+		int16_t babystepMemZ;
+		float babystepMemMMZ;
 	} _menu_data_t;
 	static_assert(sizeof(menu_data)>= sizeof(_menu_data_t),"_menu_data_t doesn't fit into menu_data");
 	_menu_data_t* _md = (_menu_data_t*)&(menu_data[0]);
@@ -3090,18 +3096,20 @@ static void _lcd_babystep(int axis, const char *msg)
 		// Initialize its status.
 		_md->status = 1;
 		check_babystep();
-
-		EEPROM_read_B(EEPROM_BABYSTEP_X, &_md->babystepMem[0]);
-		EEPROM_read_B(EEPROM_BABYSTEP_Y, &_md->babystepMem[1]);
-		EEPROM_read_B(EEPROM_BABYSTEP_Z, &_md->babystepMem[2]);
+		
+		if(!is_sheet_initialized()){
+			_md->babystepMemZ = 0;
+		}
+		else{
+			_md->babystepMemZ = eeprom_read_word(reinterpret_cast<uint16_t *>(&(EEPROM_Sheets_base->
+					s[(eeprom_read_byte(&(EEPROM_Sheets_base->active_sheet)))].z_offset)));
+		}
 
 		// same logic as in babystep_load
 	    if (calibration_status() >= CALIBRATION_STATUS_LIVE_ADJUST)
-			_md->babystepMem[2] = 0;
+			_md->babystepMemZ = 0;
 
-		_md->babystepMemMM[0] = _md->babystepMem[0]/cs.axis_steps_per_unit[X_AXIS];
-		_md->babystepMemMM[1] = _md->babystepMem[1]/cs.axis_steps_per_unit[Y_AXIS];
-		_md->babystepMemMM[2] = _md->babystepMem[2]/cs.axis_steps_per_unit[Z_AXIS];
+		_md->babystepMemMMZ = _md->babystepMemZ/cs.axis_steps_per_unit[Z_AXIS];
 		lcd_draw_update = 1;
 		//SERIAL_ECHO("Z baby step: ");
 		//SERIAL_ECHO(_md->babystepMem[2]);
@@ -3112,43 +3120,46 @@ static void _lcd_babystep(int axis, const char *msg)
 	if (lcd_encoder != 0) 
 	{
 		if (homing_flag) lcd_encoder = 0;
-		_md->babystepMem[axis] += (int)lcd_encoder;
-		if (axis == 2)
-		{
-			if (_md->babystepMem[axis] < Z_BABYSTEP_MIN) _md->babystepMem[axis] = Z_BABYSTEP_MIN; //-3999 -> -9.99 mm
-			else if (_md->babystepMem[axis] > Z_BABYSTEP_MAX) _md->babystepMem[axis] = Z_BABYSTEP_MAX; //0
-			else
-			{
-				CRITICAL_SECTION_START
-				babystepsTodo[axis] += (int)lcd_encoder;
-				CRITICAL_SECTION_END		
-			}
-		}
-		_md->babystepMemMM[axis] = _md->babystepMem[axis]/cs.axis_steps_per_unit[axis]; 
+		_md->babystepMemZ += (int)lcd_encoder;
+
+        if (_md->babystepMemZ < Z_BABYSTEP_MIN) _md->babystepMemZ = Z_BABYSTEP_MIN; //-3999 -> -9.99 mm
+        else if (_md->babystepMemZ > Z_BABYSTEP_MAX) _md->babystepMemZ = Z_BABYSTEP_MAX; //0
+        else
+        {
+            CRITICAL_SECTION_START
+            babystepsTodo[Z_AXIS] += (int)lcd_encoder;
+            CRITICAL_SECTION_END
+        }
+
+		_md->babystepMemMMZ = _md->babystepMemZ/cs.axis_steps_per_unit[Z_AXIS];
 		_delay(50);
 		lcd_encoder = 0;
 		lcd_draw_update = 1;
 	}
 	if (lcd_draw_update)
 	{
+	    SheetFormatBuffer buffer;
+	    menu_format_sheet_E(EEPROM_Sheets_base->s[(eeprom_read_byte(&(EEPROM_Sheets_base->active_sheet)))], buffer);
+	    lcd_set_cursor(0, 0);
+	    lcd_print(buffer.c);
 	    lcd_set_cursor(0, 1);
-		menu_draw_float13(msg, _md->babystepMemMM[axis]);
+		menu_draw_float13(_i("Adjusting Z:"), _md->babystepMemMMZ); ////MSG_BABYSTEPPING_Z c=15 Beware: must include the ':' as its last character
 	}
 	if (LCD_CLICKED || menu_leaving)
 	{
 		// Only update the EEPROM when leaving the menu.
-		EEPROM_save_B(
-		(axis == X_AXIS) ? EEPROM_BABYSTEP_X : ((axis == Y_AXIS) ? EEPROM_BABYSTEP_Y : EEPROM_BABYSTEP_Z),
-		&_md->babystepMem[axis]);
-		if(Z_AXIS == axis) calibration_status_store(CALIBRATION_STATUS_CALIBRATED);
+		eeprom_update_word(reinterpret_cast<uint16_t *>(&(EEPROM_Sheets_base->
+                s[(eeprom_read_byte(&(EEPROM_Sheets_base->active_sheet)))].z_offset)),
+		        _md->babystepMemZ);
+		eeprom_update_byte(&(EEPROM_Sheets_base->s[(eeprom_read_byte(
+		        &(EEPROM_Sheets_base->active_sheet)))].bed_temp),
+		        target_temperature_bed);
+		eeprom_update_byte(&(EEPROM_Sheets_base->s[(eeprom_read_byte(
+		        &(EEPROM_Sheets_base->active_sheet)))].pinda_temp),
+		        current_temperature_pinda);
+		calibration_status_store(CALIBRATION_STATUS_CALIBRATED);
 	}
 	if (LCD_CLICKED) menu_back();
-}
-
-
-static void lcd_babystep_z()
-{
-	_lcd_babystep(Z_AXIS, (_i("Adjusting Z:")));////MSG_BABYSTEPPING_Z c=15 Beware: must include the ':' as its last character
 }
 
 
@@ -3672,20 +3683,24 @@ int8_t lcd_show_multiscreen_message_two_choices_and_wait_P(const char *msg, bool
 						lcd_set_cursor(7, 3);
 						lcd_puts_P((PSTR(">")));
 						yes = false;
+						Sound_MakeSound(e_SOUND_TYPE_EncoderMove);
 					}
 					else if (enc_dif > lcd_encoder_diff && !yes) {
 						lcd_puts_P((PSTR(">")));
 						lcd_set_cursor(7, 3);
 						lcd_puts_P((PSTR(" ")));
 						yes = true;
+						Sound_MakeSound(e_SOUND_TYPE_EncoderMove);
 					}
 					enc_dif = lcd_encoder_diff;
 				}
 				else {
+					Sound_MakeSound(e_SOUND_TYPE_BlindAlert);
 					break; //turning knob skips waiting loop
 				}
 			}
 			if (lcd_clicked()) {
+				Sound_MakeSound(e_SOUND_TYPE_ButtonEcho);
 				if (msg_next == NULL) {
 					//KEEPALIVE_STATE(IN_HANDLER);
 					lcd_set_custom_characters();
@@ -3758,16 +3773,20 @@ int8_t lcd_show_fullscreen_message_yes_no_and_wait_P(const char *msg, bool allow
 					lcd_set_cursor(0, 3);
 					lcd_puts_P((PSTR(">")));
 					yes = false;
+					Sound_MakeSound(e_SOUND_TYPE_EncoderMove);
+
 				}
 				else if (enc_dif > lcd_encoder_diff && !yes) {
 					lcd_puts_P((PSTR(">")));
 					lcd_set_cursor(0, 3);
 					lcd_puts_P((PSTR(" ")));
 					yes = true;
+					Sound_MakeSound(e_SOUND_TYPE_EncoderMove);
 				}
 				enc_dif = lcd_encoder_diff;
 		}
 		if (lcd_clicked()) {
+			Sound_MakeSound(e_SOUND_TYPE_ButtonEcho);
 			KEEPALIVE_STATE(IN_HANDLER);
 			return yes;
 		}
@@ -4347,7 +4366,8 @@ static void lcd_crash_mode_info()
 	static uint32_t tim = 0;
 	if ((tim + 1000) < _millis())
 	{
-		fputs_P(_i("\x1b[2JCrash detection can\x1b[1;0Hbe turned on only in\x1b[2;0HNormal mode"), lcdout);////MSG_CRASH_DET_ONLY_IN_NORMAL c=20 r=4
+		lcd_clear();
+		fputs_P(_i("Crash detection can\rbe turned on only in\rNormal mode"), lcdout);////MSG_CRASH_DET_ONLY_IN_NORMAL c=20 r=4
 		tim = _millis();
 	}
     menu_back_if_clicked();
@@ -4359,7 +4379,8 @@ static void lcd_crash_mode_info2()
 	static uint32_t tim = 0;
 	if ((tim + 1000) < _millis())
 	{
-		fputs_P(_i("\x1b[2JWARNING:\x1b[1;0HCrash detection\x1b[2;0Hdisabled in\x1b[3;0HStealth mode"), lcdout);////MSG_CRASH_DET_STEALTH_FORCE_OFF c=20 r=4
+		lcd_clear();
+		fputs_P(_i("WARNING:\rCrash detection\rdisabled in\rStealth mode"), lcdout);////MSG_CRASH_DET_STEALTH_FORCE_OFF c=20 r=4
 		tim = _millis();
 	}
     menu_back_if_clicked();
@@ -5282,8 +5303,8 @@ do\
          case e_SOUND_MODE_SILENT:\
               MENU_ITEM_FUNCTION_P(_i(MSG_SOUND_MODE_SILENT),lcd_sound_state_set);\
               break;\
-         case e_SOUND_MODE_MUTE:\
-              MENU_ITEM_FUNCTION_P(_i(MSG_SOUND_MODE_MUTE),lcd_sound_state_set);\
+         case e_SOUND_MODE_BLIND:\
+              MENU_ITEM_FUNCTION_P(_i(MSG_SOUND_MODE_BLIND),lcd_sound_state_set);\
               break;\
          default:\
               MENU_ITEM_FUNCTION_P(_i(MSG_SOUND_MODE_LOUD),lcd_sound_state_set);\
@@ -5294,95 +5315,227 @@ while (0)
 //-//
 static void lcd_check_mode_set(void)
 {
-switch(eCheckMode)
+switch(oCheckMode)
      {
-     case e_CHECK_MODE_none:
-          eCheckMode=e_CHECK_MODE_warn;
+     case ClCheckMode::_None:
+          oCheckMode=ClCheckMode::_Warn;
           break;
-     case e_CHECK_MODE_warn:
-          eCheckMode=e_CHECK_MODE_strict;
+     case ClCheckMode::_Warn:
+          oCheckMode=ClCheckMode::_Strict;
           break;
-     case e_CHECK_MODE_strict:
-          eCheckMode=e_CHECK_MODE_none;
+     case ClCheckMode::_Strict:
+          oCheckMode=ClCheckMode::_None;
           break;
      default:
-          eCheckMode=e_CHECK_MODE_none;
+          oCheckMode=ClCheckMode::_None;
      }
-eeprom_update_byte((uint8_t*)EEPROM_CHECK_MODE,(uint8_t)eCheckMode);
-}
-
-static void lcd_nozzle_diameter_set(void)
-{
-uint16_t nDiameter;
-
-switch(eNozzleDiameter)
-     {
-     case e_NOZZLE_DIAMETER_250:
-          eNozzleDiameter=e_NOZZLE_DIAMETER_400;
-          nDiameter=400;
-          break;
-     case e_NOZZLE_DIAMETER_400:
-          eNozzleDiameter=e_NOZZLE_DIAMETER_600;
-          nDiameter=600;
-          break;
-     case e_NOZZLE_DIAMETER_600:
-          eNozzleDiameter=e_NOZZLE_DIAMETER_250;
-          nDiameter=250;
-          break;
-     default:
-          eNozzleDiameter=e_NOZZLE_DIAMETER_400;
-          nDiameter=400;
-     }
-eeprom_update_byte((uint8_t*)EEPROM_NOZZLE_DIAMETER,(uint8_t)eNozzleDiameter);
-eeprom_update_word((uint16_t*)EEPROM_NOZZLE_DIAMETER_uM,nDiameter);
+eeprom_update_byte((uint8_t*)EEPROM_CHECK_MODE,(uint8_t)oCheckMode);
 }
 
 #define SETTINGS_MODE \
 do\
 {\
-    switch(eCheckMode)\
+    switch(oCheckMode)\
          {\
-         case e_CHECK_MODE_none:\
-              MENU_ITEM_FUNCTION_P(_i("Action     [none]"),lcd_check_mode_set);\
+         case ClCheckMode::_None:\
+              MENU_ITEM_FUNCTION_P(_i("Nozzle     [none]"),lcd_check_mode_set);\
               break;\
-         case e_CHECK_MODE_warn:\
-              MENU_ITEM_FUNCTION_P(_i("Action     [warn]"),lcd_check_mode_set);\
+         case ClCheckMode::_Warn:\
+              MENU_ITEM_FUNCTION_P(_i("Nozzle     [warn]"),lcd_check_mode_set);\
               break;\
-         case e_CHECK_MODE_strict:\
-              MENU_ITEM_FUNCTION_P(_i("Action   [strict]"),lcd_check_mode_set);\
+         case ClCheckMode::_Strict:\
+              MENU_ITEM_FUNCTION_P(_i("Nozzle   [strict]"),lcd_check_mode_set);\
               break;\
          default:\
-              MENU_ITEM_FUNCTION_P(_i("Action     [none]"),lcd_check_mode_set);\
+              MENU_ITEM_FUNCTION_P(_i("Nozzle     [none]"),lcd_check_mode_set);\
          }\
 }\
 while (0)
+
+static void lcd_nozzle_diameter_set(void)
+{
+uint16_t nDiameter;
+
+switch(oNozzleDiameter)
+     {
+     case ClNozzleDiameter::_Diameter_250:
+          oNozzleDiameter=ClNozzleDiameter::_Diameter_400;
+          nDiameter=400;
+          break;
+     case ClNozzleDiameter::_Diameter_400:
+          oNozzleDiameter=ClNozzleDiameter::_Diameter_600;
+          nDiameter=600;
+          break;
+     case ClNozzleDiameter::_Diameter_600:
+          oNozzleDiameter=ClNozzleDiameter::_Diameter_250;
+          nDiameter=250;
+          break;
+     default:
+          oNozzleDiameter=ClNozzleDiameter::_Diameter_400;
+          nDiameter=400;
+     }
+eeprom_update_byte((uint8_t*)EEPROM_NOZZLE_DIAMETER,(uint8_t)oNozzleDiameter);
+eeprom_update_word((uint16_t*)EEPROM_NOZZLE_DIAMETER_uM,nDiameter);
+}
 
 #define SETTINGS_NOZZLE \
 do\
 {\
-    switch(eNozzleDiameter)\
+    switch(oNozzleDiameter)\
          {\
-         case e_NOZZLE_DIAMETER_250:\
-              MENU_ITEM_FUNCTION_P(_i("Nozzle     [0.25]"),lcd_nozzle_diameter_set);\
+         case ClNozzleDiameter::_Diameter_250:\
+              MENU_ITEM_FUNCTION_P(_i("Nozzle d.  [0.25]"),lcd_nozzle_diameter_set);\
               break;\
-         case e_NOZZLE_DIAMETER_400:\
-              MENU_ITEM_FUNCTION_P(_i("Nozzle     [0.40]"),lcd_nozzle_diameter_set);\
+         case ClNozzleDiameter::_Diameter_400:\
+              MENU_ITEM_FUNCTION_P(_i("Nozzle d.  [0.40]"),lcd_nozzle_diameter_set);\
               break;\
-         case e_NOZZLE_DIAMETER_600:\
-              MENU_ITEM_FUNCTION_P(_i("Nozzle     [0.60]"),lcd_nozzle_diameter_set);\
+         case ClNozzleDiameter::_Diameter_600:\
+              MENU_ITEM_FUNCTION_P(_i("Nozzle d.  [0.60]"),lcd_nozzle_diameter_set);\
               break;\
          default:\
-              MENU_ITEM_FUNCTION_P(_i("Nozzle     [0.40]"),lcd_nozzle_diameter_set);\
+              MENU_ITEM_FUNCTION_P(_i("Nozzle d.  [0.40]"),lcd_nozzle_diameter_set);\
          }\
 }\
 while (0)
 
-static void lcd_checking_menu()
+static void lcd_check_model_set(void)
+{
+switch(oCheckModel)
+     {
+     case ClCheckModel::_None:
+          oCheckModel=ClCheckModel::_Warn;
+          break;
+     case ClCheckModel::_Warn:
+          oCheckModel=ClCheckModel::_Strict;
+          break;
+     case ClCheckModel::_Strict:
+          oCheckModel=ClCheckModel::_None;
+          break;
+     default:
+          oCheckModel=ClCheckModel::_None;
+     }
+eeprom_update_byte((uint8_t*)EEPROM_CHECK_MODEL,(uint8_t)oCheckModel);
+}
+
+#define SETTINGS_MODEL \
+do\
+{\
+    switch(oCheckModel)\
+         {\
+         case ClCheckModel::_None:\
+              MENU_ITEM_FUNCTION_P(_i("Model      [none]"),lcd_check_model_set);\
+              break;\
+         case ClCheckModel::_Warn:\
+              MENU_ITEM_FUNCTION_P(_i("Model      [warn]"),lcd_check_model_set);\
+              break;\
+         case ClCheckModel::_Strict:\
+              MENU_ITEM_FUNCTION_P(_i("Model    [strict]"),lcd_check_model_set);\
+              break;\
+         default:\
+              MENU_ITEM_FUNCTION_P(_i("Model      [none]"),lcd_check_model_set);\
+         }\
+}\
+while (0)
+
+static void lcd_check_version_set(void)
+{
+switch(oCheckVersion)
+     {
+     case ClCheckVersion::_None:
+          oCheckVersion=ClCheckVersion::_Warn;
+          break;
+     case ClCheckVersion::_Warn:
+          oCheckVersion=ClCheckVersion::_Strict;
+          break;
+     case ClCheckVersion::_Strict:
+          oCheckVersion=ClCheckVersion::_None;
+          break;
+     default:
+          oCheckVersion=ClCheckVersion::_None;
+     }
+eeprom_update_byte((uint8_t*)EEPROM_CHECK_VERSION,(uint8_t)oCheckVersion);
+}
+
+#define SETTINGS_VERSION \
+do\
+{\
+    switch(oCheckVersion)\
+         {\
+         case ClCheckVersion::_None:\
+              MENU_ITEM_FUNCTION_P(_i("Firmware   [none]"),lcd_check_version_set);\
+              break;\
+         case ClCheckVersion::_Warn:\
+              MENU_ITEM_FUNCTION_P(_i("Firmware   [warn]"),lcd_check_version_set);\
+              break;\
+         case ClCheckVersion::_Strict:\
+              MENU_ITEM_FUNCTION_P(_i("Firmware [strict]"),lcd_check_version_set);\
+              break;\
+         default:\
+              MENU_ITEM_FUNCTION_P(_i("Firmware   [none]"),lcd_check_version_set);\
+         }\
+}\
+while (0)
+
+static void lcd_check_gcode_set(void)
+{
+switch(oCheckGcode)
+     {
+     case ClCheckGcode::_None:
+          oCheckGcode=ClCheckGcode::_Warn;
+          break;
+     case ClCheckGcode::_Warn:
+          oCheckGcode=ClCheckGcode::_Strict;
+          break;
+     case ClCheckGcode::_Strict:
+          oCheckGcode=ClCheckGcode::_None;
+          break;
+     default:
+          oCheckGcode=ClCheckGcode::_None;
+     }
+eeprom_update_byte((uint8_t*)EEPROM_CHECK_GCODE,(uint8_t)oCheckGcode);
+}
+
+#define SETTINGS_GCODE \
+do\
+{\
+    switch(oCheckGcode)\
+         {\
+         case ClCheckGcode::_None:\
+              MENU_ITEM_FUNCTION_P(_i("Gcode      [none]"),lcd_check_gcode_set);\
+              break;\
+         case ClCheckGcode::_Warn:\
+              MENU_ITEM_FUNCTION_P(_i("Gcode      [warn]"),lcd_check_gcode_set);\
+              break;\
+         case ClCheckGcode::_Strict:\
+              MENU_ITEM_FUNCTION_P(_i("Gcode    [strict]"),lcd_check_gcode_set);\
+              break;\
+         default:\
+              MENU_ITEM_FUNCTION_P(_i("Gcode      [none]"),lcd_check_gcode_set);\
+         }\
+}\
+while (0)
+
+static void lcd_checking_menu(void)
 {
 MENU_BEGIN();
-MENU_ITEM_BACK_P(_T(MSG_SETTINGS));
+MENU_ITEM_BACK_P(_T(MSG_HW_SETUP));
 SETTINGS_MODE;
-SETTINGS_NOZZLE;
+SETTINGS_MODEL;
+SETTINGS_VERSION;
+//-// temporarily disabled
+//SETTINGS_GCODE;
+MENU_END();
+}
+
+void lcd_hw_setup_menu(void)                      // can not be "static"
+{
+MENU_BEGIN();
+MENU_ITEM_BACK_P(_T(bSettings?MSG_SETTINGS:MSG_BACK)); // i.e. default menu-item / menu-item after checking mismatch
+if(!farm_mode)
+     SETTINGS_NOZZLE;
+// ... a sem prijdou 'plechy'
+if(!farm_mode)
+     MENU_ITEM_SUBMENU_P(_i("Checks"), lcd_checking_menu);
 MENU_END();
 }
 
@@ -5410,6 +5563,10 @@ static void lcd_settings_menu()
 		MENU_ITEM_FUNCTION_P(_i("Fans check  [off]"), lcd_set_fan_check);////MSG_FANS_CHECK_OFF c=17 r=1
 
 	SETTINGS_SILENT_MODE;
+
+     bSettings=true;                              // flag ('fake parameter') for 'lcd_hw_setup_menu()' function
+	MENU_ITEM_SUBMENU_P(_i("HW Setup"), lcd_hw_setup_menu);////MSG_HW_SETUP
+
 	SETTINGS_MMU_MODE;
 
 	MENU_ITEM_SUBMENU_P(_i("Mesh bed leveling"), lcd_mesh_bed_leveling_settings);////MSG_MBL_SETTINGS c=18 r=1
@@ -5436,9 +5593,6 @@ static void lcd_settings_menu()
 #if (LANG_MODE != 0)
 	MENU_ITEM_SUBMENU_P(_i("Select language"), lcd_language_menu);////MSG_LANGUAGE_SELECT
 #endif //(LANG_MODE != 0)
-
-	if (!farm_mode)
-          MENU_ITEM_SUBMENU_P(_i("Print checking"), lcd_checking_menu);
 
 	SETTINGS_SD;
 	SETTINGS_SOUND;
@@ -5486,7 +5640,7 @@ static void lcd_calibration_menu()
   if (!isPrintPaused)
   {
 	MENU_ITEM_FUNCTION_P(_i("Wizard"), lcd_wizard);////MSG_WIZARD c=17 r=1
-	MENU_ITEM_SUBMENU_P(_i("First layer cal."), lcd_v2_calibration);////MSG_V2_CALIBRATION c=17 r=1
+	MENU_ITEM_SUBMENU_P(_T(MSG_V2_CALIBRATION), lcd_v2_calibration);
 	MENU_ITEM_GCODE_P(_T(MSG_AUTO_HOME), PSTR("G28 W"));
 	MENU_ITEM_FUNCTION_P(_i("Selftest         "), lcd_selftest_v);////MSG_SELFTEST
 #ifdef MK1BP
@@ -5559,10 +5713,12 @@ void bowden_menu() {
 
 				if (cursor_pos > 3) {
 					cursor_pos = 3;
+					Sound_MakeSound(e_SOUND_TYPE_BlindAlert);
 				}
 
 				if (cursor_pos < 0) {
 					cursor_pos = 0;
+					Sound_MakeSound(e_SOUND_TYPE_BlindAlert);
 				}
 
 				lcd_set_cursor(0, 0);
@@ -5575,13 +5731,13 @@ void bowden_menu() {
 				lcd_print(" ");
 				lcd_set_cursor(0, cursor_pos);
 				lcd_print(">");
-
+				Sound_MakeSound(e_SOUND_TYPE_EncoderMove);
 				enc_dif = lcd_encoder_diff;
 				_delay(100);
 		}
 
 		if (lcd_clicked()) {
-
+			Sound_MakeSound(e_SOUND_TYPE_ButtonEcho);
 			lcd_clear();
 			while (1) {
 
@@ -5612,6 +5768,7 @@ void bowden_menu() {
 				}
 				_delay(100);
 				if (lcd_clicked()) {
+					Sound_MakeSound(e_SOUND_TYPE_ButtonEcho);
 					EEPROM_save_B(EEPROM_BOWDEN_LENGTH + cursor_pos * 2, &bowden_length[cursor_pos]);
 					if (lcd_show_fullscreen_message_yes_no_and_wait_P(PSTR("Continue with another bowden?"))) {
 						lcd_update_enable(true);
@@ -5657,8 +5814,14 @@ static char snmm_stop_print_menu() { //menu for choosing which filaments will be
 			if ((abs(enc_dif - lcd_encoder_diff)) > 1) {
 				if (enc_dif > lcd_encoder_diff) cursor_pos--;
 				if (enc_dif < lcd_encoder_diff) cursor_pos++;
-				if (cursor_pos > 3) cursor_pos = 3;
-				if (cursor_pos < 1) cursor_pos = 1;
+				if (cursor_pos > 3) {
+					cursor_pos = 3;
+					Sound_MakeSound(e_SOUND_TYPE_BlindAlert);
+				}
+				if (cursor_pos < 1){
+					cursor_pos = 1;
+					Sound_MakeSound(e_SOUND_TYPE_BlindAlert);
+				}	
 
 				lcd_set_cursor(0, 1);
 				lcd_print(" ");
@@ -5669,10 +5832,12 @@ static char snmm_stop_print_menu() { //menu for choosing which filaments will be
 				lcd_set_cursor(0, cursor_pos);
 				lcd_print(">");
 				enc_dif = lcd_encoder_diff;
+				Sound_MakeSound(e_SOUND_TYPE_EncoderMove);
 				_delay(100);
 			}
 		}
 		if (lcd_clicked()) {
+			Sound_MakeSound(e_SOUND_TYPE_ButtonEcho);
 			KEEPALIVE_STATE(IN_HANDLER);
 			return(cursor_pos - 1);
 		}
@@ -5724,7 +5889,8 @@ uint8_t choose_menu_P(const char *header, const char *item, const char *last_ite
 		}
 
 		if (cursor_pos > 3)
-		{
+		{		
+			Sound_MakeSound(e_SOUND_TYPE_BlindAlert);
             cursor_pos = 3;
             if (first < items_no - 3)
             {
@@ -5735,6 +5901,7 @@ uint8_t choose_menu_P(const char *header, const char *item, const char *last_ite
 
         if (cursor_pos < 1)
         {
+					Sound_MakeSound(e_SOUND_TYPE_BlindAlert);
             cursor_pos = 1;
             if (first > 0)
             {
@@ -5769,11 +5936,12 @@ uint8_t choose_menu_P(const char *header, const char *item, const char *last_ite
         lcd_print(" ");
         lcd_set_cursor(0, cursor_pos);
         lcd_print(">");
-
+				Sound_MakeSound(e_SOUND_TYPE_EncoderMove);
         _delay(100);
 
 		if (lcd_clicked())
 		{
+			Sound_MakeSound(e_SOUND_TYPE_ButtonEcho);
 		    KEEPALIVE_STATE(IN_HANDLER);
 			lcd_encoder_diff = 0;
 			return(cursor_pos + first - 1);
@@ -5828,6 +5996,7 @@ char reset_menu() {
 
 				if (cursor_pos > 3) {
 					cursor_pos = 3;
+					Sound_MakeSound(e_SOUND_TYPE_BlindAlert);
 					if (first < items_no - 4) {
 						first++;
 						lcd_clear();
@@ -5836,6 +6005,7 @@ char reset_menu() {
 
 				if (cursor_pos < 0) {
 					cursor_pos = 0;
+					Sound_MakeSound(e_SOUND_TYPE_BlindAlert);
 					if (first > 0) {
 						first--;
 						lcd_clear();
@@ -5851,6 +6021,7 @@ char reset_menu() {
 				lcd_print(" ");
 				lcd_set_cursor(0, cursor_pos);
 				lcd_print(">");
+				Sound_MakeSound(e_SOUND_TYPE_EncoderMove);
 				enc_dif = lcd_encoder_diff;
 				_delay(100);
 			}
@@ -5858,6 +6029,7 @@ char reset_menu() {
 		}
 
 		if (lcd_clicked()) {
+			Sound_MakeSound(e_SOUND_TYPE_ButtonEcho);
 			return(cursor_pos + first);
 		}
 
@@ -6168,6 +6340,7 @@ unsigned char lcd_choose_color() {
 				
 				if (cursor_pos > active_rows) {
 					cursor_pos = active_rows;
+					Sound_MakeSound(e_SOUND_TYPE_BlindAlert);
 					if (first < items_no - active_rows) {
 						first++;
 						lcd_clear();
@@ -6176,6 +6349,7 @@ unsigned char lcd_choose_color() {
 
 				if (cursor_pos < 1) {
 					cursor_pos = 1;
+					Sound_MakeSound(e_SOUND_TYPE_BlindAlert);
 					if (first > 0) {
 						first--;
 						lcd_clear();
@@ -6189,12 +6363,14 @@ unsigned char lcd_choose_color() {
 				lcd_print(" ");
 				lcd_set_cursor(0, cursor_pos);
 				lcd_print(">");
+				Sound_MakeSound(e_SOUND_TYPE_EncoderMove);
 				enc_dif = lcd_encoder_diff;
 				_delay(100);
 
 		}
 
 		if (lcd_clicked()) {
+			Sound_MakeSound(e_SOUND_TYPE_ButtonEcho);
 			switch(cursor_pos + first - 1) {
 			case 0: return 1; break;
 			case 1: return 0; break;
@@ -6303,12 +6479,102 @@ static void lcd_test_menu()
 void lcd_resume_print()
 {
     lcd_return_to_status();
+		lcd_reset_alert_level();
     lcd_setstatuspgm(_T(MSG_RESUMING_PRINT));
     lcd_reset_alert_level(); //for fan speed error
     restore_print_from_ram_and_continue(0.0);
     pause_time += (_millis() - start_pause_print); //accumulate time when print is paused for correct statistics calculation
     refresh_cmd_timeout();
     isPrintPaused = false;
+}
+
+static void change_sheet(uint8_t sheet_num)
+{
+	eeprom_update_byte(&(EEPROM_Sheets_base->active_sheet), sheet_num);
+	if(is_sheet_initialized())
+		calibration_status_store(CALIBRATION_STATUS_CALIBRATED);
+	else
+		calibration_status_store(CALIBRATION_STATUS_LIVE_ADJUST);
+
+    menu_back(3);
+}
+
+static void lcd_select_sheet_0_menu()
+{
+	change_sheet(0);
+}
+static void lcd_select_sheet_1_menu()
+{
+	change_sheet(1);
+}
+static void lcd_select_sheet_2_menu()
+{
+	change_sheet(2);
+}
+
+static void lcd_select_sheet_menu()
+{
+    MENU_BEGIN();
+    MENU_ITEM_BACK_P(_T(MSG_BACK));
+    MENU_ITEM_SUBMENU_E(EEPROM_Sheets_base->s[0], lcd_select_sheet_0_menu);
+    MENU_ITEM_SUBMENU_E(EEPROM_Sheets_base->s[1], lcd_select_sheet_1_menu);
+    MENU_ITEM_SUBMENU_E(EEPROM_Sheets_base->s[2], lcd_select_sheet_2_menu);
+    MENU_END();
+}
+
+static void lcd_rename_sheet_menu()
+{
+    struct MenuData
+    {
+        bool initialized;
+        uint8_t selected;
+        char name[sizeof(Sheet::name)];
+    };
+    static_assert(sizeof(menu_data)>= sizeof(MenuData),"MenuData doesn't fit into menu_data");
+    MenuData* menuData = (MenuData*)&(menu_data[0]);
+
+    if (!menuData->initialized)
+    {
+        eeprom_read_block(menuData->name, EEPROM_Sheets_base->s[(eeprom_read_byte(&(EEPROM_Sheets_base->active_sheet)))].name, sizeof(Sheet::name));
+        lcd_encoder = menuData->name[0];
+        menuData->initialized = true;
+    }
+    if (lcd_encoder < '\x20') lcd_encoder = '\x20';
+    if (lcd_encoder > '\x7F') lcd_encoder = '\x7F';
+
+    menuData->name[menuData->selected] = lcd_encoder;
+    lcd_set_cursor(0,0);
+    for (uint_least8_t i = 0; i < sizeof(Sheet::name); ++i)
+    {
+        lcd_putc(menuData->name[i]);
+    }
+    lcd_set_cursor(menuData->selected, 1);
+    lcd_putc('^');
+    if (lcd_clicked())
+    {
+        if ((menuData->selected + 1u) < sizeof(Sheet::name))
+        {
+            lcd_encoder = menuData->name[++(menuData->selected)];
+        }
+        else
+        {
+            eeprom_update_block(menuData->name,
+                EEPROM_Sheets_base->s[(eeprom_read_byte(&(EEPROM_Sheets_base->active_sheet)))].name,
+                sizeof(Sheet::name));
+            menu_back();
+        }
+    }
+}
+
+static void lcd_sheet_menu()
+{
+    MENU_BEGIN();
+    MENU_ITEM_BACK_P(_T(MSG_MAIN));
+    MENU_ITEM_SUBMENU_P(_i("Select"), lcd_select_sheet_menu); //// c=18
+    MENU_ITEM_SUBMENU_P(_i("Rename"), lcd_rename_sheet_menu); //// c=18
+    MENU_ITEM_SUBMENU_P(_T(MSG_V2_CALIBRATION), lcd_v2_calibration);
+
+    MENU_END();
 }
 
 static void lcd_main_menu()
@@ -6332,55 +6598,6 @@ static void lcd_main_menu()
  MENU_ITEM_FUNCTION_P(PSTR("recover print"), recover_print);
  MENU_ITEM_FUNCTION_P(PSTR("power panic"), uvlo_);
 #endif //TMC2130_DEBUG
-
- /* if (farm_mode && !IS_SD_PRINTING )
-    {
-    
-        int tempScrool = 0;
-        if (lcd_draw_update == 0 && LCD_CLICKED == 0)
-            //_delay(100);
-            return; // nothing to do (so don't thrash the SD card)
-        uint16_t fileCnt = card.getnrfilenames();
-        
-        card.getWorkDirName();
-        if (card.filename[0] == '/')
-        {
-#if SDCARDDETECT == -1
-            MENU_ITEM_FUNCTION_P(_T(MSG_REFRESH), lcd_sd_refresh);
-#endif
-        } else {
-            MENU_ITEM_FUNCTION_P(PSTR(LCD_STR_FOLDER ".."), lcd_sd_updir);
-        }
-        
-        for (uint16_t i = 0; i < fileCnt; i++)
-        {
-            if (menu_item == menu_line)
-            {
-#ifndef SDCARD_RATHERRECENTFIRST
-                card.getfilename(i);
-#else
-                card.getfilename(fileCnt - 1 - i);
-#endif
-                if (card.filenameIsDir)
-                {
-                    MENU_ITEM_SDDIR(_T(MSG_CARD_MENU), card.filename, card.longFilename);
-                } else {
-                    
-                    MENU_ITEM_SDFILE(_T(MSG_CARD_MENU), card.filename, card.longFilename);
-                    
-                    
-                    
-                    
-                }
-            } else {
-                MENU_ITEM_DUMMY();
-            }
-        }
-        
-        MENU_ITEM_BACK_P(PSTR("- - - - - - - - -"));
-    
-        
-    }*/
  
   if ( ( IS_SD_PRINTING || is_usb_printing || (lcd_commands_type == LcdCommands::Layer1Cal)) && (current_position[Z_AXIS] < Z_HEIGHT_HIDE_LIVE_ADJUST_MENU) && !homing_flag && !mesh_bed_leveling_flag)
   {
@@ -6396,6 +6613,8 @@ static void lcd_main_menu()
     MENU_ITEM_SUBMENU_P(_i("Preheat"), lcd_preheat_menu);////MSG_PREHEAT
   }
 
+
+
 #ifdef SDSUPPORT
   if (card.cardOK || lcd_commands_type == LcdCommands::Layer1Cal)
   {
@@ -6408,7 +6627,14 @@ static void lcd_main_menu()
 			}
 			else
 			{
-			    MENU_ITEM_SUBMENU_P(_i("Resume print"), lcd_resume_print);////MSG_RESUME_PRINT
+				#ifdef FANCHECK
+					checkFanSpeed(); //Check manually to get most recent fan speed status
+					if(fan_check_error == EFCE_OK)
+							MENU_ITEM_SUBMENU_P(_i("Resume print"), lcd_resume_print);////MSG_RESUME_PRINT
+				#else
+					MENU_ITEM_SUBMENU_P(_i("Resume print"), lcd_resume_print);////MSG_RESUME_PRINT
+				#endif
+
 			}
 			MENU_ITEM_SUBMENU_P(_T(MSG_STOP_PRINT), lcd_sdcard_stop);
 		}
@@ -6486,6 +6712,8 @@ static void lcd_main_menu()
 
   }
 
+  if(!isPrintPaused)MENU_ITEM_SUBMENU_E(EEPROM_Sheets_base->s[(eeprom_read_byte(&(EEPROM_Sheets_base->active_sheet)))], lcd_sheet_menu);
+  
   if (!is_usb_printing && (lcd_commands_type != LcdCommands::Layer1Cal))
   {
 	  MENU_ITEM_SUBMENU_P(_i("Statistics  "), lcd_menu_statistics);////MSG_STATISTICS
@@ -6507,11 +6735,7 @@ static void lcd_main_menu()
 }
 
 void stack_error() {
-	SET_OUTPUT(BEEPER);
-if((eSoundMode==e_SOUND_MODE_LOUD)||(eSoundMode==e_SOUND_MODE_ONCE)||(eSoundMode==e_SOUND_MODE_SILENT))
-	WRITE(BEEPER, HIGH);
-	_delay(1000);
-	WRITE(BEEPER, LOW);
+	Sound_MakeCustom(1000,0,true);
 	lcd_display_message_fullscreen_P(_i("Error - static memory has been overwritten"));////MSG_STACK_ERROR c=20 r=4
 	//err_triggered = 1;
 	 while (1) delay_keep_alive(1000);
@@ -6646,8 +6870,8 @@ static void lcd_tune_menu()
           case e_SOUND_MODE_SILENT:
                MENU_ITEM_FUNCTION_P(_i(MSG_SOUND_MODE_SILENT),lcd_sound_state_set);
                break;
-          case e_SOUND_MODE_MUTE:
-               MENU_ITEM_FUNCTION_P(_i(MSG_SOUND_MODE_MUTE),lcd_sound_state_set);
+          case e_SOUND_MODE_BLIND:
+               MENU_ITEM_FUNCTION_P(_i(MSG_SOUND_MODE_BLIND),lcd_sound_state_set);
                break;
           default:
                MENU_ITEM_FUNCTION_P(_i(MSG_SOUND_MODE_LOUD),lcd_sound_state_set);
@@ -6758,7 +6982,6 @@ void lcd_print_stop()
      if(!card.sdprinting)
           {
           SERIAL_ECHOLNPGM("// action:cancel");   // for Octoprint
-          return;
           }
 	saved_printing = false;
 	cancel_heatup = true;
@@ -6812,6 +7035,7 @@ void lcd_sdcard_stop()
 
 	if (lcd_clicked())
 	{
+		Sound_MakeSound(e_SOUND_TYPE_ButtonEcho);
 		if ((int32_t)lcd_encoder == 1)
 		{
 			lcd_return_to_status();
@@ -8348,6 +8572,7 @@ void menu_lcd_lcdupdate_func(void)
 			if (lcd_draw_update == 0)
 			lcd_draw_update = 1;
 			lcd_encoder += lcd_encoder_diff / ENCODER_PULSES_PER_STEP;
+			Sound_MakeSound(e_SOUND_TYPE_EncoderMove);
 			lcd_encoder_diff = 0;
 			lcd_timeoutToStatus.start();
 		}
