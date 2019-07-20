@@ -3205,7 +3205,10 @@ void gcode_M701()
 		plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS], 400 / 60, active_extruder); //fast sequence
 		st_synchronize();
 
-		raise_z_above(MIN_Z_FOR_LOAD, false);
+        raise_z_above(MIN_Z_FOR_LOAD, false);
+        current_position[E_AXIS] += 30;
+        plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS], 400 / 60, active_extruder); //fast sequence
+
 		load_filament_final_feed(); //slow sequence
 		st_synchronize();
 
