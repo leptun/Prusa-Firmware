@@ -1509,8 +1509,10 @@ void setup()
 #ifndef DEBUG_DISABLE_STARTMSGS
   KEEPALIVE_STATE(PAUSED_FOR_USER);
 
-  check_if_fw_is_on_right_printer();
-  show_fw_version_warnings();
+  if (!farm_mode) {
+    check_if_fw_is_on_right_printer();
+    show_fw_version_warnings();    
+  }
 
   switch (hw_changed) { 
 	  //if motherboard or printer type was changed inform user as it can indicate flashing wrong firmware version
@@ -7344,17 +7346,17 @@ Sigma_Exit:
     // ----------------------------------------------
     /*!     
         Checks the parameters of the printer and gcode and performs compatibility check
-          - M862.1 [ P<nozzle_diameter> | Q ]
-          - M862.2 [ P<model_code> | Q ]
-          - M862.3 [ P<model_name> | Q ]
-          - M862.4 [ P<fw_version> | Q]
-          - M862.5 [ P<gcode_level> | Q]
+          - M862.1 { P<nozzle_diameter> | Q }
+          - M862.2 { P<model_code> | Q }
+          - M862.3 { P"<model_name>" | Q }
+          - M862.4 { P<fw_version> | Q }
+          - M862.5 { P<gcode_level> | Q }
 
         When run with P<> argument, the check is performed against the input value.
         When run with Q argument, the current value is shown.
 		  
         M862.3 accepts text identifiers of printer types too.
-        The syntax of M862.3 is (note the space between P and the printer type name and the quotes around the type):
+        The syntax of M862.3 is (note the quotes around the type):
 		
                 M862.3 P "MK3S"
 		  
