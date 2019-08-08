@@ -264,7 +264,7 @@
 #define TMC2130_SG_HOMING       1     // stallguard homing
 #define TMC2130_SG_THRS_X       32     // stallguard sensitivity for X axis
 #define TMC2130_SG_THRS_Y       32     // stallguard sensitivity for Y axis
-#define TMC2130_SG_THRS_Z       4     // stallguard sensitivity for Z axis
+#define TMC2130_SG_THRS_Z       6     // stallguard sensitivity for Z axis
 #define TMC2130_SG_THRS_E       3     // stallguard sensitivity for E axis
 
 //new settings is possible for vsense = 1, running current value > 31 set vsense to zero and shift both currents by 1 bit right (Z axis only)
