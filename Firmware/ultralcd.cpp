@@ -7439,7 +7439,7 @@ static bool lcd_selfcheck_axis_sg(unsigned char axis) {
 	if (axis == X_AXIS) { //there is collision between cables and PSU cover in X axis if Z coordinate is too low
 		
 		current_position[Z_AXIS] += 17;
-		plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[3], manual_feedrate[0] / 60, active_extruder);
+		plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[3], homing_feedrate[0] / 60, active_extruder);
 		tmc2130_home_enter(Z_AXIS_MASK);
 		st_synchronize();
 		tmc2130_home_exit();
@@ -7448,7 +7448,7 @@ static bool lcd_selfcheck_axis_sg(unsigned char axis) {
 // first axis length measurement begin	
 	
 	current_position[axis] -= (axis_length + margin);
-	plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[3], manual_feedrate[0] / 60, active_extruder);
+	plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[3], homing_feedrate[0] / 60, active_extruder);
 
 	
 	st_synchronize();
@@ -7458,11 +7458,11 @@ static bool lcd_selfcheck_axis_sg(unsigned char axis) {
 	current_position_init = st_get_position_mm(axis);
 
 	current_position[axis] += 2 * margin;
-	plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[3], manual_feedrate[0] / 60, active_extruder);
+	plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[3], homing_feedrate[0] / 60, active_extruder);
 	st_synchronize();
 
 	current_position[axis] += axis_length;
-	plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[3], manual_feedrate[0] / 60, active_extruder);
+	plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[3], homing_feedrate[0] / 60, active_extruder);
 
 	st_synchronize();
 
@@ -7478,11 +7478,11 @@ static bool lcd_selfcheck_axis_sg(unsigned char axis) {
 
 
 	current_position[axis] -= margin;
-	plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[3], manual_feedrate[0] / 60, active_extruder);
+	plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[3], homing_feedrate[0] / 60, active_extruder);
 	st_synchronize();	
 
 	current_position[axis] -= (axis_length + margin);
-	plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[3], manual_feedrate[0] / 60, active_extruder);
+	plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[3], homing_feedrate[0] / 60, active_extruder);
 		
 	st_synchronize();
 
