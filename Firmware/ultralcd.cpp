@@ -7640,6 +7640,7 @@ static bool lcd_selfcheck_axis(int _axis, int _travel)
 	}
 	
 	current_position[_axis] = 0; //simulate axis home to avoid negative numbers for axis position, especially Z.
+	plan_set_position(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS]);
 	
 	return _stepresult;
 }
