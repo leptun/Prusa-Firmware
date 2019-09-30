@@ -165,6 +165,10 @@
 CardReader card;
 #endif
 
+#ifdef SDCARD_SORT_ALPHA
+extern bool presort_flag;
+#endif
+
 unsigned long PingTime = _millis();
 unsigned long NcTime;
 
@@ -6326,6 +6330,7 @@ Sigma_Exit:
           SERIAL_ECHOPGM(STRINGIFY(EXTRUDERS)); 
           SERIAL_ECHOPGM(" UUID:"); 
           SERIAL_ECHOLNPGM(MACHINE_UUID);
+          SERIAL_ECHOLNPGM("Cap:PROMPT_SUPPORT:1");
       }
       break;
 
@@ -7436,6 +7441,123 @@ Sigma_Exit:
                }
     break;
 
+    case 876:
+    {
+        bool SD_redraw = false;
+        if (code_seen('P'))
+        {
+        }
+        else if (code_seen('S'))
+        {
+            serialprintPGM(MSG_OCTOPRINT_ACTION_BEGIN);
+            SERIAL_PROTOCOLLNRPGM(MSG_OCTOPRINT_ACTION_PROMPT_END);
+            if (card.cardOK)
+            {
+                uint16_t val_selected = code_value();
+                if (val_selected > 1){
+                    uint8_t sdSort = eeprom_read_byte((uint8_t*)EEPROM_SD_SORT);
+                    if (presort_flag == true) {
+                        presort_flag = false;
+                        card.presort();
+                    }
+                    uint16_t fileCnt = card.getnrfilenames();
+                    const uint16_t nr = ((sdSort == SD_SORT_NONE) || farm_mode || (sdSort == SD_SORT_TIME)) ? (fileCnt - 1 - (val_selected - 2)) : (val_selected - 2);
+                #ifdef SDCARD_SORT_ALPHA
+                    if (sdSort == SD_SORT_NONE) card.getfilename(nr);
+                    else card.getfilename_sorted(nr);
+                #else
+                    card.getfilename(nr);
+                #endif
+                    if (card.filenameIsDir)
+                    {
+                        menu_action_sddirectory(card.filename);
+                        SD_redraw = true;
+                    }
+                    else
+                    {
+                        card.openFile(card.filename, true);
+                        enquecommand_P(PSTR("M24"));
+                        lcd_return_to_status();
+                    }
+                }
+                else if (val_selected == 1)
+                {
+                    if (card.getWorkDirDepth() == 0) card.initsd();
+                    else card.updir();
+                    SD_redraw = true;
+                }
+            }
+        }
+        else
+        {
+            SD_redraw = true;
+        }
+        
+        if (SD_redraw)
+        {
+            serialprintPGM(MSG_OCTOPRINT_ACTION_BEGIN);
+            serialprintPGM(MSG_OCTOPRINT_ACTION_PROMPT_BEGIN);
+            SERIAL_PROTOCOLLNRPGM(_T(MSG_CARD_MENU));
+
+            serialprintPGM(MSG_OCTOPRINT_ACTION_BEGIN);
+            serialprintPGM(MSG_OCTOPRINT_ACTION_PROMPT_CHOICE);
+            SERIAL_PROTOCOLLNRPGM(_N("Close Menu"));
+            
+            if (card.cardOK)
+            {
+                uint8_t sdSort = eeprom_read_byte((uint8_t*)EEPROM_SD_SORT);
+                if (presort_flag == true) {
+                    presort_flag = false;
+                    card.presort();
+                }
+                uint16_t fileCnt = card.getnrfilenames();
+                
+                serialprintPGM(MSG_OCTOPRINT_ACTION_BEGIN);
+                serialprintPGM(MSG_OCTOPRINT_ACTION_PROMPT_CHOICE);
+                if (card.getWorkDirDepth() == 0)
+                {
+                    SERIAL_PROTOCOLLNRPGM(_N("[REFRESH]"));
+                }
+                else
+                {
+                    SERIAL_PROTOCOLLNRPGM(_N("[..]"));
+                }
+                
+                for (uint16_t i = 0; i < fileCnt; i++)
+                {
+                    const uint16_t nr = ((sdSort == SD_SORT_NONE) || farm_mode || (sdSort == SD_SORT_TIME)) ? (fileCnt - 1 - i) : i;
+                #ifdef SDCARD_SORT_ALPHA
+                    if (sdSort == SD_SORT_NONE) card.getfilename(nr);
+                    else card.getfilename_sorted(nr);
+                #else
+                    card.getfilename(nr);
+                #endif
+                    const char* filename = card.filename;
+                    char* longFilename = card.longFilename;
+                    if (longFilename[0] != '\0')
+                    {
+                        filename = longFilename;
+                    }
+                    serialprintPGM(MSG_OCTOPRINT_ACTION_BEGIN);
+                    serialprintPGM(MSG_OCTOPRINT_ACTION_PROMPT_CHOICE);
+                    if (card.filenameIsDir)
+                    {
+                        printf_P(PSTR("[%s]\n"), filename);
+                    }
+                    else
+                    {
+                        SERIAL_ECHOLN(filename);
+                    }
+                }
+            }
+            
+            serialprintPGM(MSG_OCTOPRINT_ACTION_BEGIN);
+            SERIAL_PROTOCOLLNRPGM(MSG_OCTOPRINT_ACTION_PROMPT_SHOW);
+        }
+        
+    }
+    break;
+    
 #ifdef LIN_ADVANCE
     //! ### M900 - Set Linear advance options
     // ----------------------------------------------

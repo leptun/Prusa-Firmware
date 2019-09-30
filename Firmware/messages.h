@@ -131,6 +131,11 @@ extern const char MSG_ENDSTOP_HIT[];
 extern const char MSG_EJECT_FILAMENT[];
 extern const char MSG_CUT_FILAMENT[];
 extern const char MSG_OCTOPRINT_PAUSE[];
+extern const char MSG_OCTOPRINT_ACTION_BEGIN[];
+extern const char MSG_OCTOPRINT_ACTION_PROMPT_BEGIN[];
+extern const char MSG_OCTOPRINT_ACTION_PROMPT_CHOICE[];
+extern const char MSG_OCTOPRINT_ACTION_PROMPT_SHOW[];
+extern const char MSG_OCTOPRINT_ACTION_PROMPT_END[];
 
 #if defined(__cplusplus)
 }

@@ -252,9 +252,6 @@ static void lcd_delta_calibrate_menu();
 #endif // DELTA_CALIBRATION_MENU
 
 
-/* Different types of actions that can be used in menu items. */
-static void menu_action_sdfile(const char* filename);
-static void menu_action_sddirectory(const char* filename);
 
 #define ENCODER_FEEDRATE_DEADZONE 10
 
@@ -8395,7 +8392,7 @@ static bool check_file(const char* filename) {
 	
 }
 
-static void menu_action_sdfile(const char* filename)
+void menu_action_sdfile(const char* filename)
 {
   loading_flag = false;
   char cmd[30];

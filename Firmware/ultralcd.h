@@ -47,6 +47,10 @@ unsigned char lcd_choose_color();
 void lcd_load_filament_color_check();
 //void lcd_mylang();
 
+/* Different types of actions that can be used in menu items. */
+extern void menu_action_sdfile(const char* filename);
+extern void menu_action_sddirectory(const char* filename);
+
 extern bool lcd_selftest();
 
 void lcd_menu_statistics(); 
