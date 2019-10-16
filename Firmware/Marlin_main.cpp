@@ -2681,7 +2681,12 @@ static void gcode_G28(bool home_x_axis, long home_x_value, bool home_y_axis, lon
               enable_endstops(true);
               endstops_hit_on_purpose();
 #ifdef BRICKED_Z
+    #ifndef TMC2130
+        #error TMC2130 is needed!
+    #endif
+              FORCE_HIGH_POWER_START;
 			  if (!axis_known_position[Z_AXIS]) calibrate_z_auto();
+              FORCE_HIGH_POWER_END;
 #endif
               homeaxis(Z_AXIS);
             #else // MESH_BED_LEVELING
@@ -10589,7 +10594,9 @@ void disable_force_z()
     tmc2130_init(true);
 #endif // TMC2130
 
+#ifndef BRICKED_Z
     axis_known_position[Z_AXIS]=false;
+#endif
 }
 
 
