@@ -115,7 +115,7 @@
 #define SILENT_MAX_FEEDRATE_XY   100  // max feedrate in mm/s
 
 //Normal mode limits
-#define NORMAL_MAX_ACCEL_XY     2500ul  // max acceleration in normal mode in mm/s^2
+#define NORMAL_MAX_ACCEL_XY     5000ul  // max acceleration in normal mode in mm/s^2
 #define NORMAL_MAX_FEEDRATE_XY   300  // max feedrate in mm/s
 
 //number of bytes from end of the file to start check
@@ -262,14 +262,14 @@
 #define TMC2130_TCOOLTHRS_E 500       // TCOOLTHRS - coolstep treshold
 
 #define TMC2130_SG_HOMING       1     // stallguard homing
-#define TMC2130_SG_THRS_X       32     // stallguard sensitivity for X axis
+#define TMC2130_SG_THRS_X       8     // stallguard sensitivity for X axis
 #define TMC2130_SG_THRS_Y       32     // stallguard sensitivity for Y axis
-#define TMC2130_SG_THRS_Z       8     // stallguard sensitivity for Z axis
+#define TMC2130_SG_THRS_Z       7     // stallguard sensitivity for Z axis
 #define TMC2130_SG_THRS_E       3     // stallguard sensitivity for E axis
 
 //new settings is possible for vsense = 1, running current value > 31 set vsense to zero and shift both currents by 1 bit right (Z axis only)
-#define TMC2130_CURRENTS_H {20, 20, 35, 30}  // default holding currents for all axes
-#define TMC2130_CURRENTS_R {20, 20, 35, 30}  // default running currents for all axes
+#define TMC2130_CURRENTS_H {30, 20, 35, 30}  // default holding currents for all axes
+#define TMC2130_CURRENTS_R {30, 20, 35, 30}  // default running currents for all axes
 #define TMC2130_UNLOAD_CURRENT_R 12			 // lowe current for M600 to protect filament sensor 
 
 #define TMC2130_STEALTH_Z
