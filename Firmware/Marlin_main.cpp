@@ -2112,7 +2112,6 @@ bool check_commands() {
 // enabled and will prevent prolonged pushing against the Z tops
 void raise_z_above(float target, bool plan)
 {
-    st_synchronize();
     if (current_position[Z_AXIS] >= target)
         return;
 
@@ -2122,23 +2121,20 @@ void raise_z_above(float target, bool plan)
     if (axis_known_position[Z_AXIS])
     {
         // current position is known, it's safe to raise Z
-        if(plan) {
-            plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS],
-                             current_position[E_AXIS], max_feedrate[Z_AXIS], active_extruder);
-        }
+        if(plan) plan_buffer_line_curposXYZE(max_feedrate[Z_AXIS], active_extruder);
         return;
     }
 
     // ensure Z is powered in normal mode to overcome initial load
     enable_z();
+    st_synchronize();
 
     // rely on crashguard to limit damage
     bool z_endstop_enabled = enable_z_endstop(true);
 #ifdef TMC2130
     tmc2130_home_enter(Z_AXIS_MASK);
 #endif //TMC2130
-    plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS],
-                     current_position[E_AXIS], homing_feedrate[Z_AXIS] / 60, active_extruder);
+    plan_buffer_line_curposXYZE(homing_feedrate[Z_AXIS] / 60, active_extruder);
     st_synchronize();
 #ifdef TMC2130
     if (endstop_z_hit_on_purpose())
@@ -2536,7 +2532,7 @@ static void gcode_G28(bool home_x_axis, long home_x_value, bool home_y_axis, lon
 	//if we are homing all axes, first move z higher to protect heatbed/steel sheet
 	if (home_all_axes) {
         raise_z_above(MESH_HOME_Z_SEARCH);
-        st_synchronize();
+		st_synchronize();
 	}
 #ifdef ENABLE_AUTO_BED_LEVELING
       plan_bed_level_matrix.set_to_identity();  //Reset the plane ("erase" all leveling data)
@@ -3219,9 +3215,9 @@ void gcode_M701()
 		st_synchronize();
 
         raise_z_above(MIN_Z_FOR_LOAD, false);
-        current_position[E_AXIS] += 30;
-        plan_buffer_line(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS], 400 / 60, active_extruder); //fast sequence
-
+		current_position[E_AXIS] += 30;
+		plan_buffer_line_curposXYZE(400 / 60, active_extruder); //fast sequence
+		
 		load_filament_final_feed(); //slow sequence
 		st_synchronize();
 
@@ -7649,27 +7645,33 @@ Sigma_Exit:
     case 350: 
     {
 	#ifdef TMC2130
-		if(code_seen('E'))
+		for (int i=0; i<NUM_AXIS; i++) 
 		{
-			uint16_t res_new = code_value();
-			if ((res_new == 8) || (res_new == 16) || (res_new == 32) || (res_new == 64) || (res_new == 128))
+			if(code_seen(axis_codes[i]))
 			{
-				st_synchronize();
-				uint8_t axis = E_AXIS;
-				uint16_t res = tmc2130_get_res(axis);
-				tmc2130_set_res(axis, res_new);
-				cs.axis_ustep_resolution[axis] = res_new;
-				if (res_new > res)
+				uint16_t res_new = code_value();
+				bool res_valid = (res_new == 8) || (res_new == 16) || (res_new == 32); // resolutions valid for all axis
+				res_valid |= (i != E_AXIS) && ((res_new == 1) || (res_new == 2) || (res_new == 4)); // resolutions valid for X Y Z only
+				res_valid |= (i == E_AXIS) && ((res_new == 64) || (res_new == 128)); // resolutions valid for E only
+				if (res_valid)
 				{
-					uint16_t fac = (res_new / res);
-					cs.axis_steps_per_unit[axis] *= fac;
-					position[E_AXIS] *= fac;
-				}
-				else
-				{
-					uint16_t fac = (res / res_new);
-					cs.axis_steps_per_unit[axis] /= fac;
-					position[E_AXIS] /= fac;
+					
+					st_synchronize();
+					uint16_t res = tmc2130_get_res(i);
+					tmc2130_set_res(i, res_new);
+					cs.axis_ustep_resolution[i] = res_new;
+					if (res_new > res)
+					{
+						uint16_t fac = (res_new / res);
+						cs.axis_steps_per_unit[i] *= fac;
+						position[i] *= fac;
+					}
+					else
+					{
+						uint16_t fac = (res / res_new);
+						cs.axis_steps_per_unit[i] /= fac;
+						position[i] /= fac;
+					}
 				}
 			}
 		}
@@ -8905,6 +8907,8 @@ void delay_keep_alive(unsigned int ms)
 }
 
 static void wait_for_heater(long codenum, uint8_t extruder) {
+    if (!degTargetHotend(extruder))
+        return;
 
 #ifdef TEMP_RESIDENCY_TIME
 	long residencyStart;
@@ -9548,10 +9552,9 @@ void long_pause() //long pause print
 	current_position[Y_AXIS] = Y_PAUSE_POS;
 	plan_buffer_line_curposXYZE(50, active_extruder);
 
-	// Turn off the print fan
+	// Turn off the hotends and print fan
+    setAllTargetHotends(0);
 	fanSpeed = 0;
-
-	st_synchronize();
 }
 
 void serialecho_temperatures() {
