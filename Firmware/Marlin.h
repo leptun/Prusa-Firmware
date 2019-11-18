@@ -118,7 +118,7 @@ void serialprintPGM(const char *str);
 bool is_buffer_empty();
 void get_command();
 void process_commands();
-void raise_z_above(float target, bool plan=true);
+void ramming();
 
 void manage_inactivity(bool ignore_stepper_queue=false);
 
