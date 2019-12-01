@@ -15,8 +15,8 @@
 // #define AMBIENT_THERMISTOR
 #define PINDA_THERMISTOR
 
-// #define W25X20CL                 // external 256kB flash
-// #define BOOTAPP                  // bootloader support
+#define W25X20CL                 // external 256kB flash
+#define BOOTAPP                  // bootloader support
 
 
 #define SWI2C_SDA      20 //SDA on P3
@@ -78,8 +78,8 @@
 
 
 
-#define E0_TMC2130_CS       32
-#define E0_TMC2130_DIAG     21
+#define E0_TMC2130_CS       21
+#define E0_TMC2130_DIAG     74
 #define E0_STEP_PIN         34
 #define E0_DIR_PIN          43
 #define E0_ENABLE_PIN       26
