@@ -24,11 +24,7 @@ uint8_t tmc2130_current_h[4] = TMC2130_CURRENTS_H;
 uint8_t tmc2130_current_r[4] = TMC2130_CURRENTS_R;
 
 //running currents for homing
-#ifdef GHETTO_TMC
-uint8_t tmc2130_current_r_home[4] = {30, 30, 20, 18};
-#else
-uint8_t tmc2130_current_r_home[4] = {8, 10, 20, 18};
-#endif
+uint8_t tmc2130_current_r_home[4] = TMC2130_CURRENTS_R_HOME;
 
 
 //pwm_ampl
@@ -44,11 +40,7 @@ uint8_t tmc2130_mres[4] = {0, 0, 0, 0}; //will be filed at begin of init
 
 
 uint8_t tmc2130_sg_thr[4] = {TMC2130_SG_THRS_X, TMC2130_SG_THRS_Y, TMC2130_SG_THRS_Z, TMC2130_SG_THRS_E};
-#ifdef GHETTO_TMC
-uint8_t tmc2130_sg_thr_home[4] = {5, 4, TMC2130_SG_THRS_Z, TMC2130_SG_THRS_E};
-#else
-uint8_t tmc2130_sg_thr_home[4] = {3, 3, TMC2130_SG_THRS_Z, TMC2130_SG_THRS_E};
-#endif
+uint8_t tmc2130_sg_thr_home[4] = TMC2130_SG_THRS_HOME;
 
 
 uint8_t tmc2130_sg_homing_axes_mask = 0x00;
