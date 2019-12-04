@@ -26,7 +26,7 @@
 #define CUSTOM_MENDEL_NAME "Prusa i3 MK25SS"
 
 // Electronics
-#define MOTHERBOARD BOARD_RAMBO_MINI_1_3
+#define MOTHERBOARD BOARD_RAMBO_MINI_1_3T
 #define GHETTO_TMC
 #define BRICKED_Z
 

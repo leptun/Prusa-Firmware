@@ -5,6 +5,7 @@
 
 #define BOARD_RAMBO_MINI_1_0    200  // Rambo-mini 1.0 - 200 (orig 102)
 #define BOARD_RAMBO_MINI_1_3    203  // Rambo-mini 1.3 - 203 (orig 302)
+#define BOARD_RAMBO_MINI_1_3T   253  // Rambo-mini 1.3 - 203 (orig 302)
 
 #define BOARD_EINSY_1_0a        310  // EINSy 1.0a     - 310 (new)
 
