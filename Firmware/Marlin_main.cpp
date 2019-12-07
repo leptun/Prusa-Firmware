@@ -7495,8 +7495,7 @@ Sigma_Exit:
         }
         else if (code_seen('S'))
         {
-            serialprintPGM(MSG_OCTOPRINT_ACTION_BEGIN);
-            SERIAL_PROTOCOLLNRPGM(MSG_OCTOPRINT_ACTION_PROMPT_END);
+            SERIAL_ACTION2(MSG_OCTOPRINT_ACTION_PROMPT_END, "");
             if (card.cardOK)
             {
                 uint16_t val_selected = code_value();
@@ -7541,14 +7540,8 @@ Sigma_Exit:
         
         if (SD_redraw)
         {
-            serialprintPGM(MSG_OCTOPRINT_ACTION_BEGIN);
-            serialprintPGM(MSG_OCTOPRINT_ACTION_PROMPT_BEGIN);
-            SERIAL_PROTOCOLLNRPGM(_T(MSG_CARD_MENU));
-
-            serialprintPGM(MSG_OCTOPRINT_ACTION_BEGIN);
-            serialprintPGM(MSG_OCTOPRINT_ACTION_PROMPT_CHOICE);
-            SERIAL_PROTOCOLLNRPGM(_N("Close Menu"));
-            
+            SERIAL_ACTIONPGM(MSG_OCTOPRINT_ACTION_PROMPT_BEGIN, _T(MSG_CARD_MENU));
+            SERIAL_ACTIONPGM(MSG_OCTOPRINT_ACTION_PROMPT_CHOICE, _N("Close Menu"));
             if (card.cardOK)
             {
                 uint8_t sdSort = eeprom_read_byte((uint8_t*)EEPROM_SD_SORT);
@@ -7558,15 +7551,13 @@ Sigma_Exit:
                 }
                 uint16_t fileCnt = card.getnrfilenames();
                 
-                serialprintPGM(MSG_OCTOPRINT_ACTION_BEGIN);
-                serialprintPGM(MSG_OCTOPRINT_ACTION_PROMPT_CHOICE);
                 if (card.getWorkDirDepth() == 0)
                 {
-                    SERIAL_PROTOCOLLNRPGM(_N("[REFRESH]"));
+                    SERIAL_ACTIONPGM(MSG_OCTOPRINT_ACTION_PROMPT_CHOICE, _N("[REFRESH]"));
                 }
                 else
                 {
-                    SERIAL_PROTOCOLLNRPGM(_N("[..]"));
+                    SERIAL_ACTIONPGM(MSG_OCTOPRINT_ACTION_PROMPT_CHOICE, _N("[..]"));
                 }
                 
                 for (uint16_t i = 0; i < fileCnt; i++)
@@ -7584,21 +7575,18 @@ Sigma_Exit:
                     {
                         filename = longFilename;
                     }
-                    serialprintPGM(MSG_OCTOPRINT_ACTION_BEGIN);
-                    serialprintPGM(MSG_OCTOPRINT_ACTION_PROMPT_CHOICE);
                     if (card.filenameIsDir)
                     {
+                        SERIAL_ACTION1(MSG_OCTOPRINT_ACTION_PROMPT_CHOICE);
                         printf_P(PSTR("[%s]\n"), filename);
                     }
                     else
                     {
-                        SERIAL_ECHOLN(filename);
+                        SERIAL_ACTION2(MSG_OCTOPRINT_ACTION_PROMPT_CHOICE, filename);
                     }
                 }
             }
-            
-            serialprintPGM(MSG_OCTOPRINT_ACTION_BEGIN);
-            SERIAL_PROTOCOLLNRPGM(MSG_OCTOPRINT_ACTION_PROMPT_SHOW);
+            SERIAL_ACTION2(MSG_OCTOPRINT_ACTION_PROMPT_SHOW, "");
         }
         
     }
