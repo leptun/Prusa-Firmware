@@ -2327,7 +2327,7 @@ void homeaxis(int axis, uint8_t cnt)
         plan_buffer_line(destination[X_AXIS], destination[Y_AXIS], destination[Z_AXIS], destination[E_AXIS], feedrate/60, active_extruder);
         st_synchronize();
         destination[axis] = 2*home_retract_mm(axis) * axis_home_dir;
-        feedrate = homing_feedrate[axis];
+        feedrate = homing_feedrate[axis]/2 ;
         _delay_ms(150);
         plan_buffer_line(destination[X_AXIS], destination[Y_AXIS], destination[Z_AXIS], destination[E_AXIS], feedrate/60, active_extruder);
         st_synchronize();
