@@ -1574,7 +1574,7 @@ void lcd_return_to_status()
 //! @brief Pause print, disable nozzle heater, move to park position
 void lcd_pause_print()
 {
-    stop_and_save_print_to_ram(0.0,0.0);
+    stop_and_save_print_to_ram(0.0, -default_retraction);
     lcd_return_to_status();
     isPrintPaused = true;
     if (LcdCommands::Idle == lcd_commands_type)
@@ -6678,14 +6678,15 @@ static bool fan_error_selftest()
 void lcd_resume_print()
 {
     lcd_return_to_status();
-    lcd_reset_alert_level();
-    lcd_setstatuspgm(_T(MSG_RESUMING_PRINT));
     lcd_reset_alert_level(); //for fan speed error
-
     if (fan_error_selftest()) return; //abort if error persists
 
+    lcd_setstatuspgm(_T(MSG_FINISHING_MOVEMENTS));
+    st_synchronize();
+
+    lcd_setstatuspgm(_T(MSG_RESUMING_PRINT));
     isPrintPaused = false;
-    restore_print_from_ram_and_continue(0.0);
+    restore_print_from_ram_and_continue(default_retraction);
     pause_time += (_millis() - start_pause_print); //accumulate time when print is paused for correct statistics calculation
     refresh_cmd_timeout();
     SERIAL_PROTOCOLLNRPGM(MSG_OCTOPRINT_RESUMED); //resume octoprint
@@ -6824,10 +6825,15 @@ static void lcd_main_menu()
   }
 
 
+  if(isPrintPaused && saved_printing_type == PRINTING_TYPE_USB)
+  {
 #ifdef FANCHECK
-  if((fan_check_error == EFCE_FIXED) && (saved_printing_type == PRINTING_TYPE_USB))
-    MENU_ITEM_SUBMENU_P(_i("Resume print"), lcd_resume_print);////MSG_RESUME_PRINT
+      if((fan_check_error == EFCE_FIXED) || (fan_check_error == EFCE_OK))
+          MENU_ITEM_SUBMENU_P(_i("Resume print"), lcd_resume_print);////MSG_RESUME_PRINT
+#else
+      MENU_ITEM_SUBMENU_P(_i("Resume print"), lcd_resume_print);////MSG_RESUME_PRINT
 #endif
+  }
 
 #ifdef SDSUPPORT
   if (card.cardOK || lcd_commands_type == LcdCommands::Layer1Cal)
