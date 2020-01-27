@@ -138,6 +138,8 @@
 #include "cmdqueue.h"
 #include "io_atmega2560.h"
 
+#include "uvlo.h"
+
 // Macros for bit masks
 #define BIT(b) (1<<(b))
 #define TEST(n,b) (((n)&BIT(b))!=0)
@@ -1299,7 +1301,7 @@ void setup()
 	st_init();    // Initialize stepper, this enables interrupts!
   
 #ifdef UVLO_SUPPORT
-    setup_uvlo_interrupt();
+    uvlo_init();
 #endif //UVLO_SUPPORT
 
 #ifdef TMC2130
@@ -1447,9 +1449,6 @@ void setup()
 		eeprom_write_byte((uint8_t*)EEPROM_TEMP_CAL_ACTIVE, 0);
 		temp_cal_active = false;
 	}
-	if (eeprom_read_byte((uint8_t*)EEPROM_UVLO) == 255) {
-		eeprom_write_byte((uint8_t*)EEPROM_UVLO, 0);
-	}
 	if (eeprom_read_byte((uint8_t*)EEPROM_SD_SORT) == 255) {
 		eeprom_write_byte((uint8_t*)EEPROM_SD_SORT, 0);
 	}
@@ -1566,15 +1565,6 @@ void setup()
 
 #ifdef UVLO_SUPPORT
   if (eeprom_read_byte((uint8_t*)EEPROM_UVLO) != 0) { //previous print was terminated by UVLO
-/*
-	  if (lcd_show_fullscreen_message_yes_no_and_wait_P(_T(MSG_RECOVER_PRINT), false))	recover_print();
-	  else {
-		  eeprom_update_byte((uint8_t*)EEPROM_UVLO, 0);
-		  lcd_update_enable(true);
-		  lcd_update(2);
-		  lcd_setstatuspgm(_T(WELCOME_MSG));
-	  }
-*/
       manage_heater(); // Update temperatures 
 #ifdef DEBUG_UVLO_AUTOMATIC_RECOVER 
 		printf_P(_N("Power panic detected!\nCurrent bed temp:%d\nSaved bed temp:%d\n"), (int)degBed(), eeprom_read_byte((uint8_t*)EEPROM_UVLO_TARGET_BED));
@@ -3772,6 +3762,9 @@ void process_commands()
 		else if (code_seen("uvlo")) // PRUSA uvlo
 		{
                eeprom_update_byte((uint8_t*)EEPROM_UVLO,0); 
+#ifdef UVLO_SUPPORT
+               uvlo_prepare_for_next_uvlo();
+#endif //UVLO_SUPPORT
                enquecommand_P(PSTR("M24")); 
 		}	
 		else if (code_seen("MMURES")) // PRUSA MMURES
@@ -10581,8 +10574,18 @@ void uvlo_()
     st_synchronize();
     disable_z();
 
-    // Write the file position.
-    eeprom_update_dword((uint32_t*)(EEPROM_FILE_POSITION), sd_position);
+    // Write file information
+    {
+        uint8_t depth = (uint8_t)card.getWorkDirDepth();
+        XFLASH_WRITE(depth, XVLO_DIR_DEPTH);
+        for (uint_least8_t i = 0; i < depth; i++) {
+            XFLASH_WRITE_WITH_SIZE(dir_names[i], XVLO_DIRS_ARRAY + i * 8, 8);
+        }
+        // Write the full filename filename (name+extension+NULL)
+        XFLASH_WRITE(card.filename, XVLO_FILENAME);
+        // Write the file position.
+        XFLASH_WRITE(sd_position, XVLO_FILE_POSITION);
+    }
 
     // Store the mesh bed leveling offsets. This is 2*7*7=98 bytes, which takes 98*3.4us=333us in worst case.
     for (int8_t mesh_point = 0; mesh_point < MESH_NUM_X_POINTS * MESH_NUM_Y_POINTS; ++ mesh_point) {
@@ -10758,18 +10761,6 @@ ISR(INT7_vect) {
 #endif
 
 #ifdef UVLO_SUPPORT
-void setup_uvlo_interrupt() {
-	DDRE &= ~(1 << 4); //input pin
-	PORTE &= ~(1 << 4); //no internal pull-up
-
-						//sensing falling edge
-	EICRB |= (1 << 0);
-	EICRB &= ~(1 << 1);
-
-	//enable INT4 interrupt
-	EIMSK |= (1 << 4);
-}
-
 ISR(INT4_vect) {
 	EIMSK &= ~(1 << 4); //disable INT4 interrupt to make sure that this code will be executed just once 
 	SERIAL_ECHOLNPGM("INT4");
@@ -10914,29 +10905,24 @@ void restore_print_from_eeprom(bool mbl_was_active) {
 	SERIAL_ECHOPGM(", feedmultiply:");
 	MYSERIAL.println(feedmultiply_rec);
 
-	depth = eeprom_read_byte((uint8_t*)EEPROM_DIR_DEPTH);
+	XFLASH_READ(depth, XVLO_DIR_DEPTH);
 	
 	MYSERIAL.println(int(depth));
-	for (int i = 0; i < depth; i++) {
-		for (int j = 0; j < 8; j++) {
-			dir_name[j] = eeprom_read_byte((uint8_t*)EEPROM_DIRS + j + 8 * i);
-		}
+    for (int i = 0; i < depth; i++) {
+        XFLASH_READ_WITH_SIZE(dir_name, XVLO_DIRS_ARRAY + 8 * i, sizeof(dir_name) - 1);
 		dir_name[8] = '\0';
 		MYSERIAL.println(dir_name);
 		strcpy(dir_names[i], dir_name);
 		card.chdir(dir_name);
 	}
 
-	for (int i = 0; i < 8; i++) {
-		filename[i] = eeprom_read_byte((uint8_t*)EEPROM_FILENAME + i);
-	}
-	filename[8] = '\0';
+    XFLASH_READ(filename, XVLO_FILENAME);
 
 	MYSERIAL.print(filename);
-	strcat_P(filename, PSTR(".gco"));
 	sprintf_P(cmd, PSTR("M23 %s"), filename);
 	enquecommand(cmd);
-	uint32_t position = eeprom_read_dword((uint32_t*)(EEPROM_FILE_POSITION));
+	uint32_t position;
+    XFLASH_READ(position, XVLO_FILE_POSITION);
 	SERIAL_ECHOPGM("Position read from eeprom:");
 	MYSERIAL.println(position);
 

@@ -39,6 +39,8 @@
 #include "tmc2130.h"
 #endif //TMC2130
 
+#include "uvlo.h"
+
 #include "sound.h"
 
 #include "mmu.h"
@@ -499,7 +501,8 @@ uint8_t menu_item_sddir(const char* str_fn, char* str_fnl)
 			lcd_update_enabled = 0;
 			menu_action_sddirectory(str_fn);
 			lcd_update_enabled = 1;
-			return menu_item_ret();
+            menu_item_ret();
+            return 1;
 		}
 	}
 	menu_item++;
@@ -567,7 +570,8 @@ static uint8_t menu_item_sdfile(const char*
 		{
 		    lcd_consume_click();
 			menu_action_sdfile(str_fn);
-			return menu_item_ret();
+            menu_item_ret();
+            return 1;
 		}
 	}
 	menu_item++;
@@ -6808,6 +6812,7 @@ static void lcd_main_menu()
 #ifdef TMC2130_DEBUG
  MENU_ITEM_FUNCTION_P(PSTR("recover print"), recover_print);
  MENU_ITEM_FUNCTION_P(PSTR("power panic"), uvlo_);
+ MENU_ITEM_FUNCTION_P(PSTR("Prepare UVLO"), uvlo_prepare_for_next_uvlo);
 #endif //TMC2130_DEBUG
  
   if ( ( IS_SD_PRINTING || is_usb_printing || (lcd_commands_type == LcdCommands::Layer1Cal)) && (current_position[Z_AXIS] < Z_HEIGHT_HIDE_LIVE_ADJUST_MENU) && !homing_flag && !mesh_bed_leveling_flag)
@@ -8744,29 +8749,6 @@ static void menu_action_sdfile(const char* filename)
   for (c = &cmd[4]; *c; c++)
     *c = tolower(*c);
 
-  const char end[5] = ".gco";
-
-  //we are storing just first 8 characters of 8.3 filename assuming that extension is always ".gco"
-  for (uint_least8_t i = 0; i < 8; i++) {
-	  if (strcmp((cmd + i + 4), end) == 0) {
-		  //filename is shorter then 8.3, store '\0' character on position where ".gco" string was found to terminate stored string properly
- 		  eeprom_write_byte((uint8_t*)EEPROM_FILENAME + i, '\0');
-		  break;
-	  }
-	  else {
-		  eeprom_write_byte((uint8_t*)EEPROM_FILENAME + i, cmd[i + 4]);
-	  }
-  }
-
-  uint8_t depth = (uint8_t)card.getWorkDirDepth();
-  eeprom_write_byte((uint8_t*)EEPROM_DIR_DEPTH, depth);
-
-  for (uint_least8_t i = 0; i < depth; i++) {
-	  for (uint_least8_t j = 0; j < 8; j++) {
-		  eeprom_write_byte((uint8_t*)EEPROM_DIRS + j + 8 * i, dir_names[i][j]);
-	  }
-  }
-  
   if (!check_file(filename)) {
 	  result = lcd_show_fullscreen_message_yes_no_and_wait_P(_i("File incomplete. Continue anyway?"), false, false);////MSG_FILE_INCOMPLETE c=20 r=2
 	  lcd_update_enable(true);
