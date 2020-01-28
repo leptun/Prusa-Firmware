@@ -10587,18 +10587,8 @@ void uvlo_()
         XFLASH_WRITE(sd_position, XVLO_FILE_POSITION);
     }
 
-    // Store the mesh bed leveling offsets. This is 2*7*7=98 bytes
-    {
-        int16_t mblArray[MESH_NUM_X_POINTS * MESH_NUM_Y_POINTS];
-        sprintf_P(PSTR("sizeof(mbl.z_values):%u"), sizeof(mbl.z_values));
-        for (int8_t mesh_point = 0; mesh_point < MESH_NUM_X_POINTS * MESH_NUM_Y_POINTS; ++ mesh_point) {
-            uint8_t ix = mesh_point % MESH_NUM_X_POINTS; // from 0 to MESH_NUM_X_POINTS - 1
-            uint8_t iy = mesh_point / MESH_NUM_X_POINTS;
-            // Scale the z value to 1u resolution.
-            mblArray[mesh_point] = mbl_was_active ? int16_t(floor(mbl.z_values[iy][ix] * 1000.f + 0.5f)) : 0;            
-        }
-        XFLASH_WRITE(mblArray, XVLO_MBL);
-    }
+    // Store the mesh bed leveling offsets. This is 4*7*7=196 bytes
+    XFLASH_WRITE(mbl.z_values, XVLO_MBL);
 
     // Write the _final_ Z position and motor microstep counter (unused).
     eeprom_update_float((float*)EEPROM_UVLO_TINY_CURRENT_POSITION_Z, current_position[Z_AXIS]);
@@ -10823,18 +10813,12 @@ bool recover_machine_state_after_power_panic()
   current_position[Y_AXIS] = 0;
 
   // 2) Restore the mesh bed leveling offsets, but not the MBL status.
-  // This is 2*7*7=98 bytes
+  // This is 4*7*7=196 bytes
+  XFLASH_READ(mbl.z_values, XVLO_MBL);
   bool mbl_was_active = false;
-  for (int8_t mesh_point = 0; mesh_point < MESH_NUM_X_POINTS * MESH_NUM_Y_POINTS; ++ mesh_point) {
-    uint8_t ix = mesh_point % MESH_NUM_X_POINTS; // from 0 to MESH_NUM_X_POINTS - 1
-    uint8_t iy = mesh_point / MESH_NUM_X_POINTS;
-    // Scale the z value to 10u resolution.
-    int16_t v;
-    XFLASH_READ(v, XVLO_MBL + 2*mesh_point);
-    if (v != 0)
-      mbl_was_active = true;
-    mbl.z_values[iy][ix] = float(v) * 0.001f;
-  }
+  for (uint_least8_t i = 0; i < MESH_NUM_Y_POINTS; i++)
+    for (uint_least8_t j = 0; j < MESH_NUM_Y_POINTS; j++)
+      mbl_was_active |= (mbl.z_values[i][j] != 0.f);
 
   // Recover the physical coordinate of the Z axis at the time of the power panic.
   // The current position after power panic is moved to the next closest 0th full step.
