@@ -21,6 +21,7 @@
 #define XVLO_DIRS_ARRAY (XVLO_DIR_DEPTH - 8*MAX_DIR_DEPTH*sizeof(char)) //all the directories filenames that construct the full path (8 chars long) from root till the file. The number of dirs is XVLO_DIR_DEPTH.
 #define XVLO_FILENAME (XVLO_DIRS_ARRAY - 13*sizeof(char)) //full 8.3 filename string (max 13 bytes, can be less if filename is really short). Null terminated
 #define XVLO_FILE_POSITION (XVLO_FILENAME - sizeof(uint32_t))
+#define XVLO_MBL (XVLO_FILE_POSITION - (MESH_NUM_X_POINTS * MESH_NUM_Y_POINTS)*sizeof(int16_t))
 
 extern void xflash_write(uint32_t addr, uint8_t* data, uint16_t cnt);
 extern void uvlo_prepare_for_next_uvlo();

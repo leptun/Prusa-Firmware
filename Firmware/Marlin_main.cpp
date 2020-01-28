@@ -10587,13 +10587,17 @@ void uvlo_()
         XFLASH_WRITE(sd_position, XVLO_FILE_POSITION);
     }
 
-    // Store the mesh bed leveling offsets. This is 2*7*7=98 bytes, which takes 98*3.4us=333us in worst case.
-    for (int8_t mesh_point = 0; mesh_point < MESH_NUM_X_POINTS * MESH_NUM_Y_POINTS; ++ mesh_point) {
-      uint8_t ix = mesh_point % MESH_NUM_X_POINTS; // from 0 to MESH_NUM_X_POINTS - 1
-      uint8_t iy = mesh_point / MESH_NUM_X_POINTS;
-      // Scale the z value to 1u resolution.
-      int16_t v = mbl_was_active ? int16_t(floor(mbl.z_values[iy][ix] * 1000.f + 0.5f)) : 0;
-      eeprom_update_word((uint16_t*)(EEPROM_UVLO_MESH_BED_LEVELING_FULL +2*mesh_point), *reinterpret_cast<uint16_t*>(&v));
+    // Store the mesh bed leveling offsets. This is 2*7*7=98 bytes
+    {
+        int16_t mblArray[MESH_NUM_X_POINTS * MESH_NUM_Y_POINTS];
+        sprintf_P(PSTR("sizeof(mbl.z_values):%u"), sizeof(mbl.z_values));
+        for (int8_t mesh_point = 0; mesh_point < MESH_NUM_X_POINTS * MESH_NUM_Y_POINTS; ++ mesh_point) {
+            uint8_t ix = mesh_point % MESH_NUM_X_POINTS; // from 0 to MESH_NUM_X_POINTS - 1
+            uint8_t iy = mesh_point / MESH_NUM_X_POINTS;
+            // Scale the z value to 1u resolution.
+            mblArray[mesh_point] = mbl_was_active ? int16_t(floor(mbl.z_values[iy][ix] * 1000.f + 0.5f)) : 0;            
+        }
+        XFLASH_WRITE(mblArray, XVLO_MBL);
     }
 
     // Write the _final_ Z position and motor microstep counter (unused).
@@ -10819,14 +10823,14 @@ bool recover_machine_state_after_power_panic()
   current_position[Y_AXIS] = 0;
 
   // 2) Restore the mesh bed leveling offsets, but not the MBL status.
-  // This is 2*7*7=98 bytes, which takes 98*3.4us=333us in worst case.
+  // This is 2*7*7=98 bytes
   bool mbl_was_active = false;
   for (int8_t mesh_point = 0; mesh_point < MESH_NUM_X_POINTS * MESH_NUM_Y_POINTS; ++ mesh_point) {
     uint8_t ix = mesh_point % MESH_NUM_X_POINTS; // from 0 to MESH_NUM_X_POINTS - 1
     uint8_t iy = mesh_point / MESH_NUM_X_POINTS;
     // Scale the z value to 10u resolution.
     int16_t v;
-    eeprom_read_block(&v, (void*)(EEPROM_UVLO_MESH_BED_LEVELING_FULL+2*mesh_point), 2);
+    XFLASH_READ(v, XVLO_MBL + 2*mesh_point);
     if (v != 0)
       mbl_was_active = true;
     mbl.z_values[iy][ix] = float(v) * 0.001f;
