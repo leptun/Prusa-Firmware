@@ -10478,6 +10478,7 @@ void serialecho_temperatures() {
 
 void uvlo_()
 {
+	W25X20CL_SPI_ENTER();
 	unsigned long time_start = _millis();
 	bool sd_print = card.sdprinting;
     // Conserve power as soon as possible.
@@ -10764,6 +10765,7 @@ ISR(INT4_vect) {
 }
 
 void recover_print(uint8_t automatic) {
+    W25X20CL_SPI_ENTER();
 	char cmd[30];
 	lcd_update_enable(true);
 	lcd_update(2);
@@ -10908,6 +10910,7 @@ void restore_print_from_eeprom(bool mbl_was_active) {
 
 	MYSERIAL.print(filename);
 	sprintf_P(cmd, PSTR("M23 %s"), filename);
+	for (char* c = &cmd[4]; *c; c++) *c = tolower(*c);
 	enquecommand(cmd);
 	uint32_t position;
     XFLASH_READ(position, XVLO_FILE_POSITION);
