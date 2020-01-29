@@ -10589,6 +10589,7 @@ void uvlo_()
     }
 
     // Store the mesh bed leveling offsets. This is 4*7*7=196 bytes
+    if(!mbl_was_active) memset(mbl.z_values, 0, sizeof(mbl.z_values)); //invalidate mbl completely if it was disabled in the first place. Used when restoring.
     XFLASH_WRITE(mbl.z_values, XVLO_MBL);
 
     // Write the _final_ Z position and motor microstep counter (unused).
