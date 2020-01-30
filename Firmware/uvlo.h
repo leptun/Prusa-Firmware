@@ -22,6 +22,8 @@
 #define XVLO_FILENAME (XVLO_DIRS_ARRAY - 13*sizeof(char)) //full 8.3 filename string (max 13 bytes, can be less if filename is really short). Null terminated
 #define XVLO_FILE_POSITION (XVLO_FILENAME - sizeof(uint32_t))
 #define XVLO_MBL (XVLO_FILE_POSITION - (MESH_NUM_X_POINTS * MESH_NUM_Y_POINTS)*sizeof(float))
+#define XVLO_CURRENT_POSITION (XVLO_MBL - 4*sizeof(float))
+#define XVLO_AXIS_RELATIVE_MODES (XVLO_CURRENT_POSITION - 4 * sizeof(bool))
 
 extern void xflash_write(uint32_t addr, uint8_t* data, uint16_t cnt);
 extern void uvlo_drain_reset();

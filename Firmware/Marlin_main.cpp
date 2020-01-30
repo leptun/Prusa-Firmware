@@ -10535,15 +10535,16 @@ void uvlo_()
     // are in action.
     planner_abort_hard();
 
-    // Store the print logical Z position, which we need to recover (a slight error here would be
-    // recovered on the next Gcode instruction, while a physical location error would not)
-    float logical_z = current_position[Z_AXIS];
-    if(mbl_was_active) logical_z -= mbl.get_z(st_get_position_mm(X_AXIS), st_get_position_mm(Y_AXIS));
-    eeprom_update_float((float*)EEPROM_UVLO_CURRENT_POSITION_Z, logical_z);
-
-    // Store the print E position before we lose track
-	eeprom_update_float((float*)(EEPROM_UVLO_CURRENT_POSITION_E), current_position[E_AXIS]);
-	eeprom_update_byte((uint8_t*)EEPROM_UVLO_E_ABS, axis_relative_modes[3]?0:1);
+	{
+		float saved_current_position[sizeof(current_position)];
+		memcpy(saved_current_position, current_position, sizeof(saved_current_position));
+		// Store the print logical Z position, which we need to recover (a slight error here would be
+		// recovered on the next Gcode instruction, while a physical location error would not)
+		if(mbl_was_active) saved_current_position[Z_AXIS] -= mbl.get_z(st_get_position_mm(X_AXIS), st_get_position_mm(Y_AXIS));
+		XFLASH_WRITE(saved_current_position, XVLO_CURRENT_POSITION);
+	}
+	
+	XFLASH_WRITE(axis_relative_modes, XVLO_AXIS_RELATIVE_MODES);
 
     // Clean the input command queue, inhibit serial processing using saved_printing
     cmdqueue_reset();
@@ -10592,12 +10593,6 @@ void uvlo_()
 
     // Write the _final_ Z position and motor microstep counter (unused).
     eeprom_update_float((float*)EEPROM_UVLO_TINY_CURRENT_POSITION_Z, current_position[Z_AXIS]);
-    z_microsteps = tmc2130_rd_MSCNT(Z_AXIS);
-    eeprom_update_word((uint16_t*)(EEPROM_UVLO_Z_MICROSTEPS), z_microsteps);
-
-    // Store the current position.
-    eeprom_update_float((float*)(EEPROM_UVLO_CURRENT_POSITION + 0), current_position[X_AXIS]);
-    eeprom_update_float((float*)(EEPROM_UVLO_CURRENT_POSITION + 4), current_position[Y_AXIS]);
 
     // Store the current feed rate, temperatures, fan speed and extruder multipliers (flow rates)
 	eeprom_update_word((uint16_t*)EEPROM_UVLO_FEEDRATE, feedrate_bckp);
@@ -10694,10 +10689,6 @@ void uvlo_tiny()
 
         // Update Z position
         eeprom_update_float((float*)(EEPROM_UVLO_TINY_CURRENT_POSITION_Z), current_position[Z_AXIS]);
-
-        // Update the _final_ Z motor microstep counter (unused).
-        z_microsteps = tmc2130_rd_MSCNT(Z_AXIS);
-        eeprom_update_word((uint16_t*)(EEPROM_UVLO_Z_MICROSTEPS), z_microsteps);
     }
 
     // Update the the "power outage" flag.
@@ -10822,7 +10813,7 @@ bool recover_machine_state_after_power_panic()
   current_position[Z_AXIS] = eeprom_read_float((float*)(EEPROM_UVLO_TINY_CURRENT_POSITION_Z));
 
   // Recover last E axis position
-  current_position[E_AXIS] = eeprom_read_float((float*)(EEPROM_UVLO_CURRENT_POSITION_E));
+  XFLASH_READ(current_position[E_AXIS], XVLO_CURRENT_POSITION + sizeof(float) * E_AXIS);
 
   memcpy(destination, current_position, sizeof(destination));
 
@@ -10914,9 +10905,9 @@ void restore_print_from_eeprom(bool mbl_was_active) {
 
     // Move to the XY print position in logical coordinates, where the print has been killed, but
     // without shifting Z along the way. This requires performing the move without mbl.
-	sprintf_P(cmd, PSTR("G1 X%f Y%f F3000"),
-              eeprom_read_float((float*)(EEPROM_UVLO_CURRENT_POSITION + 0)),
-              eeprom_read_float((float*)(EEPROM_UVLO_CURRENT_POSITION + 4)));
+	float current_position_rec[sizeof(current_position)];
+	XFLASH_READ(current_position_rec, XVLO_CURRENT_POSITION);
+	sprintf_P(cmd, PSTR("G1 X%f Y%f F3000"), current_position_rec[X_AXIS], current_position_rec[Y_AXIS]);
 	enquecommand(cmd);
 
     // Enable MBL and switch to logical positioning
@@ -10924,19 +10915,21 @@ void restore_print_from_eeprom(bool mbl_was_active) {
         enquecommand_P(PSTR("PRUSA MBL V1"));
 
     // Move the Z axis down to the print, in logical coordinates.
-    sprintf_P(cmd, PSTR("G1 Z%f"), eeprom_read_float((float*)(EEPROM_UVLO_CURRENT_POSITION_Z)));
+    sprintf_P(cmd, PSTR("G1 Z%f"), current_position_rec[Z_AXIS]);
 	enquecommand(cmd);
 
   // Unretract.
     sprintf_P(cmd, PSTR("G1 E%0.3f F2700"), default_retraction);
     enquecommand(cmd);
   // Recover final E axis position and mode
-    float pos_e = eeprom_read_float((float*)(EEPROM_UVLO_CURRENT_POSITION_E));
-    sprintf_P(cmd, PSTR("G92 E"));
-    dtostrf(pos_e, 6, 3, cmd + strlen(cmd));
+    sprintf_P(cmd, PSTR("G92 E%0.3f"), current_position_rec[E_AXIS]);
     enquecommand(cmd);
-    if (eeprom_read_byte((uint8_t*)EEPROM_UVLO_E_ABS))
-        enquecommand_P(PSTR("M82")); //E axis abslute mode
+	{ // Set axis_relative_modes
+		bool axis_relative_modes_rec[sizeof(axis_relative_modes)];
+		XFLASH_READ(axis_relative_modes_rec, XVLO_AXIS_RELATIVE_MODES);
+		if (axis_relative_modes_rec[X_AXIS] || axis_relative_modes_rec[Y_AXIS] || axis_relative_modes_rec[Z_AXIS]) enquecommand_P(PSTR("G91")); //XYZ relative
+		if (axis_relative_modes_rec[E_AXIS]) enquecommand_P(PSTR("M82")); //E axis abslute mode
+	}
   // Set the feedrates saved at the power panic.
 	sprintf_P(cmd, PSTR("G1 F%d"), feedrate_rec);
 	enquecommand(cmd);

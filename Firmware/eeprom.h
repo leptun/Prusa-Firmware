@@ -68,22 +68,17 @@ static_assert(sizeof(Sheets) == EEPROM_SHEETS_SIZEOF, "Sizeof(Sheets) is not EEP
 #define EEPROM_BOWDEN_LENGTH (EEPROM_TEMP_CAL_ACTIVE - 2*4) //4 x int for bowden lengths for multimaterial
 #define EEPROM_CALIBRATION_STATUS_PINDA (EEPROM_BOWDEN_LENGTH - 1) //0 - not calibrated; 1 - calibrated
 #define EEPROM_UVLO						(EEPROM_CALIBRATION_STATUS_PINDA - 1) //1 - uvlo during print
-#define EEPROM_UVLO_CURRENT_POSITION	(EEPROM_UVLO-2*4) // 2 x float for current_position in X and Y axes
-#define EEPROM_UVLO_UNUSED_000 (EEPROM_UVLO_CURRENT_POSITION - 12) //12*uint8_t (unused)
-#define EEPROM_UVLO_CURRENT_POSITION_Z	(EEPROM_UVLO_UNUSED_000 - 4) //float for current position in Z
-#define EEPROM_UVLO_UNUSED_001		(EEPROM_UVLO_CURRENT_POSITION_Z - 1) // uint8_t (unused)
-#define EEPROM_UVLO_TARGET_BED			(EEPROM_UVLO_UNUSED_001 - 1)
+#define EEPROM_UVLO_UNUSED_000	(EEPROM_UVLO-21) // (unused)
+#define EEPROM_UVLO_TARGET_BED			(EEPROM_UVLO_UNUSED_000 - 1)
 #define EEPROM_UVLO_FEEDRATE			(EEPROM_UVLO_TARGET_BED - 2) //uint16_t
 #define EEPROM_UVLO_FAN_SPEED			(EEPROM_UVLO_FEEDRATE - 1) 
 #define EEPROM_FAN_CHECK_ENABLED		(EEPROM_UVLO_FAN_SPEED - 1)
 #define EEPROM_UVLO_MESH_BED_LEVELING     (EEPROM_FAN_CHECK_ENABLED - 9*2)
 
-#define EEPROM_UVLO_Z_MICROSTEPS     (EEPROM_UVLO_MESH_BED_LEVELING - 2) // uint16_t (could be removed)
-#define EEPROM_UVLO_E_ABS            (EEPROM_UVLO_Z_MICROSTEPS - 1)
-#define EEPROM_UVLO_CURRENT_POSITION_E	(EEPROM_UVLO_E_ABS - 4)                 //float for current position in E
+#define EEPROM_UVLO_UNUSED_003 (EEPROM_UVLO_MESH_BED_LEVELING - 7) // (unused)
 
 // Crash detection mode EEPROM setting 
-#define EEPROM_CRASH_DET         (EEPROM_UVLO_CURRENT_POSITION_E - 5)           // float (orig EEPROM_UVLO_MESH_BED_LEVELING-12) 
+#define EEPROM_CRASH_DET         (EEPROM_UVLO_UNUSED_003 - 5)           // float (orig EEPROM_UVLO_MESH_BED_LEVELING-12) 
 // Crash detection counter Y (last print)
 #define EEPROM_CRASH_COUNT_Y       (EEPROM_CRASH_DET - 1)                       // uint8 (orig EEPROM_UVLO_MESH_BED_LEVELING-15)
 // Filament sensor on/off EEPROM setting 
