@@ -1298,10 +1298,6 @@ void setup()
 
 	st_init();    // Initialize stepper, this enables interrupts!
   
-#ifdef UVLO_SUPPORT
-    setup_uvlo_interrupt();
-#endif //UVLO_SUPPORT
-
 #ifdef TMC2130
 	tmc2130_mode = silentMode?TMC2130_MODE_SILENT:TMC2130_MODE_NORMAL;
 	update_mode_profile();
@@ -1596,12 +1592,14 @@ void setup()
               lcd_update(2); 
               lcd_setstatuspgm(_T(WELCOME_MSG)); 
           } 
-           
       }
-
-	   
   }
+
+  // Only arm the uvlo interrupt _after_ a recovering print has been initialized and
+  // the entire state machine initialized.
+  setup_uvlo_interrupt();
 #endif //UVLO_SUPPORT
+
   fCheckModeInit();
   fSetMmuMode(mmu_enabled);
   KEEPALIVE_STATE(NOT_BUSY);
@@ -9599,7 +9597,7 @@ void kill(const char *full_screen_message, unsigned char id)
   disable_x();
 //  SERIAL_ECHOLNPGM("kill - disable Y");
   disable_y();
-  disable_z();
+  poweroff_z();
   disable_e0();
   disable_e1();
   disable_e2();
@@ -10486,6 +10484,16 @@ void serialecho_temperatures() {
 }
 
 #ifdef UVLO_SUPPORT
+void uvlo_drain_reset()
+{
+    // burn all that residual power
+    wdt_enable(WDTO_1S);
+    WRITE(BEEPER,HIGH);
+    lcd_clear();
+    lcd_puts_at_P(0, 1, MSG_POWERPANIC_DETECTED);
+    while(1);
+}
+
 
 void uvlo_()
 {
@@ -10583,7 +10591,7 @@ void uvlo_()
                                 + UVLO_Z_AXIS_SHIFT;
     plan_buffer_line_curposXYZE(homing_feedrate[Z_AXIS]/60, active_extruder);
     st_synchronize();
-    disable_z();
+    poweroff_z();
 
     // Write the file position.
     eeprom_update_dword((uint32_t*)(EEPROM_FILE_POSITION), sd_position);
@@ -10642,7 +10650,7 @@ void uvlo_()
     WRITE(BEEPER,HIGH);
 
     // All is set: with all the juice left, try to move extruder away to detach the nozzle completely from the print
-    enable_z();
+    poweron_z();
     current_position[X_AXIS] = (current_position[X_AXIS] < 0.5f * (X_MIN_POS + X_MAX_POS)) ? X_MIN_POS : X_MAX_POS;
     plan_buffer_line_curposXYZE(500, active_extruder);
     st_synchronize();
@@ -10697,7 +10705,7 @@ void uvlo_tiny()
                                     + UVLO_TINY_Z_AXIS_SHIFT;
         plan_buffer_line_curposXYZE(homing_feedrate[Z_AXIS]/60, active_extruder);
         st_synchronize();
-        disable_z();
+        poweroff_z();
 
         // Update Z position
         eeprom_update_float((float*)(EEPROM_UVLO_TINY_CURRENT_POSITION_Z), current_position[Z_AXIS]);
@@ -10715,11 +10723,7 @@ void uvlo_tiny()
     eeprom_update_word((uint16_t*)EEPROM_POWER_COUNT_TOT, eeprom_read_word((uint16_t*)EEPROM_POWER_COUNT_TOT) + 1);
 
     printf_P(_N("UVLO_TINY - end %d\n"), _millis() - time_start);
-
-    // burn all that residual power
-    wdt_enable(WDTO_1S);
-    WRITE(BEEPER,HIGH);
-    while(1);
+    uvlo_drain_reset();
 }
 #endif //UVLO_SUPPORT
 
@@ -10766,12 +10770,19 @@ void setup_uvlo_interrupt() {
 	DDRE &= ~(1 << 4); //input pin
 	PORTE &= ~(1 << 4); //no internal pull-up
 
-						//sensing falling edge
+    // sensing falling edge
 	EICRB |= (1 << 0);
 	EICRB &= ~(1 << 1);
 
-	//enable INT4 interrupt
+	// enable INT4 interrupt
 	EIMSK |= (1 << 4);
+
+    // check if power was lost before we armed the interrupt
+    if(!(PINE & (1 << 4)) && eeprom_read_byte((uint8_t*)EEPROM_UVLO))
+    {
+        SERIAL_ECHOLNPGM("INT4");
+        uvlo_drain_reset();
+    }
 }
 
 ISR(INT4_vect) {
