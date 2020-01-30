@@ -10708,11 +10708,7 @@ void uvlo_tiny()
     eeprom_update_word((uint16_t*)EEPROM_POWER_COUNT_TOT, eeprom_read_word((uint16_t*)EEPROM_POWER_COUNT_TOT) + 1);
 
     printf_P(_N("UVLO_TINY - end %d\n"), _millis() - time_start);
-
-    // burn all that residual power
-    wdt_enable(WDTO_1S);
-    WRITE(BEEPER,HIGH);
-    while(1);
+    uvlo_drain_reset();
 }
 #endif //UVLO_SUPPORT
 

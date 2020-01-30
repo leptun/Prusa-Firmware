@@ -41,6 +41,16 @@ void xflash_write(uint32_t addr, uint8_t* data, uint16_t cnt)
     }
 }
 
+void uvlo_drain_reset()
+{
+    // burn all that residual power
+    wdt_enable(WDTO_1S);
+    WRITE(BEEPER,HIGH);
+    lcd_clear();
+    lcd_puts_at_P(0, 1, MSG_POWERPANIC_DETECTED);
+    while(1);
+}
+
 void uvlo_prepare_for_next_uvlo()
 {
     //todo: Make the command respect the last XFLASH_UVLO block
@@ -60,15 +70,22 @@ void uvlo_init()
 		eeprom_write_byte((uint8_t*)EEPROM_UVLO, 0);
         uvlo_prepare_for_next_uvlo();
 	}
-    DDRE &= ~(1 << 4); //input pin
-    PORTE &= ~(1 << 4); //no internal pull-up
+	DDRE &= ~(1 << 4); //input pin
+	PORTE &= ~(1 << 4); //no internal pull-up
 
-    //sensing falling edge
-    EICRB |= (1 << 0);
-    EICRB &= ~(1 << 1);
+    // sensing falling edge
+	EICRB |= (1 << 0);
+	EICRB &= ~(1 << 1);
 
-    //enable INT4 interrupt
-    EIMSK |= (1 << 4);
+	// enable INT4 interrupt
+	EIMSK |= (1 << 4);
+
+    // check if power was lost before we armed the interrupt
+    if(!(PINE & (1 << 4)) && eeprom_read_byte((uint8_t*)EEPROM_UVLO))
+    {
+        SERIAL_ECHOLNPGM("INT4");
+        uvlo_drain_reset();
+    }
 }
 
 #endif //UVLO_SUPPORT
