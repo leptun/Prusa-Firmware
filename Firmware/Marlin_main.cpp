@@ -10933,7 +10933,7 @@ void restore_print_from_eeprom(bool mbl_was_active) {
 		bool axis_relative_modes_rec[sizeof(axis_relative_modes)];
 		XFLASH_READ(axis_relative_modes_rec, XVLO_AXIS_RELATIVE_MODES);
 		if (axis_relative_modes_rec[X_AXIS] || axis_relative_modes_rec[Y_AXIS] || axis_relative_modes_rec[Z_AXIS]) enquecommand_P(PSTR("G91")); //XYZ relative
-		if (axis_relative_modes_rec[E_AXIS]) enquecommand_P(PSTR("M82")); //E axis abslute mode
+		if (!axis_relative_modes_rec[E_AXIS]) enquecommand_P(PSTR("M82")); //E axis abslute mode
 	}
   // Set the feedrates saved at the power panic.
 	sprintf_P(cmd, PSTR("G1 F%d"), feedrate_rec);
