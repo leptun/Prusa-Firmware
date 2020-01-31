@@ -6,6 +6,10 @@
 
 #include <inttypes.h>
 
+// These should be moved to uvlo.cpp once all UVLO code is moved there.
+#include "Configuration.h"
+#include "ConfigurationStore.h"
+
 #define XFLASH_READ(valuePointer, xflash_address) do {w25x20cl_wait_busy(); w25x20cl_rd_data(xflash_address, (uint8_t*)&valuePointer, (uint16_t)sizeof(valuePointer));} while(0)
 #define XFLASH_READ_WITH_SIZE(valuePointer, xflash_address, size) do {w25x20cl_wait_busy(); w25x20cl_rd_data(xflash_address, (uint8_t*)&valuePointer, (uint16_t)size);} while(0)
 #define XFLASH_WRITE(valuePointer, xflash_address) xflash_write(xflash_address, (uint8_t*)&valuePointer, (uint16_t)sizeof(valuePointer))
@@ -26,6 +30,7 @@
 #define XVLO_AXIS_RELATIVE_MODES (XVLO_CURRENT_POSITION - 4*sizeof(bool))
 #define XVLO_SAVED_TARGET (XVLO_AXIS_RELATIVE_MODES - 4*sizeof(float))
 #define XVLO_LA_K (XVLO_SAVED_TARGET - sizeof(float))
+#define XVLO_CONFIGURATION_STORE (XVLO_LA_K - sizeof(cs))
 
 extern void xflash_write(uint32_t addr, uint8_t* data, uint16_t cnt);
 extern void uvlo_drain_reset();

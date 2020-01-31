@@ -10617,6 +10617,9 @@ void uvlo_()
 	XFLASH_WRITE(extruder_advance_K, XVLO_LA_K);
 #endif
 
+	// Save ConfigurationStore (cs)
+	XFLASH_WRITE(cs, XVLO_CONFIGURATION_STORE);
+
     // Finaly store the "power outage" flag.
 	if(sd_print) eeprom_update_byte((uint8_t*)EEPROM_UVLO, 1);
 
@@ -10858,6 +10861,10 @@ bool recover_machine_state_after_power_panic()
 #ifdef LIN_ADVANCE
   XFLASH_READ(extruder_advance_K, XVLO_LA_K);
 #endif
+
+  // 10) Recover ConfigurationStore.
+  // This sets a lot of values that are set at the beginning of the print.
+  XFLASH_READ(cs, XVLO_CONFIGURATION_STORE);
 
   return mbl_was_active;
 }
