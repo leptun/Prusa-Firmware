@@ -10614,7 +10614,7 @@ void uvlo_()
 	XFLASH_WRITE(saved_target, XVLO_SAVED_TARGET);
 
 #ifdef LIN_ADVANCE
-	eeprom_update_float((float*)(EEPROM_UVLO_LA_K), extruder_advance_K);
+	XFLASH_WRITE(extruder_advance_K, XVLO_LA_K);
 #endif
 
     // Finaly store the "power outage" flag.
@@ -10856,7 +10856,7 @@ bool recover_machine_state_after_power_panic()
   XFLASH_READ(saved_target, XVLO_SAVED_TARGET);
 
 #ifdef LIN_ADVANCE
-  extruder_advance_K = eeprom_read_float((float*)EEPROM_UVLO_LA_K);
+  XFLASH_READ(extruder_advance_K, XVLO_LA_K);
 #endif
 
   return mbl_was_active;

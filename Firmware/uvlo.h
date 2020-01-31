@@ -25,6 +25,7 @@
 #define XVLO_CURRENT_POSITION (XVLO_MBL - 4*sizeof(float))
 #define XVLO_AXIS_RELATIVE_MODES (XVLO_CURRENT_POSITION - 4*sizeof(bool))
 #define XVLO_SAVED_TARGET (XVLO_AXIS_RELATIVE_MODES - 4*sizeof(float))
+#define XVLO_LA_K (XVLO_SAVED_TARGET - sizeof(float))
 
 extern void xflash_write(uint32_t addr, uint8_t* data, uint16_t cnt);
 extern void uvlo_drain_reset();
