@@ -10537,7 +10537,7 @@ void uvlo_()
     planner_abort_hard();
 
 	{
-		float saved_current_position[sizeof(current_position)];
+		float saved_current_position[NUM_AXIS];
 		memcpy(saved_current_position, current_position, sizeof(saved_current_position));
 		// Store the print logical Z position, which we need to recover (a slight error here would be
 		// recovered on the next Gcode instruction, while a physical location error would not)
