@@ -35,6 +35,11 @@ void xflash_write(uint32_t addr, uint8_t* data, uint16_t cnt)
         w25x20cl_wait_busy();
         w25x20cl_enable_wr();
         w25x20cl_page_program(addr, data, tempCount);
+        // printf_P(PSTR("######WRITE_BEGIN\n"));
+        // printf_P(PSTR("##addr:%lu\n"), addr);
+        // printf_P(PSTR("##tempCount:%u\n"), tempCount);
+        // for (uint16_t i = 0; i < tempCount; i++) printf_P(PSTR("data:%.2X\n"), data[i]);
+        // printf_P(PSTR("#######WRITE_END\n"));
         cnt -=tempCount;
         addr+=tempCount;
         data+=tempCount;
