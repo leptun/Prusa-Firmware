@@ -42,7 +42,7 @@
 
 extern void xflash_write(uint32_t addr, uint8_t* data, uint16_t cnt);
 extern void uvlo_drain_reset();
-extern void uvlo_prepare_for_next_uvlo();
+extern void uvlo_clear();
 extern void uvlo_init();
 
 

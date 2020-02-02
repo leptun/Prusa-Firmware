@@ -56,8 +56,9 @@ void uvlo_drain_reset()
     while(1);
 }
 
-void uvlo_prepare_for_next_uvlo()
+void uvlo_clear()
 {
+    eeprom_update_byte((uint8_t*)EEPROM_UVLO, 0);
     //todo: Make the command respect the last XFLASH_UVLO block
     W25X20CL_SPI_ENTER();
     for (uint_least8_t i = 0; i < 1; i++)
@@ -66,14 +67,13 @@ void uvlo_prepare_for_next_uvlo()
         w25x20cl_enable_wr();
         w25x20cl_sector_erase(XVLO_TOP - 1 - i * XFLASH_SECTOR_SIZE);
     }
-    printf_P(PSTR("uvlo_prepare_for_next_uvlo: OK\n"));
+    printf_P(PSTR("uvlo_clear: OK\n"));
 }
 
 void uvlo_init()
 {
     if (eeprom_read_byte((uint8_t*)EEPROM_UVLO) == 255) {
-		eeprom_write_byte((uint8_t*)EEPROM_UVLO, 0);
-        uvlo_prepare_for_next_uvlo();
+        uvlo_clear();
 	}
 	DDRE &= ~(1 << 4); //input pin
 	PORTE &= ~(1 << 4); //no internal pull-up

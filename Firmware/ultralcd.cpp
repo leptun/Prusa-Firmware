@@ -6812,7 +6812,7 @@ static void lcd_main_menu()
 #ifdef TMC2130_DEBUG
  MENU_ITEM_FUNCTION_P(PSTR("recover print"), recover_print);
  MENU_ITEM_FUNCTION_P(PSTR("power panic"), uvlo_);
- MENU_ITEM_FUNCTION_P(PSTR("Prepare UVLO"), uvlo_prepare_for_next_uvlo);
+ MENU_ITEM_FUNCTION_P(PSTR("UVLO clear"), uvlo_clear);
 #endif //TMC2130_DEBUG
  
   if ( ( IS_SD_PRINTING || is_usb_printing || (lcd_commands_type == LcdCommands::Layer1Cal)) && (current_position[Z_AXIS] < Z_HEIGHT_HIDE_LIVE_ADJUST_MENU) && !homing_flag && !mesh_bed_leveling_flag)

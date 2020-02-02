@@ -1580,7 +1580,7 @@ void setup()
           #endif 
           if ( lcd_show_fullscreen_message_yes_no_and_wait_P(_T(MSG_RECOVER_PRINT), false) ) recover_print(0); 
           else { 
-              eeprom_update_byte((uint8_t*)EEPROM_UVLO, 0); 
+              uvlo_clear();
               lcd_update_enable(true); 
               lcd_update(2); 
               lcd_setstatuspgm(_T(WELCOME_MSG)); 
@@ -3759,15 +3759,14 @@ void process_commands()
 		else if (code_seen("thx")) // PRUSA thx
 		{
 			no_response = false;
-		}	
+		}
+#ifdef UVLO_SUPPORT
 		else if (code_seen("uvlo")) // PRUSA uvlo
 		{
-               eeprom_update_byte((uint8_t*)EEPROM_UVLO,0); 
-#ifdef UVLO_SUPPORT
-               uvlo_prepare_for_next_uvlo();
+			uvlo_clear();
+			enquecommand_P(PSTR("M24"));
+		}
 #endif //UVLO_SUPPORT
-               enquecommand_P(PSTR("M24")); 
-		}	
 		else if (code_seen("MMURES")) // PRUSA MMURES
 		{
 			mmu_reset();
@@ -11232,7 +11231,7 @@ void restore_print_from_ram_and_continue(float e_move)
 // Cancel the state related to a currently saved print
 void cancel_saved_printing()
 {
-    eeprom_update_byte((uint8_t*)EEPROM_UVLO, 0);
+    uvlo_clear();
     saved_target[0] = SAVED_TARGET_UNSET;
     saved_printing_type = PRINTING_TYPE_NONE;
     saved_printing = false;
