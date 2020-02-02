@@ -31,6 +31,7 @@
 #define XVLO_SAVED_TARGET (XVLO_AXIS_RELATIVE_MODES - 4*sizeof(float))
 #define XVLO_LA_K (XVLO_SAVED_TARGET - sizeof(float))
 #define XVLO_CONFIGURATION_STORE (XVLO_LA_K - sizeof(cs))
+#define XVLO_EXTRUDER_MULTIPLIER (XVLO_CONFIGURATION_STORE - EXTRUDERS*sizeof(float))
 
 extern void xflash_write(uint32_t addr, uint8_t* data, uint16_t cnt);
 extern void uvlo_drain_reset();
