@@ -150,14 +150,11 @@ static_assert(sizeof(Sheets) == EEPROM_SHEETS_SIZEOF, "Sizeof(Sheets) is not EEP
 #define EEPROM_PRINTER_TYPE          (EEPROM_TMC2130_E_MRES - 2)                               // uint16
 #define EEPROM_BOARD_TYPE            (EEPROM_PRINTER_TYPE - 2)                                 // uint16
 
-// Extruder multiplier for power panic
-#define EEPROM_UVLO_UNUSED_004 (EEPROM_BOARD_TYPE - 14) // (unused)
-
-#define EEPROM_UVLO_TINY_CURRENT_POSITION_Z (EEPROM_UVLO_UNUSED_004-4) // float
-#define EEPROM_UVLO_TARGET_HOTEND (EEPROM_UVLO_TINY_CURRENT_POSITION_Z-2) // uint16
+#define EEPROM_UVLO_TINY_CURRENT_POSITION_Z (EEPROM_BOARD_TYPE-4) // float
+#define EEPROM_UVLO_UNUSED_004 (EEPROM_UVLO_TINY_CURRENT_POSITION_Z - 16) // (unused)
 
 // Sound Mode
-#define EEPROM_SOUND_MODE (EEPROM_UVLO_TARGET_HOTEND-1) // uint8
+#define EEPROM_SOUND_MODE (EEPROM_UVLO_UNUSED_004-1) // uint8
 #define EEPROM_AUTO_DEPLETE (EEPROM_SOUND_MODE-1) //bool
 
 #define EEPROM_FSENS_OQ_MEASS_ENABLED (EEPROM_AUTO_DEPLETE - 1) //bool

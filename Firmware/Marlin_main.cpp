@@ -10501,7 +10501,8 @@ void uvlo_()
 
     // Stop all heaters
     int saved_target_temperature_bed = target_temperature_bed;
-    uint16_t saved_target_temperature_ext = target_temperature[active_extruder];
+    int saved_target_temperature[EXTRUDERS];
+    memcpy(saved_target_temperature, target_temperature, sizeof(saved_target_temperature));
     setAllTargetHotends(0);
     setTargetBed(0);
 
@@ -10601,11 +10602,12 @@ void uvlo_()
     // Store the current feed rate, temperatures, fan speed and extruder multipliers (flow rates)
     XFLASH_WRITE(feedrate_bckp, XVLO_FEEDRATE);
     eeprom_update_word((uint16_t*)EEPROM_UVLO_FEEDMULTIPLY, feedmultiply);
-    eeprom_update_word((uint16_t*)EEPROM_UVLO_TARGET_HOTEND, saved_target_temperature_ext);
+    XFLASH_WRITE(saved_target_temperature, XVLO_TARGET_TEMPERATURE);
     XFLASH_WRITE(saved_target_temperature_bed, XVLO_TARGET_TEMPERATURE_BED);
     eeprom_update_byte((uint8_t*)EEPROM_UVLO_FAN_SPEED, fanSpeed);
 	XFLASH_WRITE(extruder_multiplier, XVLO_EXTRUDER_MULTIPLIER);
 	XFLASH_WRITE(extrudemultiply, XVLO_EXTRUDEMULTIPLY);
+    XFLASH_WRITE(active_extruder, XVLO_ACTIVE_EXTRUDER);
 
     // Store the saved target
 	XFLASH_WRITE(saved_target, XVLO_SAVED_TARGET);
@@ -10839,7 +10841,7 @@ bool recover_machine_state_after_power_panic()
   enable_z();
 
   // 7) Recover the target temperatures.
-  target_temperature[active_extruder] = eeprom_read_word((uint16_t*)EEPROM_UVLO_TARGET_HOTEND);
+  XFLASH_READ(target_temperature, XVLO_TARGET_TEMPERATURE);
   XFLASH_READ(target_temperature_bed, XVLO_TARGET_TEMPERATURE_BED);
 
   // 8) Recover extruder multipilers
@@ -10856,6 +10858,9 @@ bool recover_machine_state_after_power_panic()
   // 10) Recover ConfigurationStore.
   // This sets a lot of values that are set at the beginning of the print.
   XFLASH_READ(cs, XVLO_CONFIGURATION_STORE);
+  
+  // 11) Recover active_extruder
+  XFLASH_READ(active_extruder, XVLO_ACTIVE_EXTRUDER);
 
   return mbl_was_active;
 }
