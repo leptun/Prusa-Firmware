@@ -153,10 +153,9 @@ static_assert(sizeof(Sheets) == EEPROM_SHEETS_SIZEOF, "Sizeof(Sheets) is not EEP
 #define EEPROM_BOARD_TYPE            (EEPROM_PRINTER_TYPE - 2)                                 // uint16
 
 // Extruder multiplier for power panic
-#define EEPROM_UVLO_UNUSED_004 (EEPROM_BOARD_TYPE - 12)
-#define EEPROM_EXTRUDEMULTIPLY (EEPROM_UVLO_UNUSED_004 - 2)                                    // uint16
+#define EEPROM_UVLO_UNUSED_004 (EEPROM_BOARD_TYPE - 14)
 
-#define EEPROM_UVLO_TINY_CURRENT_POSITION_Z (EEPROM_EXTRUDEMULTIPLY-4) // float
+#define EEPROM_UVLO_TINY_CURRENT_POSITION_Z (EEPROM_UVLO_UNUSED_004-4) // float
 #define EEPROM_UVLO_TARGET_HOTEND (EEPROM_UVLO_TINY_CURRENT_POSITION_Z-2) // uint16
 
 // Sound Mode

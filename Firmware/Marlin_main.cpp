@@ -10602,7 +10602,7 @@ void uvlo_()
     eeprom_update_byte((uint8_t*)EEPROM_UVLO_TARGET_BED, saved_target_temperature_bed);
     eeprom_update_byte((uint8_t*)EEPROM_UVLO_FAN_SPEED, fanSpeed);
 	XFLASH_WRITE(extruder_multiplier, XVLO_EXTRUDER_MULTIPLIER);
-	eeprom_update_word((uint16_t*)(EEPROM_EXTRUDEMULTIPLY), (uint16_t)extrudemultiply);
+	XFLASH_WRITE(extrudemultiply, XVLO_EXTRUDEMULTIPLY);
 
     // Store the saved target
 	XFLASH_WRITE(saved_target, XVLO_SAVED_TARGET);
@@ -10841,7 +10841,7 @@ bool recover_machine_state_after_power_panic()
 
   // 8) Recover extruder multipilers
   XFLASH_READ(extruder_multiplier, XVLO_EXTRUDER_MULTIPLIER);
-  extrudemultiply = (int)eeprom_read_word((uint16_t*)(EEPROM_EXTRUDEMULTIPLY));
+  XFLASH_READ(extrudemultiply, XVLO_EXTRUDEMULTIPLY);
 
   // 9) Recover the saved target
   XFLASH_READ(saved_target, XVLO_SAVED_TARGET);
