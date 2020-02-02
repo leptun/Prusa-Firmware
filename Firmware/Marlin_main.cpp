@@ -10604,7 +10604,7 @@ void uvlo_()
     eeprom_update_word((uint16_t*)EEPROM_UVLO_FEEDMULTIPLY, feedmultiply);
     XFLASH_WRITE(saved_target_temperature, XVLO_TARGET_TEMPERATURE);
     XFLASH_WRITE(saved_target_temperature_bed, XVLO_TARGET_TEMPERATURE_BED);
-    eeprom_update_byte((uint8_t*)EEPROM_UVLO_FAN_SPEED, fanSpeed);
+    XFLASH_WRITE(fanSpeed, XVLO_FANSPEED);
 	XFLASH_WRITE(extruder_multiplier, XVLO_EXTRUDER_MULTIPLIER);
 	XFLASH_WRITE(extrudemultiply, XVLO_EXTRUDEMULTIPLY);
     XFLASH_WRITE(active_extruder, XVLO_ACTIVE_EXTRUDER);
@@ -10868,13 +10868,13 @@ bool recover_machine_state_after_power_panic()
 void restore_print_from_eeprom(bool mbl_was_active) {
 	uint16_t feedrate_rec;
 	int feedmultiply_rec;
-	uint8_t fan_speed_rec;
+	int fan_speed_rec;
 	char cmd[30];
 	char filename[13];
 	uint8_t depth = 0;
 	char dir_name[9];
 
-	fan_speed_rec = eeprom_read_byte((uint8_t*)EEPROM_UVLO_FAN_SPEED);
+    XFLASH_READ(fan_speed_rec, XVLO_FANSPEED);
     XFLASH_READ(feedrate_rec, XVLO_FEEDRATE);
     feedmultiply_rec = eeprom_read_word((uint16_t*)EEPROM_UVLO_FEEDMULTIPLY);
 	SERIAL_ECHOPGM("Feedrate:");
@@ -10938,7 +10938,7 @@ void restore_print_from_eeprom(bool mbl_was_active) {
 	enquecommand(cmd);
   // Set the fan speed saved at the power panic.
 	strcpy_P(cmd, PSTR("M106 S"));
-	strcat(cmd, itostr3(int(fan_speed_rec)));
+	strcat(cmd, itostr3(fan_speed_rec));
 	enquecommand(cmd);
 
   // Set a position in the file.

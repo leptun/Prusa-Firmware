@@ -68,9 +68,8 @@ static_assert(sizeof(Sheets) == EEPROM_SHEETS_SIZEOF, "Sizeof(Sheets) is not EEP
 #define EEPROM_BOWDEN_LENGTH (EEPROM_TEMP_CAL_ACTIVE - 2*4) //4 x int for bowden lengths for multimaterial
 #define EEPROM_CALIBRATION_STATUS_PINDA (EEPROM_BOWDEN_LENGTH - 1) //0 - not calibrated; 1 - calibrated
 #define EEPROM_UVLO						(EEPROM_CALIBRATION_STATUS_PINDA - 1) //1 - uvlo during print
-#define EEPROM_UVLO_UNUSED_000	(EEPROM_UVLO-28) // (unused)
-#define EEPROM_UVLO_FAN_SPEED			(EEPROM_UVLO_UNUSED_000 - 1) 
-#define EEPROM_FAN_CHECK_ENABLED		(EEPROM_UVLO_FAN_SPEED - 1)
+#define EEPROM_UVLO_UNUSED_000	(EEPROM_UVLO-29) // (unused)
+#define EEPROM_FAN_CHECK_ENABLED		(EEPROM_UVLO_UNUSED_000 - 1)
 #define EEPROM_UVLO_MESH_BED_LEVELING     (EEPROM_FAN_CHECK_ENABLED - 9*2)
 
 #define EEPROM_UVLO_UNUSED_003 (EEPROM_UVLO_MESH_BED_LEVELING - 7) // (unused)
