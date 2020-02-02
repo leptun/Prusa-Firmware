@@ -33,6 +33,8 @@
 #define XVLO_CONFIGURATION_STORE (XVLO_LA_K - sizeof(cs))
 #define XVLO_EXTRUDER_MULTIPLIER (XVLO_CONFIGURATION_STORE - EXTRUDERS*sizeof(float))
 #define XVLO_EXTRUDEMULTIPLY (XVLO_EXTRUDER_MULTIPLIER - sizeof(int))
+#define XVLO_FEEDRATE (XVLO_EXTRUDEMULTIPLY - sizeof(uint16_t))
+#define XVLO_TARGET_TEMPERATURE_BED (XVLO_FEEDRATE - sizeof(int))
 
 extern void xflash_write(uint32_t addr, uint8_t* data, uint16_t cnt);
 extern void uvlo_drain_reset();

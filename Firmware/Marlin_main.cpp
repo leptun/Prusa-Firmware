@@ -1562,10 +1562,13 @@ void setup()
 #ifdef UVLO_SUPPORT
   if (eeprom_read_byte((uint8_t*)EEPROM_UVLO) != 0) { //previous print was terminated by UVLO
       manage_heater(); // Update temperatures 
+      W25X20CL_SPI_ENTER();
+      int saved_target_temperature_bed;
+      XFLASH_READ(saved_target_temperature_bed, XVLO_TARGET_TEMPERATURE_BED);
 #ifdef DEBUG_UVLO_AUTOMATIC_RECOVER 
-		printf_P(_N("Power panic detected!\nCurrent bed temp:%d\nSaved bed temp:%d\n"), (int)degBed(), eeprom_read_byte((uint8_t*)EEPROM_UVLO_TARGET_BED));
+		printf_P(_N("Power panic detected!\nCurrent bed temp:%d\nSaved bed temp:%d\n"), (int)degBed(), saved_target_temperature_bed);
 #endif 
-     if ( degBed() > ( (float)eeprom_read_byte((uint8_t*)EEPROM_UVLO_TARGET_BED) - AUTOMATIC_UVLO_BED_TEMP_OFFSET) ){ 
+     if ( degBed() > ( (float)saved_target_temperature_bed - AUTOMATIC_UVLO_BED_TEMP_OFFSET) ){ 
           #ifdef DEBUG_UVLO_AUTOMATIC_RECOVER 
         puts_P(_N("Automatic recovery!")); 
           #endif 
@@ -10497,7 +10500,7 @@ void uvlo_()
 #endif //TMC2130
 
     // Stop all heaters
-    uint8_t saved_target_temperature_bed = target_temperature_bed;
+    int saved_target_temperature_bed = target_temperature_bed;
     uint16_t saved_target_temperature_ext = target_temperature[active_extruder];
     setAllTargetHotends(0);
     setTargetBed(0);
@@ -10596,10 +10599,10 @@ void uvlo_()
     eeprom_update_float((float*)EEPROM_UVLO_TINY_CURRENT_POSITION_Z, current_position[Z_AXIS]);
 
     // Store the current feed rate, temperatures, fan speed and extruder multipliers (flow rates)
-	eeprom_update_word((uint16_t*)EEPROM_UVLO_FEEDRATE, feedrate_bckp);
+    XFLASH_WRITE(feedrate_bckp, XVLO_FEEDRATE);
     eeprom_update_word((uint16_t*)EEPROM_UVLO_FEEDMULTIPLY, feedmultiply);
     eeprom_update_word((uint16_t*)EEPROM_UVLO_TARGET_HOTEND, saved_target_temperature_ext);
-    eeprom_update_byte((uint8_t*)EEPROM_UVLO_TARGET_BED, saved_target_temperature_bed);
+    XFLASH_WRITE(saved_target_temperature_bed, XVLO_TARGET_TEMPERATURE_BED);
     eeprom_update_byte((uint8_t*)EEPROM_UVLO_FAN_SPEED, fanSpeed);
 	XFLASH_WRITE(extruder_multiplier, XVLO_EXTRUDER_MULTIPLIER);
 	XFLASH_WRITE(extrudemultiply, XVLO_EXTRUDEMULTIPLY);
@@ -10837,7 +10840,7 @@ bool recover_machine_state_after_power_panic()
 
   // 7) Recover the target temperatures.
   target_temperature[active_extruder] = eeprom_read_word((uint16_t*)EEPROM_UVLO_TARGET_HOTEND);
-  target_temperature_bed = eeprom_read_byte((uint8_t*)EEPROM_UVLO_TARGET_BED);
+  XFLASH_READ(target_temperature_bed, XVLO_TARGET_TEMPERATURE_BED);
 
   // 8) Recover extruder multipilers
   XFLASH_READ(extruder_multiplier, XVLO_EXTRUDER_MULTIPLIER);
@@ -10858,7 +10861,7 @@ bool recover_machine_state_after_power_panic()
 }
 
 void restore_print_from_eeprom(bool mbl_was_active) {
-	int feedrate_rec;
+	uint16_t feedrate_rec;
 	int feedmultiply_rec;
 	uint8_t fan_speed_rec;
 	char cmd[30];
@@ -10867,7 +10870,7 @@ void restore_print_from_eeprom(bool mbl_was_active) {
 	char dir_name[9];
 
 	fan_speed_rec = eeprom_read_byte((uint8_t*)EEPROM_UVLO_FAN_SPEED);
-    feedrate_rec = eeprom_read_word((uint16_t*)EEPROM_UVLO_FEEDRATE);
+    XFLASH_READ(feedrate_rec, XVLO_FEEDRATE);
     feedmultiply_rec = eeprom_read_word((uint16_t*)EEPROM_UVLO_FEEDMULTIPLY);
 	SERIAL_ECHOPGM("Feedrate:");
 	MYSERIAL.print(feedrate_rec);
@@ -10924,7 +10927,7 @@ void restore_print_from_eeprom(bool mbl_was_active) {
 		if (!axis_relative_modes_rec[E_AXIS]) enquecommand_P(PSTR("M82")); //E axis abslute mode
 	}
   // Set the feedrates saved at the power panic.
-	sprintf_P(cmd, PSTR("G1 F%d"), feedrate_rec);
+	sprintf_P(cmd, PSTR("G1 F%u"), feedrate_rec);
 	enquecommand(cmd);
 	sprintf_P(cmd, PSTR("M220 S%d"), feedmultiply_rec);
 	enquecommand(cmd);
