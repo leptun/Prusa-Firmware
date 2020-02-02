@@ -10601,7 +10601,7 @@ void uvlo_()
 
     // Store the current feed rate, temperatures, fan speed and extruder multipliers (flow rates)
     XFLASH_WRITE(feedrate_bckp, XVLO_FEEDRATE);
-    eeprom_update_word((uint16_t*)EEPROM_UVLO_FEEDMULTIPLY, feedmultiply);
+    XFLASH_WRITE(feedmultiply, XVLO_FEEDMULTIPLY);
     XFLASH_WRITE(saved_target_temperature, XVLO_TARGET_TEMPERATURE);
     XFLASH_WRITE(saved_target_temperature_bed, XVLO_TARGET_TEMPERATURE_BED);
     XFLASH_WRITE(fanSpeed, XVLO_FANSPEED);
@@ -10876,7 +10876,7 @@ void restore_print_from_eeprom(bool mbl_was_active) {
 
     XFLASH_READ(fan_speed_rec, XVLO_FANSPEED);
     XFLASH_READ(feedrate_rec, XVLO_FEEDRATE);
-    feedmultiply_rec = eeprom_read_word((uint16_t*)EEPROM_UVLO_FEEDMULTIPLY);
+    XFLASH_READ(feedmultiply_rec, XVLO_FEEDMULTIPLY);
 	SERIAL_ECHOPGM("Feedrate:");
 	MYSERIAL.print(feedrate_rec);
 	SERIAL_ECHOPGM(", feedmultiply:");

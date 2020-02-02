@@ -38,6 +38,7 @@
 #define XVLO_TARGET_TEMPERATURE (XVLO_TARGET_TEMPERATURE_BED - EXTRUDERS*sizeof(int))
 #define XVLO_ACTIVE_EXTRUDER (XVLO_TARGET_TEMPERATURE - sizeof(uint8_t))
 #define XVLO_FANSPEED (XVLO_ACTIVE_EXTRUDER - sizeof(int))
+#define XVLO_FEEDMULTIPLY (XVLO_FANSPEED - sizeof(int))
 
 extern void xflash_write(uint32_t addr, uint8_t* data, uint16_t cnt);
 extern void uvlo_drain_reset();
