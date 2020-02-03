@@ -5580,10 +5580,15 @@ if(eSoundMode!=e_SOUND_MODE_SILENT)
           lcd_resume_print();
       else
       {
-          failstats_reset_print();
+          if (!card.get_sdpos())
+          {
+              // A new print has started from scratch, reset stats
+              failstats_reset_print();
 #ifndef LA_NOCOMPAT
-          la10c_reset();
+              la10c_reset();
 #endif
+          }
+
           card.startFileprint();
           starttime=_millis();
       }
@@ -5693,12 +5698,19 @@ if(eSoundMode!=e_SOUND_MODE_SILENT)
         if(code_seen('S'))
           if(strchr_pointer<namestartpos) //only if "S" is occuring _before_ the filename
             card.setIndex(code_value_long());
-#ifndef LA_NOCOMPAT
-        la10c_reset();
-#endif
         card.startFileprint();
         if(!call_procedure)
-          starttime=_millis(); //procedure calls count as normal print time.
+        {
+            if(!card.get_sdpos())
+            {
+                // A new print has started from scratch, reset stats
+                failstats_reset_print();
+#ifndef LA_NOCOMPAT
+                la10c_reset();
+#endif
+            }
+            starttime=_millis(); // procedure calls count as normal print time.
+        }
       }
     } break;
 
@@ -11597,8 +11609,6 @@ if(!(bEnableForce_z||eeprom_read_byte((uint8_t*)EEPROM_SILENT)))
 
 void disable_force_z()
 {
-    uint16_t z_microsteps=0;
-
     if(!bEnableForce_z) return;   // motor already disabled (may be ;-p )
 
     bEnableForce_z=false;
@@ -11609,8 +11619,6 @@ void disable_force_z()
     update_mode_profile();
     tmc2130_init(true);
 #endif // TMC2130
-
-    axis_known_position[Z_AXIS]=false;
 }
 
 
