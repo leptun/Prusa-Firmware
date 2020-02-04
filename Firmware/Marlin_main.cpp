@@ -5571,10 +5571,15 @@ if(eSoundMode!=e_SOUND_MODE_SILENT)
           lcd_resume_print();
       else
       {
-          failstats_reset_print();
+          if (!card.get_sdpos())
+          {
+              // A new print has started from scratch, reset stats
+              failstats_reset_print();
 #ifndef LA_NOCOMPAT
-          la10c_reset();
+              la10c_reset();
 #endif
+          }
+
           card.startFileprint();
           starttime=_millis();
       }
@@ -5684,12 +5689,19 @@ if(eSoundMode!=e_SOUND_MODE_SILENT)
         if(code_seen('S'))
           if(strchr_pointer<namestartpos) //only if "S" is occuring _before_ the filename
             card.setIndex(code_value_long());
-#ifndef LA_NOCOMPAT
-        la10c_reset();
-#endif
         card.startFileprint();
         if(!call_procedure)
-          starttime=_millis(); //procedure calls count as normal print time.
+        {
+            if(!card.get_sdpos())
+            {
+                // A new print has started from scratch, reset stats
+                failstats_reset_print();
+#ifndef LA_NOCOMPAT
+                la10c_reset();
+#endif
+            }
+            starttime=_millis(); // procedure calls count as normal print time.
+        }
       }
     } break;
 
@@ -7070,9 +7082,17 @@ Sigma_Exit:
       if(code_seen('X')) cs.max_jerk[X_AXIS] = cs.max_jerk[Y_AXIS] = code_value();
       if(code_seen('Y')) cs.max_jerk[Y_AXIS] = code_value();
       if(code_seen('Z')) cs.max_jerk[Z_AXIS] = code_value();
-      if(code_seen('E')) cs.max_jerk[E_AXIS] = code_value();
-		if (cs.max_jerk[X_AXIS] > DEFAULT_XJERK) cs.max_jerk[X_AXIS] = DEFAULT_XJERK;
-		if (cs.max_jerk[Y_AXIS] > DEFAULT_YJERK) cs.max_jerk[Y_AXIS] = DEFAULT_YJERK;
+      if(code_seen('E'))
+      {
+          float e = code_value();
+#ifndef LA_NOCOMPAT
+
+          e = la10c_jerk(e);
+#endif
+          cs.max_jerk[E_AXIS] = e;
+      }
+      if (cs.max_jerk[X_AXIS] > DEFAULT_XJERK) cs.max_jerk[X_AXIS] = DEFAULT_XJERK;
+      if (cs.max_jerk[Y_AXIS] > DEFAULT_YJERK) cs.max_jerk[Y_AXIS] = DEFAULT_YJERK;
     }
     break;
 
