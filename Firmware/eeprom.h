@@ -70,9 +70,9 @@ static_assert(sizeof(Sheets) == EEPROM_SHEETS_SIZEOF, "Sizeof(Sheets) is not EEP
 #define EEPROM_UVLO						(EEPROM_CALIBRATION_STATUS_PINDA - 1) //1 - uvlo during print
 #define EEPROM_UVLO_UNUSED_000	(EEPROM_UVLO-29) // (unused)
 #define EEPROM_FAN_CHECK_ENABLED		(EEPROM_UVLO_UNUSED_000 - 1)
-#define EEPROM_UVLO_MESH_BED_LEVELING     (EEPROM_FAN_CHECK_ENABLED - 9*2)
+// #define EEPROM_UVLO_MESH_BED_LEVELING     (EEPROM_FAN_CHECK_ENABLED - 9*2)
 
-#define EEPROM_UVLO_UNUSED_003 (EEPROM_UVLO_MESH_BED_LEVELING - 7) // (unused)
+#define EEPROM_UVLO_UNUSED_003 (EEPROM_FAN_CHECK_ENABLED - 25) // (unused)
 
 // Crash detection mode EEPROM setting 
 #define EEPROM_CRASH_DET         (EEPROM_UVLO_UNUSED_003 - 5)           // float (orig EEPROM_UVLO_MESH_BED_LEVELING-12) 
