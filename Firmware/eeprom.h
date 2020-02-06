@@ -72,10 +72,10 @@ static_assert(sizeof(Sheets) == EEPROM_SHEETS_SIZEOF, "Sizeof(Sheets) is not EEP
 #define EEPROM_FAN_CHECK_ENABLED		(EEPROM_UVLO_UNUSED_000 - 1)
 // #define EEPROM_UVLO_MESH_BED_LEVELING     (EEPROM_FAN_CHECK_ENABLED - 9*2)
 
-#define EEPROM_UVLO_UNUSED_003 (EEPROM_FAN_CHECK_ENABLED - 25) // (unused)
+#define EEPROM_UVLO_UNUSED_003 (EEPROM_FAN_CHECK_ENABLED - 29) // (unused)
 
 // Crash detection mode EEPROM setting 
-#define EEPROM_CRASH_DET         (EEPROM_UVLO_UNUSED_003 - 5)           // float (orig EEPROM_UVLO_MESH_BED_LEVELING-12) 
+#define EEPROM_CRASH_DET         (EEPROM_UVLO_UNUSED_003 - 1)           // float (orig EEPROM_UVLO_MESH_BED_LEVELING-12) 
 // Crash detection counter Y (last print)
 #define EEPROM_CRASH_COUNT_Y       (EEPROM_CRASH_DET - 1)                       // uint8 (orig EEPROM_UVLO_MESH_BED_LEVELING-15)
 // Filament sensor on/off EEPROM setting 
