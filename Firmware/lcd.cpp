@@ -117,7 +117,7 @@ static void lcd_no_display(void);
 uint8_t lcd_escape[8];
 #endif
 
-#if ((MOTHERBOARD == BOARD_RAMBO_MINI_1_0) || (MOTHERBOARD == BOARD_RAMBO_MINI_1_3))
+#if ((MOTHERBOARD == BOARD_RAMBO_MINI_1_0) || (MOTHERBOARD == BOARD_RAMBO_MINI_1_3) || (MOTHERBOARD == BOARD_RAMBO_MINI_1_3T))
 	#define TCCRxA TCCR3A
 	#define TCCRxB TCCR3B
 	#define TCCRxC TCCR3C
