@@ -23,6 +23,7 @@
 #endif
 
 // #define VT100
+// #define LCD_DEBUG
 
 // commands
 #define LCD_CLEARDISPLAY 0x01
@@ -68,44 +69,132 @@
 
 FILE _lcdout; // = {0}; Global variable is always zero initialized, no need to explicitly state that.
 
+//lcd
 uint8_t lcd_displayfunction = 0;
 uint8_t lcd_displaycontrol = 0;
 uint8_t lcd_displaymode = 0;
 
-uint8_t lcd_currline;
+#define VGA_MAP_SIZE ((LCD_WIDTH * LCD_HEIGHT) / 8)
+#ifdef LCD_DEBUG
+	#define DEBUG(x) MYSERIAL.println(x);
+#else
+	#define DEBUG(x)
+#endif
+
+volatile uint8_t lcd_curpos;
+//xbbbbaaa: cursor position from 0 to (LCD_WIDTH * LCD_HEIGHT)-1
+//bbbb: index of the cluster in vga_map to search. From 0 to VGA_MAP_SIZE-1
+//aaa: Rshift value for the bit to search. From 0 to 7
+//x: unused. Leave it clear.
+
+volatile uint8_t vga_map[VGA_MAP_SIZE]; //bitmap for changes on the display. Individual bits are set when lcd_write() is used
+//    01234567890123456789
+  
+// 0  00000000111111112222
+// 1  22223333333344444444
+// 2  55555555666666667777
+// 3  77778888888899999999
+
+volatile uint8_t lcd_status = 0;
+//xxxxdxba
+//a: timer enabled status
+//b: bit is set only if the timer is enabled and is used in the ISR to disable itself after required time has passed to send commands to it. ie: lcd_refresh(); 
+//d: current command type. 1=lcd_set_cursor (jump); 0=character. Used by the ISR for the second nibble and also to decide whether a jump command is necessary (eg. next character is on the next line).
+//x: unused. Do not change.
+
+//vga
+uint8_t vga_currline; //these two are used for puting data into the vga buffer.
+uint8_t vga_currcol;
+
+uint8_t vga[LCD_WIDTH][LCD_HEIGHT]; //vga buffer.
+
+static void lcd_display(void);
+#if 0
+static void lcd_no_display(void);
+#endif
 
 #ifdef VT100
 uint8_t lcd_escape[8];
 #endif
 
-static void lcd_display(void);
-
-#if 0
-static void lcd_no_display(void);
-static void lcd_no_cursor(void);
-static void lcd_cursor(void);
-static void lcd_no_blink(void);
-static void lcd_blink(void);
-static void lcd_scrollDisplayLeft(void);
-static void lcd_scrollDisplayRight(void);
-static void lcd_leftToRight(void);
-static void lcd_rightToLeft(void);
-static void lcd_autoscroll(void);
-static void lcd_no_autoscroll(void);
+#if ((MOTHERBOARD == BOARD_RAMBO_MINI_1_0) || (MOTHERBOARD == BOARD_RAMBO_MINI_1_3))
+	#define TCCRxA TCCR3A
+	#define TCCRxB TCCR3B
+	#define TCCRxC TCCR3C
+	#define TCNTx TCNT3
+	#define OCRxA OCR3A
+	#define TIMSKx TIMSK3
+	#define TIFRx TIFR3
+	#define TIMERx_COMPA_vect TIMER3_COMPA_vect
+#elif ((MOTHERBOARD == BOARD_EINSY_1_0a))
+	#define TCCRxA TCCR5A
+	#define TCCRxB TCCR5B
+	#define TCCRxC TCCR5C
+	#define TCNTx TCNT5
+	#define OCRxA OCR5A
+	#define TIMSKx TIMSK5
+	#define TIFRx TIFR5
+	#define TIMERx_COMPA_vect TIMER5_COMPA_vect
 #endif
 
-#ifdef VT100
-void lcd_escape_write(uint8_t chr);
-#endif
+void lcd_debug(){
+	MYSERIAL.println("VGA:");
+	for (int i = 0; i < LCD_HEIGHT; i++){
+		for (int j = 0; j < LCD_WIDTH; j++){
+			MYSERIAL.print(vga[j][i]);
+		}
+		MYSERIAL.print("\n");
+	}
+	
+	for (int i = 0; i < 10; i++)
+	{
+		MYSERIAL.print(vga_map[i], HEX);
+		MYSERIAL.print(' ');
+	}
+	MYSERIAL.print('\n');
+	
+	MYSERIAL.print("curpos:"); MYSERIAL.println(lcd_curpos, DEC);
+	MYSERIAL.print("timer_status:"); MYSERIAL.println(lcd_status, BIN);
+	MYSERIAL.print("TCCRxB:"); MYSERIAL.println(TCCRxB, BIN);
+}
 
-static void lcd_pulseEnable(void)
+void lcd_timer_enable(void)
+{	
+	CRITICAL_SECTION_START; //prevent unwanted timer interrupts while messing with the timer.
+	lcd_status |= 0x01; //set timer enabled flag
+	lcd_status &= ~0x02; //clear timer force disable flag. Shouldn't be needed, but just to be safe.
+	TCCRxB |= 0x02; //start timer. Set clock source
+	TCNTx = 0; //clear timer value
+	TIFRx |= (1 << OCF3A); //clear interrupt flag by writing 1 in register.
+	CRITICAL_SECTION_END;
+}
+
+void lcd_timer_disable(void)
+{
+	if ((lcd_status & 0x01) && !(lcd_status & 0x02)) //do not wait recursively
+	{
+		lcd_status |= 0x02;
+		while(lcd_status & 0x02) 
+			// lcd_debug();
+			asm ("nop"); //wait for isr to finish what it has to do. The ISR might run a second time to make sure the nibble doesn't get out of sync.
+		return; //the ISR disables itself. no need to also disable it here.
+	}
+	CRITICAL_SECTION_START; //prevent unwanted timer interrupts while messing with the timer.
+	lcd_status &= ~0x03; //clear both timer flags
+	TCCRxB &= ~(0x07); //stop timer
+	TCNTx = 0; //clear timer value
+	TIFRx |= (1 << OCF3A); //clear interrupt flag by writing 1 in register.
+	CRITICAL_SECTION_END;
+}
+
+static void lcd_pulseEnable(void) //lcd
 {  
 	WRITE(LCD_PINS_ENABLE,HIGH);
 	_delay_us(1);    // enable pulse must be >450ns
 	WRITE(LCD_PINS_ENABLE,LOW);
 }
 
-static void lcd_writebits(uint8_t value)
+static void lcd_writebits(uint8_t value) //lcd
 {
 #ifdef LCD_8BIT
 	WRITE(LCD_PINS_D0, value & 0x01);
@@ -121,47 +210,63 @@ static void lcd_writebits(uint8_t value)
 	lcd_pulseEnable();
 }
 
-static void lcd_send(uint8_t data, uint8_t flags, uint16_t duration = LCD_DEFAULT_DELAY)
+static void lcd_send(uint8_t data, uint8_t flags, uint16_t duration = LCD_DEFAULT_DELAY) //lcd
 {
 	WRITE(LCD_PINS_RS,flags&LCD_RS_FLAG);
-	_delay_us(5);
+	// _delay_us(5);
 	lcd_writebits(data);
 #ifndef LCD_8BIT
 	if (!(flags & LCD_HALF_FLAG))
 	{
-		_delay_us(LCD_DEFAULT_DELAY);
+		_delay_us(1);
 		lcd_writebits(data<<4);
 	}
 #endif
 	delayMicroseconds(duration);
+#ifdef LCD_DEBUG
+	MYSERIAL.print("SEND:"); MYSERIAL.print((flags&LCD_RS_FLAG)?1:0, BIN); MYSERIAL.print(' '); MYSERIAL.println(data, HEX);
+#endif
 }
 
-static void lcd_command(uint8_t value, uint16_t delayExtra = 0)
+static void lcd_command(uint8_t value, uint16_t delayExtra = 0) //lcd
 {
 	lcd_send(value, LOW, LCD_DEFAULT_DELAY + delayExtra);
 }
 
-static void lcd_write(uint8_t value)
+static void vga_linefeed(void) //vga
+{
+	if (vga_currline > 3) vga_currline = -1;
+	lcd_set_cursor(0, vga_currline + 1);
+}
+
+static void lcd_write(uint8_t value) //vga
 {
 	if (value == '\n')
 	{
-		if (lcd_currline > 3) lcd_currline = -1;
-		lcd_set_cursor(0, lcd_currline + 1); // LF
+		vga_linefeed();
 		return;
 	}
+	if (vga_currcol == LCD_WIDTH) vga_linefeed();
 	#ifdef VT100
 	if (lcd_escape[0] || (value == 0x1b)){
 		lcd_escape_write(value);
 		return;
 	}
 	#endif
-	lcd_send(value, HIGH);
+	if (vga[vga_currcol][vga_currline] != value)
+	{
+		vga[vga_currcol][vga_currline] = value;
+		vga_map[((vga_currline * LCD_WIDTH) + vga_currcol) / 8] |= (1 << (7 - (((vga_currline * LCD_WIDTH) + vga_currcol) % 8)));
+		if (!(lcd_status & 0x01)) lcd_timer_enable();
+	}
+	vga_currcol++;
 }
 
-static void lcd_begin(uint8_t clear)
-{
-	lcd_currline = 0;
+static void lcd_clear_hardware(void);
 
+static void lcd_begin()
+{
+	LcdTimerDisabler_START;
 	lcd_send(LCD_FUNCTIONSET | LCD_8BITMODE, LOW | LCD_HALF_FLAG, 4500); // wait min 4.1ms
 	// second try
 	lcd_send(LCD_FUNCTIONSET | LCD_8BITMODE, LOW | LCD_HALF_FLAG, 150);
@@ -177,8 +282,8 @@ static void lcd_begin(uint8_t clear)
 	// turn the display on with no cursor or blinking default
 	lcd_displaycontrol = LCD_CURSOROFF | LCD_BLINKOFF;  
 	lcd_display();
-	// clear it off
-	if (clear) lcd_clear();
+	// clear lcd and set all bits to be updated
+	lcd_clear_hardware();
 	// Initialize to default text direction (for romance languages)
 	lcd_displaymode = LCD_ENTRYLEFT | LCD_ENTRYSHIFTDECREMENT;
 	// set the entry mode
@@ -187,15 +292,46 @@ static void lcd_begin(uint8_t clear)
 	#ifdef VT100
 	lcd_escape[0] = 0;
 	#endif
+	
+	LcdTimerDisabler_END;
 }
 
-static int lcd_putchar(char c, FILE *)
+static int vga_putchar(char c, FILE *) //vga
 {
 	lcd_write(c);
 	return 0;
 }
 
-void lcd_init(void)
+static void vga_init(void) //vga
+{
+	lcd_clear(); //fill buffer with ' ' and home
+	
+	//setup lcd_timer
+	
+	CRITICAL_SECTION_START;
+	// waveform generation = 0100 = CTC
+	TCCRxB &= ~(1<<WGM33);
+	TCCRxB |=  (1<<WGM32);
+	TCCRxA &= ~(1<<WGM31);
+	TCCRxA &= ~(1<<WGM30);
+	
+	// output mode = 00 (disconnected)
+	TCCRxA &= ~(3<<COM3A0);
+	TCCRxA &= ~(3<<COM3B0);
+	TCCRxA &= ~(3<<COM3C0);
+	OCRxA = (LCD_DEFAULT_DELAY * 2 * (F_CPU/1000000/8)) - 1; //set timer TOP value with an 8x prescaler. The push speed is slowed down a bit.
+	
+	lcd_status &= ~0x0b;
+	lcd_timer_disable();
+	
+	// enable interrupt
+	TIMSKx = 0x02;
+	CRITICAL_SECTION_END;
+	
+	fdev_setup_stream(lcdout, vga_putchar, NULL, _FDEV_SETUP_WRITE); //setup lcdout stream
+}
+
+void lcd_init(void) //lcd
 {
 	WRITE(LCD_PINS_ENABLE,LOW);
 	SET_OUTPUT(LCD_PINS_RS);
@@ -216,136 +352,144 @@ void lcd_init(void)
 	lcd_displayfunction |= LCD_8BITMODE;
 #endif
 	lcd_displayfunction |= LCD_2LINE;
-	_delay_us(50000); 
-	lcd_begin(1); //first time init
-	fdev_setup_stream(lcdout, lcd_putchar, NULL, _FDEV_SETUP_WRITE); //setup lcdout stream
+	vga_init();
+	_delay_us(50000);
+	lcd_begin();
+	lcd_timer_enable();
 }
 
 void lcd_refresh(void)
 {
-    lcd_begin(1);
+	lcd_timer_disable();
+    lcd_begin();
     lcd_set_custom_characters();
+	lcd_timer_enable();
 }
 
-void lcd_refresh_noclear(void)
+void lcd_clear(void) //vga
 {
-    lcd_begin(0);
-    lcd_set_custom_characters();
+	for (int i = 0; i < LCD_WIDTH; i++)
+		for (int j = 0; j < LCD_HEIGHT; j++)
+			vga[i][j] = ' ';
+	for (int i = 0; i < VGA_MAP_SIZE; i++) vga_map[i] = 0xff; //force entire screen update.
+	lcd_home();
 }
 
-void lcd_clear(void)
+static void lcd_clear_hardware(void) //lcd
 {
 	lcd_command(LCD_CLEARDISPLAY, 1600);  // clear display, set cursor position to zero
-	lcd_currline = 0;
+	lcd_curpos = 0;
+	for (int i = 0; i < VGA_MAP_SIZE; i++) vga_map[i] = 0xff; //force entire screen update.
+	lcd_status &= ~0x08;
 }
 
-void lcd_home(void)
+void lcd_home(void) //vga
 {
-	lcd_command(LCD_RETURNHOME, 1600);  // set cursor position to zero
-	lcd_currline = 0;
+	vga_currcol = 0;
+	vga_currline = 0;
 }
 
 // Turn the display on/off (quickly)
-void lcd_display(void)
+void lcd_display(void) //lcd
 {
+	LcdTimerDisabler_START;
     lcd_displaycontrol |= LCD_DISPLAYON;
     lcd_command(LCD_DISPLAYCONTROL | lcd_displaycontrol);
+	LcdTimerDisabler_END;
 }
 
 #if 0
 void lcd_no_display(void)
 {
+	LcdTimerDisabler_START;
 	lcd_displaycontrol &= ~LCD_DISPLAYON;
 	lcd_command(LCD_DISPLAYCONTROL | lcd_displaycontrol);
+	LcdTimerDisabler_END;
 }
 #endif
 
-#ifdef VT100 //required functions for VT100
-// Turns the underline cursor on/off
-void lcd_no_cursor(void)
+void lcd_set_cursor(uint8_t col, uint8_t row) //vga
 {
-	lcd_displaycontrol &= ~LCD_CURSORON;
-	lcd_command(LCD_DISPLAYCONTROL | lcd_displaycontrol);
+	vga_currcol = (uint8_t)(constrain((int8_t)(col), 0, LCD_WIDTH-1));
+	vga_currline = (uint8_t)(constrain((int8_t)(row), 0, LCD_HEIGHT-1));
 }
 
-void lcd_cursor(void)
-{
-	lcd_displaycontrol |= LCD_CURSORON;
-	lcd_command(LCD_DISPLAYCONTROL | lcd_displaycontrol);
-}
-#endif
-
-#if 0
-// Turn on and off the blinking cursor
-void lcd_no_blink(void)
-{
-	lcd_displaycontrol &= ~LCD_BLINKON;
-	lcd_command(LCD_DISPLAYCONTROL | lcd_displaycontrol);
-}
-
-void lcd_blink(void)
-{
-	lcd_displaycontrol |= LCD_BLINKON;
-	lcd_command(LCD_DISPLAYCONTROL | lcd_displaycontrol);
-}
-
-// These commands scroll the display without changing the RAM
-void lcd_scrollDisplayLeft(void)
-{
-	lcd_command(LCD_CURSORSHIFT | LCD_DISPLAYMOVE | LCD_MOVELEFT);
-}
-
-void lcd_scrollDisplayRight(void)
-{
-	lcd_command(LCD_CURSORSHIFT | LCD_DISPLAYMOVE | LCD_MOVERIGHT);
-}
-
-// This is for text that flows Left to Right
-void lcd_leftToRight(void)
-{
-	lcd_displaymode |= LCD_ENTRYLEFT;
-	lcd_command(LCD_ENTRYMODESET | lcd_displaymode);
-}
-
-// This is for text that flows Right to Left
-void lcd_rightToLeft(void)
-{
-	lcd_displaymode &= ~LCD_ENTRYLEFT;
-	lcd_command(LCD_ENTRYMODESET | lcd_displaymode);
-}
-
-// This will 'right justify' text from the cursor
-void lcd_autoscroll(void)
-{
-	lcd_displaymode |= LCD_ENTRYSHIFTINCREMENT;
-	lcd_command(LCD_ENTRYMODESET | lcd_displaymode);
-}
-
-// This will 'left justify' text from the cursor
-void lcd_no_autoscroll(void)
-{
-	lcd_displaymode &= ~LCD_ENTRYSHIFTINCREMENT;
-	lcd_command(LCD_ENTRYMODESET | lcd_displaymode);
-}
-#endif
-
-void lcd_set_cursor(uint8_t col, uint8_t row)
+static void lcd_set_cursor_hardware(uint8_t col, uint8_t row, bool nibbleLess = 0) //lcd
 {
 	int row_offsets[] = { 0x00, 0x40, 0x14, 0x54 };
-	if (row >= LCD_HEIGHT)
-		row = LCD_HEIGHT - 1;    // we count rows starting w/0
-	lcd_currline = row;  
-	lcd_command(LCD_SETDDRAMADDR | (col + row_offsets[row]));
+	if (nibbleLess)
+		lcd_send(LCD_SETDDRAMADDR | (col + row_offsets[row]), LOW, 100);
+	else
+		lcd_send(LCD_SETDDRAMADDR | (col + row_offsets[row]), LOW, 0);
 }
 
 // Allows us to fill the first 8 CGRAM locations
 // with custom characters
-void lcd_createChar_P(uint8_t location, const uint8_t* charmap)
+static void lcd_createChar_P(uint8_t location, const uint8_t* charmap) //lcd
 {
   location &= 0x7; // we only have 8 locations 0-7
   lcd_command(LCD_SETCGRAMADDR | (location << 3));
   for (int i=0; i<8; i++)
     lcd_send(pgm_read_byte(&charmap[i]), HIGH);
+}
+
+ISR(TIMERx_COMPA_vect)
+{
+	if (lcd_status & 0x02) //if lcd_timer_disable() is waiting and the nibble is in sync we can safetly disable the ISR
+	{
+		lcd_status &= ~0x01;
+		lcd_timer_disable();
+		return;
+	}
+	uint8_t next_command_type = 0; //0: no char found; 1: lcd_curpos needs to be printed; 2: mandatory jump
+	if (vga_map[lcd_curpos >> 3] & (1 << (7 - (lcd_curpos & 0x07)))) next_command_type = 1;
+	else
+	{
+		for (int i = 0; (i < VGA_MAP_SIZE) && (next_command_type == 0); i++)
+		{
+			if (vga_map[i] != 0)
+			{
+				for (int j = 0; (j < 8) && (next_command_type == 0); j++)
+				{
+					if (vga_map[i] & (1 << (7 - j)))
+					{
+						lcd_curpos = (i << 3) + j;
+						next_command_type = 2;
+					}
+				}
+			}
+		}
+	}
+	
+	if ((next_command_type == 1) && !(!(lcd_status & 0x08) && (lcd_curpos % LCD_WIDTH == 0))) //print current char and last char was jump
+	{
+#ifdef LCD_DEBUG
+		MYSERIAL.print("VGA:print: "); MYSERIAL.println(vga[lcd_curpos % LCD_WIDTH][lcd_curpos / LCD_WIDTH]);
+#endif
+		lcd_send(vga[lcd_curpos % LCD_WIDTH][lcd_curpos / LCD_WIDTH], HIGH, 0);
+		vga_map[lcd_curpos >> 3] &= ~(1 << (7 - (lcd_curpos & 0x07))); //clear bit in vga_map
+		lcd_status &= ~0x08; //this char is data
+		lcd_curpos++;
+		if (lcd_curpos == LCD_WIDTH * LCD_HEIGHT) lcd_curpos = 0;
+	}
+	else if (next_command_type == 0) //no character to print was found. vga_map is empty. disable timer.
+	{
+#ifdef LCD_DEBUG
+		MYSERIAL.println("ISR:disable");
+#endif
+		lcd_status &= ~0x01;
+		lcd_timer_disable();
+		return;
+	}
+	else //a jump command is required to the destination lcd_curpos
+	{
+#ifdef LCD_DEBUG
+		MYSERIAL.print("VGA:jump: "); MYSERIAL.println(lcd_curpos, DEC);
+#endif
+		lcd_set_cursor_hardware(lcd_curpos % LCD_WIDTH, lcd_curpos / LCD_WIDTH);
+		lcd_status |= 0x08; // the data is jump
+	}
+	TCNTx = 0; //clear timer value to make sure timing is correct
 }
 
 #ifdef VT100
@@ -408,7 +552,8 @@ void lcd_escape_write(uint8_t chr)
 			break;
 		case '2':
 			if (chr == 'J') // escape = "\x1b[2J"
-				{ lcd_clear(); lcd_currline = 0; break; } // EraseScreen
+				lcd_clear(); // EraseScreen
+				break;
 		default:
 			if (e_2_is_num && // escape = "\x1b[%1d"
 				((chr == ';') || // escape = "\x1b[%1d;"
@@ -435,13 +580,13 @@ void lcd_escape_write(uint8_t chr)
 		{
 		case '?':
 			if ((lcd_escape[3] == '2') && (lcd_escape[4] == '5')) // escape = "\x1b[?25"
-				switch (chr)
+				switch (chr) //todo: remove lcd_cursor entirely
 				{
 				case 'h': // escape = "\x1b[?25h"
-  					lcd_cursor(); // CursorShow
+  					// lcd_cursor(); // CursorShow 
 					break;
 				case 'l': // escape = "\x1b[?25l"
-					lcd_no_cursor(); // CursorHide
+					// lcd_no_cursor(); // CursorHide
 					break;
 				}
 			break;
@@ -940,36 +1085,27 @@ const uint8_t lcd_chardata_arrdown[8] PROGMEM = {
 
 void lcd_set_custom_characters(void)
 {
+	LcdTimerDisabler_START;
 	lcd_createChar_P(LCD_STR_BEDTEMP[0], lcd_chardata_bedTemp);
 	lcd_createChar_P(LCD_STR_DEGREE[0], lcd_chardata_degree);
 	lcd_createChar_P(LCD_STR_THERMOMETER[0], lcd_chardata_thermometer);
 	lcd_createChar_P(LCD_STR_UPLEVEL[0], lcd_chardata_uplevel);
-	lcd_createChar_P(LCD_STR_REFRESH[0], lcd_chardata_refresh);
+	lcd_createChar_P(LCD_STR_REFRESH[0], lcd_chardata_refresh); //unused?
 	lcd_createChar_P(LCD_STR_FOLDER[0], lcd_chardata_folder);
 	lcd_createChar_P(LCD_STR_FEEDRATE[0], lcd_chardata_feedrate);
 	lcd_createChar_P(LCD_STR_CLOCK[0], lcd_chardata_clock);
 	//lcd_createChar_P(LCD_STR_ARROW_UP[0], lcd_chardata_arrup);
 	//lcd_createChar_P(LCD_STR_ARROW_DOWN[0], lcd_chardata_arrdown);
+	lcd_set_cursor_hardware(lcd_curpos % LCD_WIDTH, lcd_curpos / LCD_WIDTH, true);
+	LcdTimerDisabler_END;
 }
 
 void lcd_set_custom_characters_arrows(void)
 {
+	LcdTimerDisabler_START;
 	lcd_createChar_P(1, lcd_chardata_arrdown);
-}
-
-const uint8_t lcd_chardata_progress[8] PROGMEM = {
-	B11111,
-	B11111,
-	B11111,
-	B11111,
-	B11111,
-	B11111,
-	B11111,
-	B11111};
-
-void lcd_set_custom_characters_progress(void)
-{
-	lcd_createChar_P(1, lcd_chardata_progress);
+	lcd_set_cursor_hardware(lcd_curpos % LCD_WIDTH, lcd_curpos / LCD_WIDTH, true);
+	LcdTimerDisabler_END;
 }
 
 const uint8_t lcd_chardata_arr2down[8] PROGMEM = {
@@ -993,12 +1129,18 @@ const uint8_t lcd_chardata_confirm[8] PROGMEM = {
 
 void lcd_set_custom_characters_nextpage(void)
 {
+	LcdTimerDisabler_START;
 	lcd_createChar_P(1, lcd_chardata_arr2down);
 	lcd_createChar_P(2, lcd_chardata_confirm);
+	lcd_set_cursor_hardware(lcd_curpos % LCD_WIDTH, lcd_curpos / LCD_WIDTH, true);
+	LcdTimerDisabler_END;
 }
 
 void lcd_set_custom_characters_degree(void)
 {
+	LcdTimerDisabler_START;
 	lcd_createChar_P(1, lcd_chardata_degree);
+	lcd_set_cursor_hardware(lcd_curpos % LCD_WIDTH, lcd_curpos / LCD_WIDTH, true);
+	LcdTimerDisabler_END;
 }
 

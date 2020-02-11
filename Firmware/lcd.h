@@ -12,32 +12,24 @@ extern FILE _lcdout;
 
 #define lcdout (&_lcdout)
 
+extern uint8_t vga_get_char(int i, int j);
+
 extern void lcd_init(void);
 
-extern void lcd_refresh(void);
+extern void lcd_timer_enable(void);
 
-extern void lcd_refresh_noclear(void);
+extern void lcd_timer_disable(void);
+
+extern void lcd_refresh(void);
 
 extern void lcd_clear(void);
 
 extern void lcd_home(void);
 
 /*extern void lcd_no_display(void);
-extern void lcd_display(void);
-extern void lcd_no_blink(void);
-extern void lcd_blink(void);
-extern void lcd_no_cursor(void);
-extern void lcd_cursor(void);
-extern void lcd_scrollDisplayLeft(void);
-extern void lcd_scrollDisplayRight(void);
-extern void lcd_leftToRight(void);
-extern void lcd_rightToLeft(void);
-extern void lcd_autoscroll(void);
-extern void lcd_no_autoscroll(void);*/
+extern void lcd_display(void);*/
 
 extern void lcd_set_cursor(uint8_t col, uint8_t row);
-
-extern void lcd_createChar_P(uint8_t, const uint8_t*);
 
 
 extern int lcd_putc(int c);
@@ -150,6 +142,11 @@ private:
     bool m_updateEnabled;
 };
 
+#define LcdTimerDisabler_START bool oldTimerStatus = lcd_status & 0x01; lcd_timer_disable();
+#define LcdTimerDisabler_END if (oldTimerStatus) lcd_timer_enable();
+
+extern void lcd_debug();
+
 
 ////////////////////////////////////
 // Setup button and encode mappings for each panel (into 'lcd_buttons' variable
@@ -201,7 +198,6 @@ private:
 
 extern void lcd_set_custom_characters(void);
 extern void lcd_set_custom_characters_arrows(void);
-extern void lcd_set_custom_characters_progress(void);
 extern void lcd_set_custom_characters_nextpage(void);
 extern void lcd_set_custom_characters_degree(void);
 
