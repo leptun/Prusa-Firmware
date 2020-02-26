@@ -2828,54 +2828,84 @@ static void lcd_LoadFilament()
 //! @todo Positioning of the messages and values on LCD aren't fixed to their exact place. This causes issues with translations. Translations missing for "d"days, "h"ours, "m"inutes", "s"seconds".
 void lcd_menu_statistics()
 {
-    lcd_timeoutToStatus.stop(); //infinite timeout
-	if (1) //temporary menu for debugging
+	typedef struct
 	{
-		lcd_home();
-		lcd_printf_P(_N("%lum\n%.3umm\n%lum EEPROM"), total_movement_m, total_movement_precise/10, eeprom_read_dword((uint32_t *)EEPROM_STATISTICS_MOVEMENT));
-		menu_back_if_clicked_fb();
-		return;
+		uint8_t menuPage;
+		uint32_t eeprom_movement;
+		uint32_t eeprom_filament;
+		uint32_t eeprom_time;
+	} _menu_data_t;
+	static_assert(sizeof(menu_data)>= sizeof(_menu_data_t),"_menu_data_t doesn't fit into menu_data");
+	_menu_data_t* _md = (_menu_data_t*)&(menu_data[0]);
+    
+	lcd_timeoutToStatus.stop(); //infinite timeout
+	if (lcd_clicked())
+	{
+		_md->menuPage++;
+		lcd_quick_feedback();
 	}
-	if (IS_SD_PRINTING)
+	switch (_md->menuPage)
 	{
-		const float _met = ((float)total_filament_used) / (100000.f);
-		const uint32_t _t = (_millis() - starttime) / 1000ul;
-		const uint32_t _h = _t / 3600;
-		const uint8_t _m = (_t - (_h * 3600ul)) / 60ul;
-		const uint8_t _s = _t - ((_h * 3600ul) + (_m * 60ul));
+		case 0:
+		{
+			_md->eeprom_movement = eeprom_read_dword((uint32_t *)EEPROM_STATISTICS_MOVEMENT);
+			_md->eeprom_filament = eeprom_read_dword((uint32_t *)EEPROM_FILAMENTUSED);
+			_md->eeprom_time = eeprom_read_dword((uint32_t *)EEPROM_TOTALTIME);
+			_md->menuPage++;
+		} //no break. Go directly to the first page.
+		case 1:
+		{
+			if (IS_SD_PRINTING)
+			{
+				const float _met = ((float)total_filament_used) / (100000.f);
+				const uint32_t _t = (_millis() - starttime) / 1000ul;
+				const uint32_t _h = _t / 3600;
+				const uint8_t _m = (_t - (_h * 3600ul)) / 60ul;
+				const uint8_t _s = _t - ((_h * 3600ul) + (_m * 60ul));
 
-        lcd_home();
-		lcd_printf_P(_N(
-			"%S:\n"
-			"%18.2fm \n"
-			"%S:\n"
-			"%10ldh %02hhdm %02hhds"
-		    ),
-            _i("Filament used"), _met,  ////c=19 r=1
-            _i("Print time"), _h, _m, _s);  ////c=19 r=1
-		menu_back_if_clicked_fb();
-	}
-	else
-	{
-		unsigned long _filament = eeprom_read_dword((uint32_t *)EEPROM_FILAMENTUSED);
-		unsigned long _time = eeprom_read_dword((uint32_t *)EEPROM_TOTALTIME); //in minutes
-		uint8_t _hours, _minutes;
-		uint32_t _days;
-		float _filament_m = (float)_filament/100;
-		_days = _time / 1440;
-		_hours = (_time - (_days * 1440)) / 60;
-		_minutes = _time - ((_days * 1440) + (_hours * 60));
+				lcd_home();
+				lcd_printf_P(_N(
+					"%S:\n"
+					"%18.2fm \n"
+					"%S:\n"
+					"%10ldh %02hhdm %02hhds"
+					),
+					_i("Filament used"), _met,  ////c=19 r=1
+					_i("Print time"), _h, _m, _s);  ////c=19 r=1
+			}
+			else
+			{
+				uint8_t _hours, _minutes;
+				uint32_t _days;
+				float _filament_m = (float)_md->eeprom_filament/100;
+				_days = _md->eeprom_time / 1440;
+				_hours = (_md->eeprom_time - (_days * 1440)) / 60;
+				_minutes = _md->eeprom_time - ((_days * 1440) + (_hours * 60));
 
-		lcd_home();
-		lcd_printf_P(_N(
-			"%S:\n"
-			"%18.2fm \n"
-			"%S:\n"
-			"%10ldd %02hhdh %02hhdm"
-            ),
-            _i("Total filament"), _filament_m,  ////c=19 r=1
-            _i("Total print time"), _days, _hours, _minutes);  ////c=19 r=1
-        menu_back_if_clicked_fb();
+				lcd_home();
+				lcd_printf_P(_N(
+					"%S:\n"
+					"%18.2fm \n"
+					"%S:\n"
+					"%10ldd %02hhdh %02hhdm"
+					),
+					_i("Total filament"), _filament_m,  ////c=19 r=1
+					_i("Total print time"), _days, _hours, _minutes);  ////c=19 r=1
+			}
+		} break;
+		case 2:
+		{
+			lcd_home();
+			lcd_printf_P(_N(
+				"%S:\n"
+				"%14lu.%.3um \n"
+				),
+				_i("Total movement"), total_movement_m + _md->eeprom_movement, total_movement_precise/10);  ////c=19 r=1
+		} break;
+		default:
+		{
+			menu_back();
+		}
 	}
 }
 
