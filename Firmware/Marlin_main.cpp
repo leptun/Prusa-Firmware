@@ -223,8 +223,7 @@ unsigned int heating_status;
 unsigned int heating_status_counter;
 bool loading_flag = false;
 
-unsigned long total_movement_m = 0;
-uint16_t total_movement_precise = 0;
+
 
 char snmm_filaments_used = 0;
 
@@ -1238,11 +1237,6 @@ void setup()
 	plan_init();  // Initialize planner;
 
 	factory_reset();
-	
-	if (!(~eeprom_read_dword((uint32_t *)EEPROM_TOTALTIME))) eeprom_update_dword((uint32_t *)EEPROM_TOTALTIME, 0);
-	if (!(~eeprom_read_dword((uint32_t *)EEPROM_FILAMENTUSED))) eeprom_update_dword((uint32_t *)EEPROM_FILAMENTUSED, 0);
-	if (!(~eeprom_read_dword((uint32_t *)EEPROM_STATISTICS_MOVEMENT))) eeprom_update_dword((uint32_t *)EEPROM_STATISTICS_MOVEMENT, 0);
-	
 	if (eeprom_read_dword((uint32_t*)(EEPROM_TOP - 4)) == 0x0ffffffff &&
 	        eeprom_read_dword((uint32_t*)(EEPROM_TOP - 8)) == 0x0ffffffff)
 	{
@@ -4150,10 +4144,6 @@ if(eSoundMode!=e_SOUND_MODE_SILENT)
 		if (total_filament_used > ((current_position[E_AXIS] - destination[E_AXIS]) * 100)) { //protection against total_filament_used overflow
 			total_filament_used = total_filament_used + ((destination[E_AXIS] - current_position[E_AXIS]) * 100);
 		}
-		total_movement_precise += sqrt(pow(destination[X_AXIS] - current_position[X_AXIS], 2) + pow(destination[Y_AXIS] - current_position[Y_AXIS], 2)) * 10;
-		total_movement_m += total_movement_precise / 10000;
-		total_movement_precise = total_movement_precise % 10000;
-
           #ifdef FWRETRACT
             if(cs.autoretract_enabled)
             if( !(code_seen('X') || code_seen('Y') || code_seen('Z')) && code_seen('E')) {
@@ -9807,19 +9797,22 @@ bool setTargetedHotend(int code, uint8_t &extruder)
   return false;
 }
 
-void save_statistics(unsigned long _total_filament_used, unsigned long _total_print_time, unsigned long _total_movement_m) //_total_filament_used unit: mm/100; print time in s; movement in m
+void save_statistics(unsigned long _total_filament_used, unsigned long _total_print_time) //_total_filament_used unit: mm/100; print time in s
 {
+	if (eeprom_read_byte((uint8_t *)EEPROM_TOTALTIME) == 255 && eeprom_read_byte((uint8_t *)EEPROM_TOTALTIME + 1) == 255 && eeprom_read_byte((uint8_t *)EEPROM_TOTALTIME + 2) == 255 && eeprom_read_byte((uint8_t *)EEPROM_TOTALTIME + 3) == 255)
+	{
+		eeprom_update_dword((uint32_t *)EEPROM_TOTALTIME, 0);
+		eeprom_update_dword((uint32_t *)EEPROM_FILAMENTUSED, 0);
+	}
+
 	unsigned long _previous_filament = eeprom_read_dword((uint32_t *)EEPROM_FILAMENTUSED); //_previous_filament unit: cm
 	unsigned long _previous_time = eeprom_read_dword((uint32_t *)EEPROM_TOTALTIME); //_previous_time unit: min
-	unsigned long _previous_movement = eeprom_read_dword((uint32_t *)EEPROM_STATISTICS_MOVEMENT); //_previous_movement unit: m
-	
 
 	eeprom_update_dword((uint32_t *)EEPROM_TOTALTIME, _previous_time + (_total_print_time/60)); //EEPROM_TOTALTIME unit: min
 	eeprom_update_dword((uint32_t *)EEPROM_FILAMENTUSED, _previous_filament + (_total_filament_used / 1000));
-	eeprom_update_dword((uint32_t *)EEPROM_STATISTICS_MOVEMENT, _previous_movement + _total_movement_m);
 
 	total_filament_used = 0;
-	total_movement_m = 0;
+
 }
 
 float calculate_extruder_multiplier(float diameter) {

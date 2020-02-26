@@ -341,9 +341,7 @@ extern unsigned int usb_printing_counter;
 extern unsigned long kicktime;
 
 extern unsigned long total_filament_used;
-void save_statistics(unsigned long _total_filament_used, unsigned long _total_print_time, unsigned long _total_movement_m);
-extern unsigned long total_movement_m;
-extern uint16_t total_movement_precise;
+void save_statistics(unsigned long _total_filament_used, unsigned long _total_print_time);
 extern unsigned int heating_status;
 extern unsigned int status_number;
 extern unsigned int heating_status_counter;

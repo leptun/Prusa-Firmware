@@ -2631,13 +2631,6 @@ static void lcd_LoadFilament()
 void lcd_menu_statistics()
 {
     lcd_timeoutToStatus.stop(); //infinite timeout
-	if (1) //temporary menu for debugging
-	{
-		lcd_home();
-		lcd_printf_P(_N("%lum\n%.3umm\n%lum EEPROM"), total_movement_m, total_movement_precise/10, eeprom_read_dword((uint32_t *)EEPROM_STATISTICS_MOVEMENT));
-		menu_back_if_clicked_fb();
-		return;
-	}
 	if (IS_SD_PRINTING)
 	{
 		const float _met = ((float)total_filament_used) / (100000.f);
@@ -7131,7 +7124,7 @@ void lcd_print_stop()
 	stoptime = _millis();
 	unsigned long t = (stoptime - starttime - pause_time) / 1000; //time in s
 	pause_time = 0;
-	save_statistics(total_filament_used, t, total_movement_m);
+	save_statistics(total_filament_used, t);
 
     lcd_commands_step = 0;
     lcd_commands_type = LcdCommands::Idle;
