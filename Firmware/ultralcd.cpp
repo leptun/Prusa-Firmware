@@ -7325,10 +7325,6 @@ void lcd_print_stop()
 #endif
 
 	lcd_setstatuspgm(_T(MSG_PRINT_ABORTED));
-	stoptime = _millis();
-	unsigned long t = (stoptime - starttime - pause_time) / 1000; //time in s
-	pause_time = 0;
-	save_statistics(total_filament_used, t, total_movement_m);
 
     lcd_commands_step = 0;
     lcd_commands_type = LcdCommands::Idle;
@@ -7362,6 +7358,11 @@ void lcd_print_stop()
     axis_relative_modes[E_AXIS] = true;
     
     isPrintPaused = false; //clear isPrintPaused flag to allow starting next print after pause->stop scenario.
+
+	stoptime = _millis();
+    unsigned long t = (stoptime - starttime - pause_time) / 1000; //time in s
+    pause_time = 0;
+    save_statistics(total_filament_used, t, total_movement_m); //can be blocking, so do it close to the end.
 }
 
 void lcd_sdcard_stop()

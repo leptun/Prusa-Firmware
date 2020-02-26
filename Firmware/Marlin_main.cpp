@@ -9809,7 +9809,17 @@ void save_statistics(unsigned long _total_filament_used, unsigned long _total_pr
 	unsigned long _previous_time = eeprom_read_dword((uint32_t *)EEPROM_TOTALTIME); //_previous_time unit: min
 	unsigned long _previous_movement = eeprom_read_dword((uint32_t *)EEPROM_STATISTICS_MOVEMENT); //_previous_movement unit: m
 	
-
+	if ((_previous_movement / 50000 < _total_movement_m / 50000 )&& !farm_mode)
+	{
+		lcd_display_message_fullscreen_P(_T(MSG_PRINTER_MAINTENANCE));
+        Sound_MakeCustom(50,1000,false);
+        delay_keep_alive(500);
+        Sound_MakeCustom(50,1000,false);
+        lcd_wait_for_click_delay(0); //no timeout
+        lcd_update_enable(true);
+        lcd_clear();
+        lcd_update(0);
+	}
 	eeprom_update_dword((uint32_t *)EEPROM_TOTALTIME, _previous_time + (_total_print_time/60)); //EEPROM_TOTALTIME unit: min
 	eeprom_update_dword((uint32_t *)EEPROM_FILAMENTUSED, _previous_filament + (_total_filament_used / 1000));
 	eeprom_update_dword((uint32_t *)EEPROM_STATISTICS_MOVEMENT, _previous_movement + _total_movement_m);
