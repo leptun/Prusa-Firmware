@@ -649,7 +649,6 @@ void get_command()
       // cleared by printingHasFinished after peforming all remaining moves.
       if(!cmdqueue_calc_sd_length())
       {
-          card.printingHasFinished();
           SERIAL_PROTOCOLLNRPGM(_n("Done printing file"));////MSG_FILE_PRINTED
           stoptime=_millis();
           char time[30];
@@ -658,11 +657,12 @@ void get_command()
           int hours, minutes;
           minutes=(t/60)%60;
           hours=t/60/60;
-          save_statistics(total_filament_used, t, total_movement_m); //can be blocking, so do it close to the end.
+          save_statistics(total_filament_used, t, total_movement_m);
           sprintf_P(time, PSTR("%i hours %i minutes"),hours, minutes);
           SERIAL_ECHO_START;
           SERIAL_ECHOLN(time);
           lcd_setstatus(time);
+          card.printingHasFinished();
           card.checkautostart(true);
 
           if (farm_mode)

@@ -138,7 +138,6 @@ extern const char MSG_TIMEOUT[];
 extern const char MSG_BRIGHT[];
 extern const char MSG_DIM[];
 extern const char MSG_AUTO[];
-extern const char MSG_PRINTER_MAINTENANCE[];
 
 //not internationalized messages
 extern const char MSG_BROWNOUT_RESET[];

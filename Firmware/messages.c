@@ -138,7 +138,6 @@ const char MSG_TIMEOUT[] PROGMEM_I1 = ISTR("Timeout"); ////
 const char MSG_BRIGHT[] PROGMEM_I1 = ISTR("Bright"); ////
 const char MSG_DIM[] PROGMEM_I1 = ISTR("Dim"); ////
 const char MSG_AUTO[] PROGMEM_I1 = ISTR("Auto"); ////
-const char MSG_PRINTER_MAINTENANCE[] PROGMEM_I1 = ISTR("Printer maintenance is due soon. Please check rods and grease bearings."); ////c=20 r=8
 
 //not internationalized messages
 const char MSG_SD_WORKDIR_FAIL[] PROGMEM_N1 = "workDir open failed"; ////
