@@ -362,19 +362,9 @@ uint8_t menu_item_sddir(const char* str_fn, char* str_fnl)
 {
 	if (menu_item == menu_line)
 	{
-		if (lcd_draw_update/*  || !lcd_scrollTimer.running() */)
+		if (lcd_draw_update)
 		{
-/* 			if (lcd_encoder == menu_item && !lcd_scrollTimer.running())
-			{
-				// lcd_beeper_quick_feedback();
-				_menu_data_sdcard_t* _md = (_menu_data_sdcard_t*)&(menu_data[0]);
-				_md->isDir = 1;
-				_md->row = menu_row;
-				_md->scrollPointer = (str_fnl[0] == '\0') ? str_fn : str_fnl;
-				menu_submenu_scroll(lcd_filename_scroll);
-				return 1; //stop menu generation early
-			}
-			else  */lcd_implementation_drawmenu_sddirectory(menu_row, (str_fnl[0] == '\0') ? str_fn : str_fnl);
+			lcd_implementation_drawmenu_sddirectory(menu_row, (str_fnl[0] == '\0') ? str_fn : str_fnl);
 		}
 		if (menu_clicked && (lcd_encoder == menu_item))
 		{
@@ -7112,8 +7102,7 @@ static void lcd_sd_updir()
   card.updir();
   menu_top = 0;
   lcd_encoder = 0;
-  // lcd_scrollTimer.start();
-  // menu_entering = 1;
+  memset(&menu_data, 0, sizeof(menu_data)); //reset menu state. Forces reloading of cached variables.
 }
 
 void lcd_print_stop()
@@ -7224,6 +7213,7 @@ void lcd_sdcard_menu()
 		const char* scrollPointer;
 		uint16_t fileCnt;
 		uint8_t row;
+		uint8_t sdSort;
 		ShortTimer lcd_scrollTimer;
 	} _menu_data_sdcard_t;
 	static_assert(sizeof(menu_data)>= sizeof(_menu_data_sdcard_t),"_menu_data_sdcard_t doesn't fit into menu_data");
@@ -7238,6 +7228,7 @@ void lcd_sdcard_menu()
 				card.presort();
 			}
 			_md->fileCnt = card.getnrfilenames();
+			_md->sdSort = eeprom_read_byte((uint8_t*)EEPROM_SD_SORT);
 			_md->menuState = 1;
 		} //Begin the first menu state instantly.
 		case 1: //normal menu structure.
@@ -7261,7 +7252,6 @@ void lcd_sdcard_menu()
 			
 			_md->scrollPointer = NULL; //clear scrollPointer. Used for differentiating between a file/dir and another menu item that is selected.
 			
-			const uint8_t sdSort = eeprom_read_byte((uint8_t*)EEPROM_SD_SORT);
 			MENU_BEGIN();
 			MENU_ITEM_BACK_P(_T(bMain?MSG_MAIN:MSG_BACK));  // i.e. default menu-item / menu-item after card insertion
 			card.getWorkDirName();
@@ -7283,7 +7273,7 @@ void lcd_sdcard_menu()
 					
 					//load filename to memory.
 #ifdef SDCARD_SORT_ALPHA
-					if (sdSort == SD_SORT_NONE) card.getfilename(nr);
+					if (_md->sdSort == SD_SORT_NONE) card.getfilename(nr);
 					else card.getfilename_sorted(nr);
 #else
 					card.getfilename(nr);
@@ -8693,8 +8683,7 @@ void menu_action_sddirectory(const char* filename)
 	MYSERIAL.println(dir_names[depth]);
   card.chdir(filename);
   lcd_encoder = 0;
-  // lcd_scrollTimer.start();
-  // menu_entering = 1;
+  memset(&menu_data, 0, sizeof(menu_data)); //reset menu state. Forces reloading of cached variables.
 }
 
 /** LCD API **/
