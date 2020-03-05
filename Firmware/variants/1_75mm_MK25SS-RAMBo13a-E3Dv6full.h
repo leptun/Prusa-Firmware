@@ -115,7 +115,7 @@
 #define SILENT_MAX_FEEDRATE_XY   100  // max feedrate in mm/s
 
 //Normal mode limits
-#define NORMAL_MAX_ACCEL_XY     3000ul  // max acceleration in normal mode in mm/s^2
+#define NORMAL_MAX_ACCEL_XY     5000ul  // max acceleration in normal mode in mm/s^2
 #define NORMAL_MAX_FEEDRATE_XY   300  // max feedrate in mm/s
 
 //number of bytes from end of the file to start check
