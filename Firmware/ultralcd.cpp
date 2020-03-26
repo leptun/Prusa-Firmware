@@ -166,7 +166,6 @@ static void lcd_selftest_v();
 #ifdef TMC2130
 static void reset_crash_det(unsigned char axis);
 static bool lcd_selfcheck_axis_sg(unsigned char axis);
-static bool lcd_selfcheck_axis(int _axis, int _travel);
 #else
 static bool lcd_selfcheck_endstops();
 static bool lcd_selfcheck_axis(int _axis, int _travel);
@@ -7527,7 +7526,6 @@ void printf_IRSensorAnalogBoardChange(bool bPCBrev03b){
 
 static bool lcd_selftest_IRsensor(bool bStandalone)
 {
-    bool bAction;
     bool bPCBrev03b;
     uint16_t volt_IR_int;
     float volt_IR;
