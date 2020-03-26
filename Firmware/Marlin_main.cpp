@@ -2940,7 +2940,7 @@ bool gcode_M45(bool onlyZ, int8_t verbosity_level)
 					if (calibration_status() == CALIBRATION_STATUS_Z_CALIBRATION)
 						// Shipped, the nozzle height has been set already. The user can start printing now.
 						calibration_status_store(CALIBRATION_STATUS_CALIBRATED);
-						final_result = true;
+					final_result = true;
 					// babystep_apply();
 				}
 			}
@@ -8593,8 +8593,8 @@ Sigma_Exit:
   {
       int index;
       bool load_to_nozzle = false;
-      for (index = 1; *(strchr_pointer + index) == ' ' || *(strchr_pointer + index) == '\t'; index++);
-
+      for (index = 1; *(strchr_pointer + index) == ' ' || *(strchr_pointer + index) == '\t'; index++)
+		  ;
 	  *(strchr_pointer + index) = tolower(*(strchr_pointer + index));
 
       if ((*(strchr_pointer + index) < '0' || *(strchr_pointer + index) > '4') && *(strchr_pointer + index) != '?' && *(strchr_pointer + index) != 'x' && *(strchr_pointer + index) != 'c') {
