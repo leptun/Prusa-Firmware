@@ -214,7 +214,7 @@ fi
 
 
 #### Set build environment 
-ARDUINO_ENV="1.8.5"
+ARDUINO_ENV="1.8.12"
 BUILD_ENV="1.0.6"
 BOARD="prusa_einsy_rambo"
 BOARD_PACKAGE_NAME="PrusaResearch"

@@ -161,7 +161,6 @@ static void lcd_selftest_v();
 #ifdef TMC2130
 static void reset_crash_det(unsigned char axis);
 static bool lcd_selfcheck_axis_sg(unsigned char axis);
-static bool lcd_selfcheck_axis(int _axis, int _travel);
 #else
 static bool lcd_selfcheck_endstops();
 static bool lcd_selfcheck_axis(int _axis, int _travel);
@@ -2118,7 +2117,7 @@ if(lcd_clicked())
           {
           case FilamentAction::AutoLoad:
                eFilamentAction=FilamentAction::None; // i.e. non-autoLoad
-               // no break
+               [[fallthrough]];
           case FilamentAction::Load:
                loading_flag=true;
                enquecommand_P(PSTR("M701"));      // load filament
@@ -7400,7 +7399,6 @@ void printf_IRSensorAnalogBoardChange(bool bPCBrev03b){
 
 static bool lcd_selftest_IRsensor(bool bStandalone)
 {
-    bool bAction;
     bool bPCBrev03b;
     uint16_t volt_IR_int;
     float volt_IR;
@@ -7484,7 +7482,7 @@ bool lcd_selftest()
 			break;
 		case FanCheck::SwappedFan:
 			_swapped_fan = true;
-			// no break
+			[[fallthrough]];
 		default:
 			_result = true;
 			break;
@@ -7507,7 +7505,7 @@ bool lcd_selftest()
 			break;
 		case FanCheck::SwappedFan:
 			_swapped_fan = true;
-			// no break
+			[[fallthrough]];
 		default:
 			_result = true;
 			break;
