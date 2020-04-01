@@ -82,7 +82,7 @@
 #define Z_PAUSE_LIFT 20
 
 #define NUM_AXIS 4 // The axis order in all axis related arrays is X, Y, Z, E
-#define HOMING_FEEDRATE {3000, 3000, 800, 0}  // set the homing speeds (mm/min) // 3000 is also valid for stallGuard homing. Valid range: 2200 - 3000
+#define HOMING_FEEDRATE {3000, 3000, 1200, 0}  // set the homing speeds (mm/min) // 3000 is also valid for stallGuard homing. Valid range: 2200 - 3000
 
 //#define DEFAULT_Y_OFFSET    4.f // Default distance of Y_MIN_POS point from endstop, when the printer is not calibrated.
 /**
@@ -97,7 +97,7 @@
 #define DEFAULT_MAX_FEEDRATE                {300, 300, 20, 120}      // (mm/sec)   max feedrate (M203)
 #define DEFAULT_MAX_FEEDRATE_SILENT         {100, 100, 12, 120}      // (mm/sec)   max feedrate (M203), silent mode
 
-#define DEFAULT_MAX_ACCELERATION            {3000, 3000, 200, 5000}  // (mm/sec^2) max acceleration (M201)
+#define DEFAULT_MAX_ACCELERATION            {5000, 5000, 200, 5000}  // (mm/sec^2) max acceleration (M201)
 #define DEFAULT_MAX_ACCELERATION_SILENT     {960, 960, 200, 5000}    // (mm/sec^2) max acceleration (M201), silent mode
 
 
