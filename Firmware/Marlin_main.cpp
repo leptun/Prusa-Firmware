@@ -717,6 +717,12 @@ static void factory_reset(char level)
 
             eeprom_update_dword((uint32_t *)EEPROM_TOTALTIME, 0);
             eeprom_update_dword((uint32_t *)EEPROM_FILAMENTUSED, 0);
+
+			eeprom_update_byte((uint8_t *)EEPROM_CRASH_COUNT_X, 0);
+			eeprom_update_byte((uint8_t *)EEPROM_CRASH_COUNT_Y, 0);
+			eeprom_update_byte((uint8_t *)EEPROM_FERROR_COUNT, 0);
+			eeprom_update_byte((uint8_t *)EEPROM_POWER_COUNT, 0);
+
             eeprom_update_word((uint16_t *)EEPROM_CRASH_COUNT_X_TOT, 0);
             eeprom_update_word((uint16_t *)EEPROM_CRASH_COUNT_Y_TOT, 0);
             eeprom_update_word((uint16_t *)EEPROM_FERROR_COUNT_TOT, 0);
@@ -8865,7 +8871,7 @@ Sigma_Exit:
 	case 2:
 		dcode_2(); break;
 #endif //DEBUG_DCODES
-#ifdef DEBUG_DCODE3
+#if defined DEBUG_DCODE3 || defined DEBUG_DCODES
 
     /*!
     ### D3 - Read/Write EEPROM <a href="https://reprap.org/wiki/G-code#D3:_Read.2FWrite_EEPROM">D3: Read/Write EEPROM</a>
@@ -8906,7 +8912,7 @@ Sigma_Exit:
 	case 4:
 		dcode_4(); break;
 #endif //DEBUG_DCODES
-#ifdef DEBUG_DCODE5
+#if defined DEBUG_DCODE5 || defined DEBUG_DCODES
 
     /*!
     ### D5 - Read/Write FLASH <a href="https://reprap.org/wiki/G-code#D5:_Read.2FWrite_FLASH">D5: Read/Write Flash</a>
@@ -8918,7 +8924,7 @@ Sigma_Exit:
     #### Parameters
     - `A` - Address (x00000-x3ffff)
     - `C` - Count (1-8192)
-    - `X` - Data
+    - `X` - Data (hex)
     - `E` - Erase
  	
 	#### Notes
