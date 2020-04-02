@@ -83,7 +83,7 @@
 #define Z_PAUSE_LIFT 20
 
 #define NUM_AXIS 4 // The axis order in all axis related arrays is X, Y, Z, E
-#define HOMING_FEEDRATE {3000, 3000, 800, 0}  // set the homing speeds (mm/min) // 3000 is also valid for stallGuard homing. Valid range: 2200 - 3000
+#define HOMING_FEEDRATE {3000, 3000, 1200, 0}  // set the homing speeds (mm/min) // 3000 is also valid for stallGuard homing. Valid range: 2200 - 3000
 
 //#define DEFAULT_Y_OFFSET    4.f // Default distance of Y_MIN_POS point from endstop, when the printer is not calibrated.
 /**
@@ -95,10 +95,10 @@
  */
 #define SHEET_PRINT_ZERO_REF_Y 1.f
 
-#define DEFAULT_MAX_FEEDRATE                {300, 300, 12, 120}      // (mm/sec)   max feedrate (M203)
+#define DEFAULT_MAX_FEEDRATE                {300, 300, 22, 120}      // (mm/sec)   max feedrate (M203)
 #define DEFAULT_MAX_FEEDRATE_SILENT         {100, 100, 12, 120}      // (mm/sec)   max feedrate (M203), silent mode
 
-#define DEFAULT_MAX_ACCELERATION            {2000, 2000, 200, 5000}  // (mm/sec^2) max acceleration (M201)
+#define DEFAULT_MAX_ACCELERATION            {5000, 5000, 200, 5000}  // (mm/sec^2) max acceleration (M201)
 #define DEFAULT_MAX_ACCELERATION_SILENT     {960, 960, 200, 5000}    // (mm/sec^2) max acceleration (M201), silent mode
 
 
@@ -112,7 +112,7 @@
 #define SILENT_MAX_FEEDRATE_XY   100  // max feedrate in mm/s
 
 //Normal mode limits
-#define NORMAL_MAX_ACCEL_XY     2500ul  // max acceleration in normal mode in mm/s^2
+#define NORMAL_MAX_ACCEL_XY     5000ul  // max acceleration in normal mode in mm/s^2
 #define NORMAL_MAX_FEEDRATE_XY   300  // max feedrate in mm/s
 
 //number of bytes from end of the file to start check
