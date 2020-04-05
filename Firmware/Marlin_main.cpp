@@ -5248,7 +5248,7 @@ if(eSoundMode!=e_SOUND_MODE_SILENT)
 		go_home_with_z_lift();
 //		SERIAL_ECHOLNPGM("Go home finished");
 		//unretract (after PINDA preheat retraction)
-		if (degHotend(active_extruder) > EXTRUDE_MINTEMP && temp_cal_active == true && calibration_status_pinda() == true && target_temperature_bed >= 50) {
+		if (degHotend(active_extruder) > extrude_min_temp && temp_cal_active == true && calibration_status_pinda() == true && target_temperature_bed >= 50) {
 			current_position[E_AXIS] += default_retraction;
 			plan_buffer_line_curposXYZE(400, active_extruder);
 		}
@@ -7617,7 +7617,7 @@ Sigma_Exit:
     {
 	  float temp = .0;
 	  if (code_seen('S')) temp=code_value();
-      set_extrude_min_temp(temp);
+      extrude_min_temp = temp;
     }
     break;
 	#endif
@@ -9499,7 +9499,7 @@ static uint8_t nFSCheckCount=0;
 #ifdef PAT9125
 					fsensor_autoload_check_stop();
 #endif //PAT9125
-//-//					if (degHotend0() > EXTRUDE_MINTEMP)
+//-//					if (degHotend0() > extrude_min_temp)
 if(0)
 					{
             Sound_MakeCustom(50,1000,false);
@@ -9515,7 +9515,7 @@ if(0)
 */
                               eFilamentAction=FilamentAction::AutoLoad;
                               bFilamentFirstRun=false;
-                              if(target_temperature[0]>=EXTRUDE_MINTEMP)
+                              if(target_temperature[0]>=extrude_min_temp)
                               {
                                    bFilamentPreheatState=true;
 //                                   mFilamentItem(target_temperature[0],target_temperature_bed);
@@ -10371,7 +10371,7 @@ static void temp_compensation_start() {
 	custom_message_type = CustomMsg::TempCompPreheat;
 	custom_message_state = PINDA_HEAT_T + 1;
 	lcd_update(2);
-	if (degHotend(active_extruder) > EXTRUDE_MINTEMP) {
+	if (degHotend(active_extruder) > extrude_min_temp) {
 		current_position[E_AXIS] -= default_retraction;
 	}
 	plan_buffer_line_curposXYZE(400, active_extruder);

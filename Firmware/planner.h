@@ -256,7 +256,7 @@ extern void planner_abort_hard();
 extern bool waiting_inside_plan_buffer_line_print_aborted;
 
 #ifdef PREVENT_DANGEROUS_EXTRUDE
-void set_extrude_min_temp(float temp);
+extern float extrude_min_temp;
 #endif
 
 void reset_acceleration_rates();

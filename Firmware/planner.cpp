@@ -106,6 +106,10 @@ bool autotemp_enabled=false;
 
 unsigned char g_uc_extruder_last_move[3] = {0,0,0};
 
+#ifdef PREVENT_DANGEROUS_EXTRUDE
+float extrude_min_temp = EXTRUDE_MINTEMP;
+#endif
+
 //===========================================================================
 //=================semi-private variables, used in inline  functions    =====
 //===========================================================================
@@ -121,10 +125,6 @@ static uint8_t g_cntr_planner_queue_min = 0;
 //===========================================================================
 //=============================private variables ============================
 //===========================================================================
-#ifdef PREVENT_DANGEROUS_EXTRUDE
-float extrude_min_temp=EXTRUDE_MINTEMP;
-#endif
-
 #ifdef LIN_ADVANCE
 float extruder_advance_K = LIN_ADVANCE_K;
 float position_float[NUM_AXIS];
@@ -1401,13 +1401,6 @@ void plan_reset_next_e()
 {
     plan_reset_next_e_queue = true;
 }
-
-#ifdef PREVENT_DANGEROUS_EXTRUDE
-void set_extrude_min_temp(float temp)
-{
-  extrude_min_temp=temp;
-}
-#endif
 
 // Calculate the steps/s^2 acceleration rates, based on the mm/s^s
 void reset_acceleration_rates()

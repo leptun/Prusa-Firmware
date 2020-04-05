@@ -556,7 +556,7 @@ void mmu_load_step(bool synchronize)
 //!         off E-stepper to prevent over-heating and allow filament pull-out if necessary
 bool can_extrude()
 {
-    if ((degHotend(active_extruder) < EXTRUDE_MINTEMP) || !ir_sensor_detected)
+    if ((degHotend(active_extruder) < extrude_min_temp) || !ir_sensor_detected)
     {
         disable_e0();
         delay_keep_alive(100);
@@ -904,10 +904,11 @@ void mmu_M600_load_filament(bool automatic, float nozzle_temp)
 #ifdef SNMM
 void extr_mov(float shift, float feed_rate)
 { //move extruder no matter what the current heater temperature is
-	set_extrude_min_temp(.0);
+	const float saved_extrude_min_temp = extrude_min_temp;
+	extrude_min_temp = 0.f;
 	current_position[E_AXIS] += shift;
 	plan_buffer_line_curposXYZE(feed_rate, active_extruder);
-	set_extrude_min_temp(EXTRUDE_MINTEMP);
+	extrude_min_temp = saved_extrude_min_temp;
 }
 #endif //SNMM
 
@@ -1096,7 +1097,7 @@ void extr_unload()
 	uint8_t SilentMode = eeprom_read_byte((uint8_t*)EEPROM_SILENT);
 #endif
 
-	if (degHotend0() > EXTRUDE_MINTEMP)
+	if (degHotend0() > extrude_min_temp)
 	{
 #ifndef SNMM
 		st_synchronize();
@@ -1266,7 +1267,7 @@ void extr_change_3()
 //wrapper functions for unloading filament
 void extr_unload_all()
 {
-	if (degHotend0() > EXTRUDE_MINTEMP)
+	if (degHotend0() > extrude_min_temp)
 	{
 		for (int i = 0; i < 4; i++)
 		{
@@ -1284,7 +1285,7 @@ void extr_unload_all()
 //unloading just used filament (for snmm)
 void extr_unload_used()
 {
-	if (degHotend0() > EXTRUDE_MINTEMP) {
+	if (degHotend0() > extrude_min_temp) {
 		for (int i = 0; i < 4; i++) {
 			if (snmm_filaments_used & (1 << i)) {
 				change_extr(i);
@@ -1345,7 +1346,7 @@ void lcd_mmu_load_to_nozzle(uint8_t filament_nr)
 {
     menu_back();
     bFilamentAction = false;                            // NOT in "mmu_load_to_nozzle_menu()"
-    if (degHotend0() > EXTRUDE_MINTEMP)
+    if (degHotend0() > extrude_min_temp)
     {
         tmp_extruder = filament_nr;
         lcd_update_enable(false);
@@ -1381,7 +1382,7 @@ void mmu_cut_filament(uint8_t filament_nr)
 {
     menu_back();
     bFilamentAction=false;                            // NOT in "mmu_load_to_nozzle_menu()"
-    if (degHotend0() > EXTRUDE_MINTEMP)
+    if (degHotend0() > extrude_min_temp)
     {
         LcdUpdateDisabler disableLcdUpdate;
         lcd_clear();
@@ -1406,7 +1407,7 @@ bFilamentAction=false;                            // NOT in "mmu_fil_eject_menu(
 	if (filament < 5) 
 	{
 
-		if (degHotend0() > EXTRUDE_MINTEMP)
+		if (degHotend0() > extrude_min_temp)
 		{
 			st_synchronize();
 
