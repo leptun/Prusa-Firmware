@@ -980,9 +980,9 @@ inline bool find_bed_induction_sensor_point_z(float minimum_z, uint8_t n_iter, i
     for (uint8_t i = 0; i < n_iter; ++ i)
 	{
 		
-		current_position[Z_AXIS] += high_deviation_occured ? 0.5 : 0.2;
+		current_position[Z_AXIS] += high_deviation_occured ? 0.5 : 0.25;
 		float z_bckp = current_position[Z_AXIS];
-		go_to_current(homing_feedrate[Z_AXIS]/60);
+		go_to_current(homing_feedrate[Z_AXIS]/(2*60));
 		// Move back down slowly to find bed.
         current_position[Z_AXIS] = minimum_z;
 		//printf_P(PSTR("init Z = %f, min_z = %f, i = %d\n"), z_bckp, minimum_z, i);
@@ -992,10 +992,10 @@ inline bool find_bed_induction_sensor_point_z(float minimum_z, uint8_t n_iter, i
 		//printf_P(PSTR("Zs: %f, Z: %f, delta Z: %f"), z_bckp, current_position[Z_AXIS], (z_bckp - current_position[Z_AXIS]));
 		if (abs(current_position[Z_AXIS] - z_bckp) < 0.025) {
 			//printf_P(PSTR("PINDA triggered immediately, move Z higher and repeat measurement\n")); 
-			current_position[Z_AXIS] += 0.5;
-			go_to_current(homing_feedrate[Z_AXIS]/60);
+			current_position[Z_AXIS] += 0.8;
+			go_to_current(homing_feedrate[Z_AXIS]/(2*60));
 			current_position[Z_AXIS] = minimum_z;
-            go_to_current(homing_feedrate[Z_AXIS]/(4*60));
+            go_to_current(homing_feedrate[Z_AXIS]/(6*60));
             // we have to let the planner know where we are right now as it is not where we said to go.
 			update_current_position_z();
 		}

@@ -5006,7 +5006,7 @@ if(eSoundMode!=e_SOUND_MODE_SILENT)
 
 			// Move Z up to MESH_HOME_Z_SEARCH.
 			if((ix == 0) && (iy == 0)) current_position[Z_AXIS] = MESH_HOME_Z_SEARCH;
-			else current_position[Z_AXIS] += 2.f / nMeasPoints; //use relative movement from Z coordinate where PINDa triggered on previous point. This makes calibration faster.
+			else current_position[Z_AXIS] += 0.75f; //use relative movement from Z coordinate where PINDa triggered on previous point. This makes calibration faster.
 			float init_z_bckp = current_position[Z_AXIS];
 			plan_buffer_line_curposXYZE(Z_LIFT_FEEDRATE, active_extruder);
 			st_synchronize();
