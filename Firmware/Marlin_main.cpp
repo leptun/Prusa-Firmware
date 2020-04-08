@@ -8997,7 +8997,7 @@ Sigma_Exit:
 			plan_buffer_line_curposXYZE(probeSpeed, active_extruder);
 			while (!READ(Z_MIN_PIN));
 			triggerPos = st_get_position_mm(Z_AXIS);
-			printf_P(PSTR("D:%f\n"), triggerPos); //Downwards trigger
+			printf_P(PSTR("%.4f,"), triggerPos); //Downwards trigger
 			while (blocks_queued()) manage_heater(); //st_synchronize
 			
 			//Raise probe by zMovement. Measure the exact moment the probe stops sensing the bed. The movement is not stopped like in MBL
@@ -9005,7 +9005,7 @@ Sigma_Exit:
 			plan_buffer_line_curposXYZE(probeSpeed, active_extruder);
 			while (READ(Z_MIN_PIN));
 			triggerPos = st_get_position_mm(Z_AXIS);
-			printf_P(PSTR("U:%f\n"), triggerPos);  //Upwards trigger
+			printf_P(PSTR("%.4f\n"), triggerPos);  //Upwards trigger
 			while (blocks_queued()) manage_heater(); //st_synchronize
 		}
 	}
