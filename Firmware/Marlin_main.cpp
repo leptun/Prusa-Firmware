@@ -8965,6 +8965,55 @@ Sigma_Exit:
     Writes the current time in the log file.
     */
 
+#ifndef HEATBED_ANALYSIS
+	case 80:
+	{
+		gcode_G28(true, true, true); //home all axes
+		
+		KEEPALIVE_STATE(NOT_BUSY);
+		
+		float probeSpeed = 8; //F
+		uint8_t checkNo = 5; //N
+		float zMovement = 1.f; //Z
+		
+		if (code_seen('F')) probeSpeed = code_value() / 60.f;
+		if (code_seen('N')) checkNo = code_value_uint8();
+		if (code_seen('Z')) zMovement = code_value_float();
+		
+		// Set trigger point at Z0
+		current_position[Z_AXIS] = 0.f;
+		plan_set_position(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS]);
+		
+		// Move to the maximum position. The trigger point is in the middle of the oscilation.
+		current_position[Z_AXIS] += zMovement / 2.f;
+		plan_buffer_line_curposXYZE(probeSpeed, active_extruder);
+		st_synchronize();
+		
+		float triggerPos;
+		for (uint8_t i = 0; i < checkNo; i++)
+		{
+			//Lower probe by zMovement. Measure the exact moment the probe detects the bed. The movement is not stopped like in MBL
+			current_position[Z_AXIS] -= zMovement;
+			plan_buffer_line_curposXYZE(probeSpeed, active_extruder);
+			while (!READ(Z_MIN_PIN));
+			triggerPos = st_get_position_mm(Z_AXIS);
+			printf_P(PSTR("D:%f\n"), triggerPos); //Downwards trigger
+			while (blocks_queued()) manage_heater(); //st_synchronize
+			
+			//Raise probe by zMovement. Measure the exact moment the probe stops sensing the bed. The movement is not stopped like in MBL
+			current_position[Z_AXIS] += zMovement;
+			plan_buffer_line_curposXYZE(probeSpeed, active_extruder);
+			while (READ(Z_MIN_PIN));
+			triggerPos = st_get_position_mm(Z_AXIS);
+			printf_P(PSTR("U:%f\n"), triggerPos);  //Upwards trigger
+			while (blocks_queued()) manage_heater(); //st_synchronize
+		}
+	}
+	break;
+
+#endif //!HEATBED_ANALYSIS
+
+
 #endif //DEBUG_DCODES
 #ifdef HEATBED_ANALYSIS
 
