@@ -8964,6 +8964,12 @@ Sigma_Exit:
     ### D12 - Time <a href="https://reprap.org/wiki/G-code#D12:_Time">D12: Time</a>
     Writes the current time in the log file.
     */
+	case 78:
+	{
+		bool rxVal = false;
+		if (code_seen('S')) rxVal = code_value_uint8();
+		enable_z_endstop(rxVal);
+	} break;
 
 #ifndef HEATBED_ANALYSIS
 	case 80:
