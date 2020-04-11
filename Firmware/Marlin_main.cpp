@@ -8974,7 +8974,8 @@ Sigma_Exit:
 #ifndef HEATBED_ANALYSIS
 	case 79:
 	{
-		gcode_G28(true, true, true); //home all axes
+		if (!(axis_known_position[X_AXIS] && axis_known_position[Y_AXIS])) gcode_G28(true, true, false); //home XY
+		gcode_G28(false, false, true); //home Z
 		
 		KEEPALIVE_STATE(NOT_BUSY);
 		
