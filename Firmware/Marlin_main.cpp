@@ -8972,7 +8972,7 @@ Sigma_Exit:
 	} break;
 
 #ifndef HEATBED_ANALYSIS
-	case 80:
+	case 79:
 	{
 		gcode_G28(true, true, true); //home all axes
 		
