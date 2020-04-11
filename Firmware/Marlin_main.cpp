@@ -8964,6 +8964,50 @@ Sigma_Exit:
     ### D12 - Time <a href="https://reprap.org/wiki/G-code#D12:_Time">D12: Time</a>
     Writes the current time in the log file.
     */
+	case 77:
+	{
+		gcode_G28(!axis_known_position[X_AXIS], !axis_known_position[Y_AXIS], true); //home all
+		
+		KEEPALIVE_STATE(NOT_BUSY);
+		
+		float z, Z, stepLen, probeSpeed;
+		int count;
+		
+		if (!code_seen('z')) break;
+		z = code_value_float();
+		
+		if (!code_seen('Z')) break;
+		Z = code_value_float();
+		
+		if (!code_seen('S')) break;
+		stepLen = code_value_float();
+		
+		if (!code_seen('P')) break;
+		count = code_value();
+		
+		if (!code_seen('F')) break;
+		probeSpeed = code_value() / 60.f;
+		
+		current_position[Z_AXIS] += 10.f;
+		plan_buffer_line_curposXYZE(probeSpeed, active_extruder);
+		while (blocks_queued()) manage_heater(); //st_synchronize
+		
+		while (z <= Z)
+		{
+			for (int i = 0; i < count; i++)
+			{
+				current_position[Z_AXIS] += z;
+				plan_buffer_line_curposXYZE(probeSpeed, active_extruder);
+				while (blocks_queued()) manage_heater(); //st_synchronize
+				
+				current_position[Z_AXIS] -= z;
+				plan_buffer_line_curposXYZE(probeSpeed, active_extruder);
+				while (blocks_queued()) manage_heater(); //st_synchronize
+			}
+			printf_P(PSTR("distance:%f\n"), z);
+			z += stepLen;
+		}
+	} break;
 	case 78:
 	{
 		bool rxVal = false;
