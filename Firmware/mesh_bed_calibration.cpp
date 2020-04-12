@@ -980,7 +980,7 @@ inline bool find_bed_induction_sensor_point_z(float minimum_z, uint8_t n_iter, i
     for (uint8_t i = 0; i < n_iter; ++ i)
 	{
 		
-		current_position[Z_AXIS] += high_deviation_occured ? 0.5 : 0.2;
+		current_position[Z_AXIS] += high_deviation_occured ? 0.3 : 0.2;
 		float z_bckp = current_position[Z_AXIS];
 		go_to_current(homing_feedrate[Z_AXIS]/60);
 		// Move back down slowly to find bed.
@@ -1023,7 +1023,7 @@ inline bool find_bed_induction_sensor_point_z(float minimum_z, uint8_t n_iter, i
 		if (dz > 0.05) { //deviation > 50um
 			if (high_deviation_occured == false) { //first occurence may be caused in some cases by mechanic resonance probably especially if printer is placed on unstable surface 
 				//printf_P(PSTR("high dev. first occurence\n"));
-				delay_keep_alive(500); //damping
+				//delay_keep_alive(500); //damping
 				//start measurement from the begining, but this time with higher movements in Z axis which should help to reduce mechanical resonance
 				high_deviation_occured = true;
 				i = -1; 
