@@ -7120,7 +7120,6 @@ Sigma_Exit:
       {
           float e = code_value();
 #ifndef LA_NOCOMPAT
-
           e = la10c_jerk(e);
 #endif
           cs.max_jerk[E_AXIS] = e;
@@ -8905,7 +8904,6 @@ Sigma_Exit:
    */
 	case 5:
 		dcode_5(); break;
-		break;
 #endif //DEBUG_DCODE5
 #ifdef DEBUG_DCODES
 
