@@ -202,6 +202,9 @@ static bool activate_stealth_mode()
 //mmu main loop - state machine processing
 void mmu_loop(void)
 {
+#ifdef TMC2209
+	return;
+#endif
 	static uint8_t mmu_attempt_nr = 0;
 //	printf_P(PSTR("MMU loop, state=%d\n"), mmu_state);
 	switch (mmu_state)

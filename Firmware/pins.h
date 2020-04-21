@@ -21,6 +21,10 @@
 #include "pins_Rambo_1_3T.h"
 #endif
 
+#if MOTHERBOARD == BOARD_RAMBO_MINI_1_3M
+#include "pins_Rambo_1_3M.h"
+#endif
+
 #if MOTHERBOARD == BOARD_EINSY_1_0a //310 - new
 #include "pins_Einsy_1_0.h"
 #endif //MOTHERBOARD == BOARD_EINSY_1_0a

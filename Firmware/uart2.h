@@ -19,6 +19,10 @@ extern void uart2_init(void);
 
 extern int8_t uart2_rx_str_P(const char* str);
 
+extern int uart2_putchar(char c, FILE *stream __attribute__((unused)));
+
+extern int uart2_getchar(FILE *stream __attribute__((unused)));
+
 
 #if defined(__cplusplus)
 }
