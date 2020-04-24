@@ -395,8 +395,8 @@ void tmc2130_home_enter(uint8_t axes_mask)
 			tmc2130_setup_chopper(axis, tmc2130_mres[axis], tmc2130_current_h[axis], tmc2130_current_r_home[axis]);
 #ifdef TMC2209
 			if (mask & (X_AXIS_MASK | Y_AXIS_MASK | Z_AXIS_MASK))
-				tmc2130_wr(axis, TMC2130_REG_GCONF, TMC2209_GCONF_NORMAL); //stallguard output DIAG
-				// tmc2130_wr(axis, TMC2130_REG_GCONF, TMC2209_GCONF_SILENT); //stallguard output DIAG
+				// tmc2130_wr(axis, TMC2130_REG_GCONF, TMC2209_GCONF_NORMAL); //stallguard output DIAG
+				tmc2130_wr(axis, TMC2130_REG_GCONF, TMC2209_GCONF_SILENT); //stallguard output DIAG
 #else //TMC2209
 			if (mask & (X_AXIS_MASK | Y_AXIS_MASK | Z_AXIS_MASK))
 				tmc2130_wr(axis, TMC2130_REG_GCONF, TMC2130_GCONF_SGSENS); //stallguard output DIAG1, DIAG1 = pushpull
@@ -445,7 +445,11 @@ void tmc2130_home_exit()
 #endif //TMC2209
 
 					tmc2130_wr(axis, TMC2130_REG_TCOOLTHRS, __tcoolthrs(axis));
+#ifdef TMC2209
+					tmc2130_wr(axis, TMC2130_REG_GCONF, TMC2209_GCONF_NORMAL);
+#else //TMC2209
 					tmc2130_wr(axis, TMC2130_REG_GCONF, TMC2130_GCONF_SGSENS);
+#endif //TMC2209
 				}
 			}
 		}
