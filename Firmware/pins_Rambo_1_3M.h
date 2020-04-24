@@ -71,7 +71,6 @@
 
 
 
-#define E0_TMC2130_CS       21
 #define E0_TMC2130_DIAG     74
 #define E0_STEP_PIN         34
 #define E0_DIR_PIN          43
