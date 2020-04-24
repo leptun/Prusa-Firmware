@@ -3664,8 +3664,10 @@ void process_commands()
 			axis = (axis == 'E')?3:(axis - 'X');
 			if (axis < 4)
 			{
+#ifndef TMC2209
 				uint8_t fac = (uint8_t)strtol(CMDBUFFER_CURRENT_STRING + 14, NULL, 10);
 				tmc2130_set_wave(axis, 247, fac);
+#endif //TMC2209
 			}
 		}
     

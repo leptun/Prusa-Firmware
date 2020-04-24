@@ -285,6 +285,7 @@ void tmc2130_init()
 	tmc2130_sg_cnt[2] = 0;
 	tmc2130_sg_cnt[3] = 0;
 
+#ifndef TMC2209
 #ifdef TMC2130_LINEARITY_CORRECTION
 #ifdef TMC2130_LINEARITY_CORRECTION_XYZ
 	tmc2130_set_wave(X_AXIS, 247, tmc2130_wave_fac[X_AXIS]);
@@ -293,6 +294,7 @@ void tmc2130_init()
 #endif //TMC2130_LINEARITY_CORRECTION_XYZ
 	tmc2130_set_wave(E_AXIS, 247, tmc2130_wave_fac[E_AXIS]);
 #endif //TMC2130_LINEARITY_CORRECTION
+#endif //TMC2209
 
 #ifdef PSU_Delta
      if(!bSupressFlag)
@@ -1127,11 +1129,6 @@ void tmc2130_set_wave(uint8_t axis, uint8_t amp, uint8_t fac1000)
 //		printf("%3d\t%3d\t%2d\t%2d\t%2d\t%2d    %08x\n", i, vA, dA, b, w[s], s, reg);
 	}
 	tmc2130_wr_MSLUTSEL(axis, x[0], x[1], x[2], w[0], w[1], w[2], w[3]);
-}
-#else //TMC2209
-void tmc2130_set_wave(__attribute__((unused)) uint8_t axis, __attribute__((unused)) uint8_t amp, __attribute__((unused)) uint8_t fac1000)
-{
-	;
 }
 #endif //TMC2209
 

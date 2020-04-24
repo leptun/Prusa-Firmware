@@ -876,7 +876,9 @@ void dcode_2130()
 				uint8_t fac1000 = atoi(strchr_pointer + 11) & 0xffff;
 				if (fac1000 < TMC2130_WAVE_FAC1000_MIN) fac1000 = 0;
 				if (fac1000 > TMC2130_WAVE_FAC1000_MAX) fac1000 = TMC2130_WAVE_FAC1000_MAX;
+#ifndef TMC2209
 				tmc2130_set_wave(axis, 247, fac1000);
+#endif //TMC2209
 				tmc2130_wave_fac[axis] = fac1000;
 			}
 		}
