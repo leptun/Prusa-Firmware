@@ -830,6 +830,12 @@ static uint8_t tmc2130_rx(uint8_t axis, uint8_t addr, uint32_t* rval)
 
 #define TMC2209_SYNC (uint8_t)0x05
 
+static void uart2_tx(uint8_t x)
+{
+	while (!(UCSR2A & (1 << UDRE2)));
+	UDR2 = x; // transmit byte
+}
+
 static uint8_t calcCRC(uint8_t datagram[], uint8_t len) {
 	uint8_t crc = 0;
 	for (uint8_t i = 0; i < len; i++) {
@@ -849,24 +855,26 @@ static uint8_t calcCRC(uint8_t datagram[], uint8_t len) {
 
 static void tmc2209_tx(uint8_t axis, uint8_t addr, uint32_t wval)
 {
+	printf_P(PSTR("tmc2209_tx(%hu,%hu,%08lX)\n"), axis, addr, wval);
 	const uint8_t len = 7;
 	uint8_t datagram[8] = {TMC2209_SYNC, axis, addr, (uint8_t)(wval>>24), (uint8_t)(wval>>16), (uint8_t)(wval>>8), (uint8_t)(wval>>0), 0x00};
 	datagram[len] = calcCRC(datagram, len);
 	for(int i=0; i<=len; i++)
-		uart2_putchar(datagram[i], NULL);
+		uart2_tx(datagram[i]);
 }
 
 static void tmc2209_rx(uint8_t axis, uint8_t addr, uint32_t* rval)
 {
+	printf_P(PSTR("tmc2209_rx(%hu,%hu)\n"), axis, addr);
 	uint8_t len = 4;
 	uint8_t datagram[8] = {TMC2209_SYNC, axis, addr, 0x00};
 	datagram[len] = calcCRC(datagram, len - 1);
 	for (uint8_t i = 0; i < len; i++)
-		uart2_putchar(datagram[i], NULL);
+		uart2_tx(datagram[i]);
 	_delay(2);
 	len = 8;
 	for (uint8_t i = 0; i < len; i++)
-		datagram[i] = uart2_getchar(NULL);
+		datagram[i] = uart2_getchar(NULL) & 0xFF;
 	memcpy(rval, datagram + 3, 4);
 }
 
