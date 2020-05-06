@@ -8,9 +8,7 @@
 #include "ultralcd.h"
 #include "language.h"
 
-#ifdef TMC2209
-	#include "uart2.h"
-#else
+#ifndef TMC2209
 	#include "spi.h"
 #endif
 
@@ -200,7 +198,7 @@ void tmc2130_init()
 	SET_OUTPUT(Z_TMC2130_CS);
 	SET_OUTPUT(E0_TMC2130_CS);
 #else //TMC2209
-	uart2_init();
+	Serial2.begin(115200);
 #endif //TMC2209
 	SET_INPUT(X_TMC2130_DIAG);
 	SET_INPUT(Y_TMC2130_DIAG);
@@ -827,12 +825,6 @@ static uint8_t tmc2130_rx(uint8_t axis, uint8_t addr, uint32_t* rval)
 #else //TMC2209
 
 #define TMC2209_SYNC (uint8_t)0x05
-
-static void uart2_tx(uint8_t x)
-{
-	while (!(UCSR2A & (1 << UDRE2)));
-	UDR2 = x; // transmit byte
-}
 
 static uint8_t calcCRC(uint8_t datagram[], uint8_t len) {
 	uint8_t crc = 0;
