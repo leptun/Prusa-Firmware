@@ -140,8 +140,8 @@ bool skip_debug_msg = false;
 #define TMC2130_REG_PWMCONF    0x70 // 32 bits
 
 
-#define TMC2209_GCONF_NORMAL 0x000000C0 // spreadCycle
-#define TMC2209_GCONF_SILENT 0x000000C4 // stealthChop
+#define TMC2209_GCONF_NORMAL 0x000000C4 // spreadCycle
+#define TMC2209_GCONF_SILENT 0x000000C0 // stealthChop
 
 #endif //TMC2209
 
@@ -209,7 +209,7 @@ void tmc2130_init()
 	for (uint_least8_t axis = 0; axis < 2; axis++) // X Y axes
 	{
 		tmc2130_setup_chopper(axis, tmc2130_mres[axis], tmc2130_current_h[axis], tmc2130_current_r[axis]);
-		tmc2130_wr(axis, TMC2130_REG_TPOWERDOWN, 0x00000000);
+		tmc2130_wr(axis, TMC2130_REG_TPOWERDOWN, 0x00000010);
 
 #ifdef TMC2209
 		tmc2130_wr(axis, TMC2209_REG_SGTHRS, tmc2130_sg_thr[axis]);
@@ -228,7 +228,7 @@ void tmc2130_init()
 	for (uint_least8_t axis = 2; axis < 3; axis++) // Z axis
 	{
 		tmc2130_setup_chopper(axis, tmc2130_mres[axis], tmc2130_current_h[axis], tmc2130_current_r[axis]);
-		tmc2130_wr(axis, TMC2130_REG_TPOWERDOWN, 0x00000000);
+		tmc2130_wr(axis, TMC2130_REG_TPOWERDOWN, 0x00000010);
 #ifndef TMC2130_STEALTH_Z
 #ifdef TMC2209
 		tmc2130_wr(axis, TMC2130_REG_GCONF, TMC2209_GCONF_NORMAL);
@@ -253,7 +253,7 @@ void tmc2130_init()
 	for (uint_least8_t axis = 3; axis < 4; axis++) // E axis
 	{
 		tmc2130_setup_chopper(axis, tmc2130_mres[axis], tmc2130_current_h[axis], tmc2130_current_r[axis]);
-		tmc2130_wr(axis, TMC2130_REG_TPOWERDOWN, 0x00000000);
+		tmc2130_wr(axis, TMC2130_REG_TPOWERDOWN, 0x00000010);
 #ifndef TMC2130_STEALTH_E
 #ifdef TMC2209
 		tmc2130_wr(axis, TMC2130_REG_GCONF, TMC2209_GCONF_NORMAL);
@@ -384,8 +384,6 @@ void tmc2130_home_enter(uint8_t axes_mask)
 			//Configuration to spreadCycle
 
 #ifdef TMC2209
-			tmc2130_wr(axis, TMC2130_REG_GCONF, TMC2209_GCONF_NORMAL);
-			// tmc2130_wr(axis, TMC2130_REG_GCONF, TMC2209_GCONF_SILENT);
 			tmc2130_wr(axis, TMC2209_REG_SGTHRS, tmc2130_sg_thr_home[axis]);
 #else //TMC2209
 			tmc2130_wr(axis, TMC2130_REG_GCONF, TMC2130_GCONF_NORMAL);
