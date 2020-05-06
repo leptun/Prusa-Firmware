@@ -2505,7 +2505,12 @@ void force_high_power_mode(bool start_high_power_section) {
     // Wait for the planner queue to drain and for the stepper timer routine to reach an idle state.
 		st_synchronize();
 		cli();
+#ifdef TMC2209
+		tmc2130_mode = (start_high_power_section == true) ? TMC2130_MODE_SILENT : TMC2130_MODE_NORMAL;
+#else //TMC2209
 		tmc2130_mode = (start_high_power_section == true) ? TMC2130_MODE_NORMAL : TMC2130_MODE_SILENT;
+#endif //TMC2209
+		
 		update_mode_profile();
 		tmc2130_init();
     // We may have missed a stepper timer interrupt due to the time spent in the tmc2130_init() routine.
