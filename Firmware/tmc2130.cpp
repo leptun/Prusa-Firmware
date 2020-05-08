@@ -182,6 +182,7 @@ uint16_t __tcoolthrs(uint8_t axis)
 	return 0;
 }
 
+#ifdef TMC2209
 void tmc2209_load_mode(uint8_t mode)
 {
 	for (uint_least8_t axis = 0; axis < 2; axis++) // X Y axes
@@ -221,6 +222,7 @@ void tmc2209_load_mode(uint8_t mode)
 #endif //TMC2130_STEALTH_E
 	}
 }
+#endif //TMC2209
 
 #ifdef PSU_Delta
 void tmc2130_init(bool bSupressFlag)
