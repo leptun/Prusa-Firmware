@@ -4510,7 +4510,9 @@ static void lcd_silent_mode_set() {
 //	  MYSERIAL.print("standstill OK");
 //  else
 //	  MYSERIAL.print("standstill NG!");
+#ifndef TMC2209
 	cli();
+#endif //TMC2209
 #ifdef TMC2209
 	switch (SilentModeMenu)
 	{
@@ -4526,8 +4528,10 @@ static void lcd_silent_mode_set() {
 	tmc2130_init();
   // We may have missed a stepper timer interrupt due to the time spent in tmc2130_init.
   // Be safe than sorry, reset the stepper timer before re-enabling interrupts.
+#ifndef TMC2209
   st_reset_timer();
   sei();
+#endif //TMC2209
 #endif //TMC2130
   st_current_init();
 #ifdef TMC2130
