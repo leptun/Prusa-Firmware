@@ -534,9 +534,15 @@ FORCE_INLINE void stepper_check_endstops()
         #ifdef TMC2130_SG_HOMING
           // Stall guard homing turned on
 #ifdef TMC2130_STEALTH_Z
+#ifdef TMC2209
+		  if ((tmc2130_mode == TMC2130_MODE_NORMAL) && !(tmc2130_sg_homing_axes_mask & 0x04))
+	          z_min_endstop = (READ(Z_MIN_PIN) != Z_MIN_ENDSTOP_INVERTING);
+		  else
+#else //TMC2209
 		  if ((tmc2130_mode == TMC2130_MODE_SILENT) && !(tmc2130_sg_homing_axes_mask & 0x04))
 	          z_min_endstop = (READ(Z_MIN_PIN) != Z_MIN_ENDSTOP_INVERTING);
 		  else
+#endif //TMC2209
 #endif //TMC2130_STEALTH_Z
 	          z_min_endstop = (READ(Z_MIN_PIN) != Z_MIN_ENDSTOP_INVERTING) || (READ(Z_TMC2130_DIAG) != 0);
         #else
@@ -555,9 +561,15 @@ FORCE_INLINE void stepper_check_endstops()
         #ifdef TMC2130_SG_HOMING
         // Stall guard homing turned on
 #ifdef TMC2130_STEALTH_Z
+#ifdef TMC2209
+		  if ((tmc2130_mode == TMC2130_MODE_NORMAL) && !(tmc2130_sg_homing_axes_mask & 0x04))
+	          z_max_endstop = false;
+		  else
+#else //TMC2209
 		  if ((tmc2130_mode == TMC2130_MODE_SILENT) && !(tmc2130_sg_homing_axes_mask & 0x04))
 	          z_max_endstop = false;
 		  else
+#endif //TMC2209
 #endif //TMC2130_STEALTH_Z
         z_max_endstop = (READ(Z_TMC2130_DIAG) != 0);
         #else
@@ -581,9 +593,15 @@ FORCE_INLINE void stepper_check_endstops()
       #ifdef TMC2130_SG_HOMING
       // Stall guard homing turned on
 #ifdef TMC2130_STEALTH_Z
+#ifdef TMC2209
+		  if ((tmc2130_mode == TMC2130_MODE_NORMAL) && !(tmc2130_sg_homing_axes_mask & 0x04))
+	          z_min_endstop = (READ(Z_MIN_PIN) != Z_MIN_ENDSTOP_INVERTING);
+		  else
+#else //TMC2209
 		  if ((tmc2130_mode == TMC2130_MODE_SILENT) && !(tmc2130_sg_homing_axes_mask & 0x04))
 	          z_min_endstop = (READ(Z_MIN_PIN) != Z_MIN_ENDSTOP_INVERTING);
 		  else
+#endif //TMC2209
 #endif //TMC2130_STEALTH_Z
        z_min_endstop = (READ(Z_MIN_PIN) != Z_MIN_ENDSTOP_INVERTING) || (READ(Z_TMC2130_DIAG) != 0);
       #else

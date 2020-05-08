@@ -144,7 +144,6 @@ bool skip_debug_msg = false;
 #endif //TMC2209
 
 
-uint16_t tmc2130_rd_TSTEP(uint8_t axis);
 uint16_t tmc2130_rd_MSCNT(uint8_t axis);
 uint32_t tmc2130_rd_MSCURACT(uint8_t axis);
 
@@ -178,9 +177,49 @@ uint16_t __tcoolthrs(uint8_t axis)
 	case X_AXIS: return TMC2130_TCOOLTHRS_X;
 	case Y_AXIS: return TMC2130_TCOOLTHRS_Y;
 	case Z_AXIS: return TMC2130_TCOOLTHRS_Z;
+	case E_AXIS: return TMC2130_TCOOLTHRS_E;
 	}
 	return 0;
 }
+
+void tmc2209_load_mode(uint8_t mode)
+{
+	for (uint_least8_t axis = 0; axis < 2; axis++) // X Y axes
+	{
+		tmc2130_setup_chopper(axis, tmc2130_mres[axis], tmc2130_current_h[axis], tmc2130_current_r[axis]);
+		tmc2130_wr(axis, TMC2130_REG_TPOWERDOWN, 0x00000010);
+		tmc2130_wr(axis, TMC2209_REG_SGTHRS, tmc2130_sg_thr[axis]);
+		tmc2130_wr(axis, TMC2130_REG_TCOOLTHRS, __tcoolthrs(axis));
+		tmc2130_wr(axis, TMC2130_REG_GCONF, (mode == TMC2130_MODE_NORMAL)?TMC2209_GCONF_NORMAL:TMC2209_GCONF_SILENT);
+		tmc2130_wr_PWMCONF(axis, tmc2130_pwm_ampl[axis], tmc2130_pwm_grad[axis], tmc2130_pwm_freq[axis], tmc2130_pwm_auto[axis], 0, 0);
+		tmc2130_wr_TPWMTHRS(axis, (mode == TMC2130_MODE_AUTO)?TMC2130_TPWMTHRS:0);
+	}
+	for (uint_least8_t axis = 2; axis < 3; axis++) // Z axis
+	{
+		tmc2130_setup_chopper(axis, tmc2130_mres[axis], tmc2130_current_h[axis], tmc2130_current_r[axis]);
+		tmc2130_wr(axis, TMC2130_REG_TPOWERDOWN, 0x00000010);
+		tmc2130_wr(axis, TMC2209_REG_SGTHRS, tmc2130_sg_thr[axis]);
+		tmc2130_wr(axis, TMC2130_REG_TCOOLTHRS, __tcoolthrs(axis));
+		tmc2130_wr(axis, TMC2130_REG_GCONF, (mode == TMC2130_MODE_NORMAL)?TMC2209_GCONF_NORMAL:TMC2209_GCONF_SILENT);
+		tmc2130_wr_PWMCONF(axis, tmc2130_pwm_ampl[axis], tmc2130_pwm_grad[axis], tmc2130_pwm_freq[axis], tmc2130_pwm_auto[axis], 0, 0);
+		tmc2130_wr_TPWMTHRS(axis, (mode == TMC2130_MODE_AUTO)?TMC2130_TPWMTHRS:0);
+	}
+	for (uint_least8_t axis = 3; axis < 4; axis++) // E axis
+	{
+		tmc2130_setup_chopper(axis, tmc2130_mres[axis], tmc2130_current_h[axis], tmc2130_current_r[axis]);
+		tmc2130_wr(axis, TMC2130_REG_TPOWERDOWN, 0x00000010);
+#ifndef TMC2130_STEALTH_E
+		tmc2130_wr(axis, TMC2130_REG_GCONF, TMC2209_GCONF_NORMAL);
+#else //TMC2130_STEALTH_E
+		tmc2130_wr(axis, TMC2209_REG_SGTHRS, tmc2130_sg_thr[axis]);
+		tmc2130_wr(axis, TMC2130_REG_TCOOLTHRS, __tcoolthrs(axis));
+		tmc2130_wr(axis, TMC2130_REG_GCONF, (mode == TMC2130_MODE_NORMAL)?TMC2209_GCONF_NORMAL:TMC2209_GCONF_SILENT);
+		tmc2130_wr_PWMCONF(axis, tmc2130_pwm_ampl[axis], tmc2130_pwm_grad[axis], tmc2130_pwm_freq[axis], tmc2130_pwm_auto[axis], 0, 0);
+		tmc2130_wr_TPWMTHRS(axis, (mode == TMC2130_MODE_AUTO)?TMC2130_TPWMTHRS:0);
+#endif //TMC2130_STEALTH_E
+	}
+}
+
 #ifdef PSU_Delta
 void tmc2130_init(bool bSupressFlag)
 #else
@@ -204,20 +243,18 @@ void tmc2130_init()
 	SET_INPUT(Y_TMC2130_DIAG);
 	SET_INPUT(Z_TMC2130_DIAG);
 	SET_INPUT(E0_TMC2130_DIAG);
+
+#ifdef TMC2209
+	tmc2209_load_mode(tmc2130_mode);
+#else //TMC2209
 	for (uint_least8_t axis = 0; axis < 2; axis++) // X Y axes
 	{
 		tmc2130_setup_chopper(axis, tmc2130_mres[axis], tmc2130_current_h[axis], tmc2130_current_r[axis]);
-		tmc2130_wr(axis, TMC2130_REG_TPOWERDOWN, 0x00000010);
+		tmc2130_wr(axis, TMC2130_REG_TPOWERDOWN, 0x00000000);
 
-#ifdef TMC2209
-		tmc2130_wr(axis, TMC2209_REG_SGTHRS, tmc2130_sg_thr[axis]);
-		tmc2130_wr(axis, TMC2130_REG_TCOOLTHRS, __tcoolthrs(axis));
-		tmc2130_wr(axis, TMC2130_REG_GCONF, (tmc2130_mode == TMC2130_MODE_SILENT)?TMC2209_GCONF_SILENT:TMC2209_GCONF_NORMAL);
-#else //TMC2209
 		tmc2130_wr(axis, TMC2130_REG_COOLCONF, (((uint32_t)tmc2130_sg_thr[axis]) << 16));
 		tmc2130_wr(axis, TMC2130_REG_TCOOLTHRS, (tmc2130_mode == TMC2130_MODE_SILENT)?0:__tcoolthrs(axis));
 		tmc2130_wr(axis, TMC2130_REG_GCONF, (tmc2130_mode == TMC2130_MODE_SILENT)?TMC2130_GCONF_SILENT:TMC2130_GCONF_SGSENS);
-#endif //TMC2209
 
 		tmc2130_wr_PWMCONF(axis, tmc2130_pwm_ampl[axis], tmc2130_pwm_grad[axis], tmc2130_pwm_freq[axis], tmc2130_pwm_auto[axis], 0, 0);
 		tmc2130_wr_TPWMTHRS(axis, TMC2130_TPWMTHRS);
@@ -226,24 +263,14 @@ void tmc2130_init()
 	for (uint_least8_t axis = 2; axis < 3; axis++) // Z axis
 	{
 		tmc2130_setup_chopper(axis, tmc2130_mres[axis], tmc2130_current_h[axis], tmc2130_current_r[axis]);
-		tmc2130_wr(axis, TMC2130_REG_TPOWERDOWN, 0x00000010);
+		tmc2130_wr(axis, TMC2130_REG_TPOWERDOWN, 0x00000000);
 #ifndef TMC2130_STEALTH_Z
-#ifdef TMC2209
-		tmc2130_wr(axis, TMC2130_REG_GCONF, TMC2209_GCONF_NORMAL);
-#else //TMC2209
 		tmc2130_wr(axis, TMC2130_REG_GCONF, TMC2130_GCONF_SGSENS);
-#endif //TMC2209
 #else //TMC2130_STEALTH_Z
 
-#ifdef TMC2209
-		tmc2130_wr(axis, TMC2209_REG_SGTHRS, tmc2130_sg_thr[axis]);
-		tmc2130_wr(axis, TMC2130_REG_TCOOLTHRS, __tcoolthrs(axis));
-		tmc2130_wr(axis, TMC2130_REG_GCONF, (tmc2130_mode == TMC2130_MODE_SILENT)?TMC2209_GCONF_SILENT:TMC2209_GCONF_NORMAL);
-#else //TMC2209
 		tmc2130_wr(axis, TMC2130_REG_COOLCONF, (((uint32_t)tmc2130_sg_thr[axis]) << 16));
 		tmc2130_wr(axis, TMC2130_REG_TCOOLTHRS, (tmc2130_mode == TMC2130_MODE_SILENT)?0:__tcoolthrs(axis));
 		tmc2130_wr(axis, TMC2130_REG_GCONF, (tmc2130_mode == TMC2130_MODE_SILENT)?TMC2130_GCONF_SILENT:TMC2130_GCONF_SGSENS);
-#endif //TMC2209
 		tmc2130_wr_PWMCONF(axis, tmc2130_pwm_ampl[axis], tmc2130_pwm_grad[axis], tmc2130_pwm_freq[axis], tmc2130_pwm_auto[axis], 0, 0);
 		tmc2130_wr_TPWMTHRS(axis, TMC2130_TPWMTHRS);
 #endif //TMC2130_STEALTH_Z
@@ -251,28 +278,19 @@ void tmc2130_init()
 	for (uint_least8_t axis = 3; axis < 4; axis++) // E axis
 	{
 		tmc2130_setup_chopper(axis, tmc2130_mres[axis], tmc2130_current_h[axis], tmc2130_current_r[axis]);
-		tmc2130_wr(axis, TMC2130_REG_TPOWERDOWN, 0x00000010);
+		tmc2130_wr(axis, TMC2130_REG_TPOWERDOWN, 0x00000000);
 #ifndef TMC2130_STEALTH_E
-#ifdef TMC2209
-		tmc2130_wr(axis, TMC2130_REG_GCONF, TMC2209_GCONF_NORMAL);
-#else //TMC2209
 		tmc2130_wr(axis, TMC2130_REG_GCONF, TMC2130_GCONF_SGSENS);
-#endif //TMC2209
 #else //TMC2130_STEALTH_E
 
-#ifdef TMC2209
-		tmc2130_wr(axis, TMC2209_REG_SGTHRS, tmc2130_sg_thr[axis]);
-		tmc2130_wr(axis, TMC2130_REG_TCOOLTHRS, 0);
-		tmc2130_wr(axis, TMC2130_REG_GCONF, TMC2209_GCONF_SILENT);
-#else //TMC2209
 		tmc2130_wr(axis, TMC2130_REG_COOLCONF, (((uint32_t)tmc2130_sg_thr[axis]) << 16));
 		tmc2130_wr(axis, TMC2130_REG_TCOOLTHRS, 0);
 		tmc2130_wr(axis, TMC2130_REG_GCONF, TMC2130_GCONF_SILENT);
-#endif //TMC2209
 		tmc2130_wr_PWMCONF(axis, tmc2130_pwm_ampl[axis], tmc2130_pwm_grad[axis], tmc2130_pwm_freq[axis], tmc2130_pwm_auto[axis], 0, 0);
 		tmc2130_wr_TPWMTHRS(axis, TMC2130_TPWMTHRS);
 #endif //TMC2130_STEALTH_E
 	}
+#endif //TMC2209
 
 	tmc2130_sg_err[0] = 0;
 	tmc2130_sg_err[1] = 0;
@@ -315,7 +333,11 @@ extern bool is_usb_printing;
 
 void tmc2130_st_isr()
 {
+#ifdef TMC2209
+	if (tmc2130_mode == TMC2130_MODE_NORMAL || tmc2130_sg_stop_on_crash == false) return;
+#else //TMC2209
 	if (tmc2130_mode == TMC2130_MODE_SILENT || tmc2130_sg_stop_on_crash == false) return;
+#endif //TMC2209
 	uint8_t crash = 0;
 	uint8_t diag_mask = tmc2130_sample_diag();
 //	for (uint8_t axis = X_AXIS; axis <= E_AXIS; axis++)
@@ -367,6 +389,43 @@ bool tmc2130_update_sg()
 	return false;
 }
 
+#ifdef TMC2209
+void tmc2130_home_enter(uint8_t axes_mask)
+{
+	printf_P(PSTR("tmc2130_home_enter(axes_mask=0x%02x)\n"), axes_mask);
+	if (axes_mask & 0x03) //X or Y
+		tmc2130_wait_standstill_xy(1000);
+	for (uint8_t axis = X_AXIS; axis <= Z_AXIS; axis++) //X Y and Z axes
+	{
+		uint8_t mask = (X_AXIS_MASK << axis);
+		if (axes_mask & mask)
+		{
+			tmc2130_sg_homing_axes_mask |= mask;
+			tmc2209_load_mode(TMC2130_MODE_SILENT);
+			tmc2130_wr(axis, TMC2209_REG_SGTHRS, tmc2130_sg_thr_home[axis]);
+			// tmc2130_wr(axis, TMC2130_REG_TCOOLTHRS, __tcoolthrs(axis));
+			// tmc2130_setup_chopper(axis, tmc2130_mres[axis], tmc2130_current_h[axis], tmc2130_current_r_home[axis]);
+			// if (mask & (X_AXIS_MASK | Y_AXIS_MASK | Z_AXIS_MASK))
+				// tmc2130_wr(axis, TMC2130_REG_GCONF, TMC2209_GCONF_SILENT); //stallguard output DIAG
+		}
+	}
+}
+
+void tmc2130_home_exit()
+{
+	printf_P(PSTR("tmc2130_home_exit tmc2130_sg_homing_axes_mask=0x%02x\n"), tmc2130_sg_homing_axes_mask);
+	if (tmc2130_sg_homing_axes_mask & 0x03) //X or Y
+		tmc2130_wait_standstill_xy(1000);
+	if (tmc2130_sg_homing_axes_mask)
+	{
+		tmc2209_load_mode(tmc2130_mode);
+		tmc2130_sg_homing_axes_mask = 0x00;
+	}
+	tmc2130_sg_crash = false;
+}
+
+#else //TMC2209
+
 void tmc2130_home_enter(uint8_t axes_mask)
 {
 	printf_P(PSTR("tmc2130_home_enter(axes_mask=0x%02x)\n"), axes_mask);
@@ -381,22 +440,12 @@ void tmc2130_home_enter(uint8_t axes_mask)
 			tmc2130_sg_homing_axes_mask |= mask;
 			//Configuration to spreadCycle
 
-#ifdef TMC2209
-			tmc2130_wr(axis, TMC2209_REG_SGTHRS, tmc2130_sg_thr_home[axis]);
-#else //TMC2209
 			tmc2130_wr(axis, TMC2130_REG_GCONF, TMC2130_GCONF_NORMAL);
 			tmc2130_wr(axis, TMC2130_REG_COOLCONF, (((uint32_t)tmc2130_sg_thr_home[axis]) << 16));
-#endif //TMC2209
 			tmc2130_wr(axis, TMC2130_REG_TCOOLTHRS, __tcoolthrs(axis));
 			tmc2130_setup_chopper(axis, tmc2130_mres[axis], tmc2130_current_h[axis], tmc2130_current_r_home[axis]);
-#ifdef TMC2209
-			if (mask & (X_AXIS_MASK | Y_AXIS_MASK | Z_AXIS_MASK))
-				// tmc2130_wr(axis, TMC2130_REG_GCONF, TMC2209_GCONF_NORMAL); //stallguard output DIAG
-				tmc2130_wr(axis, TMC2130_REG_GCONF, TMC2209_GCONF_SILENT); //stallguard output DIAG
-#else //TMC2209
 			if (mask & (X_AXIS_MASK | Y_AXIS_MASK | Z_AXIS_MASK))
 				tmc2130_wr(axis, TMC2130_REG_GCONF, TMC2130_GCONF_SGSENS); //stallguard output DIAG1, DIAG1 = pushpull
-#endif //TMC2209
 		}
 	}
 #endif //TMC2130_SG_HOMING
@@ -421,31 +470,17 @@ void tmc2130_home_exit()
 				if (tmc2130_mode == TMC2130_MODE_SILENT)
 #endif //TMC2130_STEALTH_Z
 				{
-#ifdef TMC2209
-					tmc2130_wr(axis, TMC2130_REG_GCONF, TMC2209_GCONF_SILENT); // Configuration back to stealthChop
-					tmc2130_wr(axis, TMC2209_REG_SGTHRS, tmc2130_sg_thr[axis]);
-					tmc2130_wr(axis, TMC2130_REG_TCOOLTHRS, __tcoolthrs(axis));
-#else //TMC2209
 					tmc2130_wr(axis, TMC2130_REG_GCONF, TMC2130_GCONF_SILENT); // Configuration back to stealthChop
 					tmc2130_wr(axis, TMC2130_REG_TCOOLTHRS, 0);
-#endif //TMC2209
 				}
 				else
 				{
 					tmc2130_setup_chopper(axis, tmc2130_mres[axis], tmc2130_current_h[axis], tmc2130_current_r[axis]);
 
-#ifdef TMC2209
-					tmc2130_wr(axis, TMC2209_REG_SGTHRS, tmc2130_sg_thr[axis]);
-#else //TMC2209
 					tmc2130_wr(axis, TMC2130_REG_COOLCONF, (((uint32_t)tmc2130_sg_thr[axis]) << 16));
-#endif //TMC2209
 
 					tmc2130_wr(axis, TMC2130_REG_TCOOLTHRS, __tcoolthrs(axis));
-#ifdef TMC2209
-					tmc2130_wr(axis, TMC2130_REG_GCONF, TMC2209_GCONF_NORMAL);
-#else //TMC2209
 					tmc2130_wr(axis, TMC2130_REG_GCONF, TMC2130_GCONF_SGSENS);
-#endif //TMC2209
 				}
 			}
 		}
@@ -454,6 +489,7 @@ void tmc2130_home_exit()
 	tmc2130_sg_crash = false;
 #endif
 }
+#endif //TMC2209
 
 void tmc2130_sg_meassure_start(uint8_t axis)
 {
@@ -593,7 +629,7 @@ void tmc2130_set_pwm_ampl(uint8_t axis, uint8_t pwm_ampl)
 {
 //	DBG(_n("tmc2130_set_pwm_ampl(axis=%hhd, pwm_ampl=%hhd\n"), axis, pwm_ampl);
 	tmc2130_pwm_ampl[axis] = pwm_ampl;
-	if (((axis == 0) || (axis == 1)) && (tmc2130_mode == TMC2130_MODE_SILENT))
+	if (((axis == 0) || (axis == 1)) && ((tmc2130_mode == TMC2130_MODE_SILENT) || (tmc2130_mode == TMC2130_MODE_AUTO)))
 		tmc2130_wr_PWMCONF(axis, tmc2130_pwm_ampl[axis], tmc2130_pwm_grad[axis], tmc2130_pwm_freq[axis], tmc2130_pwm_auto[axis], 0, 0);
 }
 
@@ -601,7 +637,7 @@ void tmc2130_set_pwm_grad(uint8_t axis, uint8_t pwm_grad)
 {
 //	DBG(_n("tmc2130_set_pwm_grad(axis=%hhd, pwm_grad=%hhd\n"), axis, pwm_grad);
 	tmc2130_pwm_grad[axis] = pwm_grad;
-	if (((axis == 0) || (axis == 1)) && (tmc2130_mode == TMC2130_MODE_SILENT))
+	if (((axis == 0) || (axis == 1)) && ((tmc2130_mode == TMC2130_MODE_SILENT) || (tmc2130_mode == TMC2130_MODE_AUTO)))
 		tmc2130_wr_PWMCONF(axis, tmc2130_pwm_ampl[axis], tmc2130_pwm_grad[axis], tmc2130_pwm_freq[axis], tmc2130_pwm_auto[axis], 0, 0);
 }
 
@@ -845,27 +881,76 @@ static uint8_t calcCRC(uint8_t datagram[], uint8_t len) {
 
 static void tmc2209_tx(uint8_t axis, uint8_t addr, uint32_t wval)
 {
-	printf_P(PSTR("tmc2209_tx(%hu,%hu,%08lX)\n"), axis, addr, wval);
-	const uint8_t len = 7;
+	printf_P(PSTR("tmc2209_tx(%02hX,%02hX,%08lX)\n"), axis, addr, wval);
 	uint8_t datagram[8] = {TMC2209_SYNC, axis, addr, (uint8_t)(wval>>24), (uint8_t)(wval>>16), (uint8_t)(wval>>8), (uint8_t)(wval>>0), 0x00};
-	datagram[len] = calcCRC(datagram, len);
-	for(int i=0; i<=len; i++)
-		uart2_tx(datagram[i]);
+	datagram[sizeof(datagram) - 1] = calcCRC(datagram, sizeof(datagram) - 1);
+	Serial2.write(datagram, sizeof(datagram));
 }
 
 static void tmc2209_rx(uint8_t axis, uint8_t addr, uint32_t* rval)
 {
-	printf_P(PSTR("tmc2209_rx(%hu,%hu)\n"), axis, addr);
-	uint8_t len = 4;
-	uint8_t datagram[8] = {TMC2209_SYNC, axis, addr, 0x00};
-	datagram[len] = calcCRC(datagram, len - 1);
-	for (uint8_t i = 0; i < len; i++)
-		uart2_tx(datagram[i]);
+	printf_P(PSTR("tmc2209_rx(%02hX,%02hX) -> "), axis, addr);
+	uint8_t datagram[4] = {TMC2209_SYNC, axis, addr, 0x00};
+	datagram[sizeof(datagram) - 1] = calcCRC(datagram, sizeof(datagram) - 1);
+	while (Serial2.available() > 0) Serial2.read(); // Flush
+	Serial2.write(datagram, sizeof(datagram));
 	_delay(2);
-	len = 8;
-	for (uint8_t i = 0; i < len; i++)
-		datagram[i] = uart2_getchar(NULL) & 0xFF;
-	memcpy(rval, datagram + 3, 4);
+	
+	// scan for the rx frame and read it
+	uint32_t ms = _millis();
+	const uint32_t sync_target = ((uint32_t)datagram[0]<<16) | 0xFF00 | datagram[2];
+	uint32_t sync = 0;
+	uint16_t timeout = 5;
+	uint64_t out;
+	
+	do {
+		uint32_t ms2 = _millis();
+		if (ms2 != ms) {
+			// 1ms tick
+			ms = ms2;
+			timeout--;
+		}
+		if (!timeout) goto err_timeout;
+
+		int16_t res = Serial2.read();
+		if (res < 0) continue;
+
+		sync <<= 8;
+		sync |= res & 0xFF;
+		sync &= 0xFFFFFF;
+
+	} while (sync != sync_target);
+	
+	out = sync;
+	ms = millis();
+	timeout = 5;
+	
+	for(uint8_t i = 3; i < 8;) {
+		uint32_t ms2 = _millis();
+		if (ms2 != ms) {
+			// 1ms tick
+			ms = ms2;
+			timeout--;
+		}
+		if (!timeout) goto err_timeout;
+
+		int16_t res = Serial2.read();
+		if (res < 0) continue;
+
+		out <<= 8;
+		out |= res & 0xFF;
+		
+		i++;
+	}
+	while (Serial2.available() > 0) Serial2.read(); // Flush
+	
+	*rval = (uint32_t)(out >> 8);
+	printf_P(PSTR("%08lX\n"), *rval);
+	return;
+err_timeout:
+	printf_P(PSTR("timeout\n"));
+	memset(rval, 0xFF, 4);
+	return;
 }
 
 #endif //TMC2209

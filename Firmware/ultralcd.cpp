@@ -2007,6 +2007,15 @@ static void lcd_menu_belt_status()
 }
 #endif //TMC2130
 
+#ifdef TMC2209
+static void lcd_debug_tmc2209()
+{
+	lcd_home();
+    lcd_printf_P(PSTR("TSTEP: %5u\n"), tmc2130_rd_TSTEP(X_AXIS));
+    menu_back_if_clicked();
+}
+#endif //TMC2209
+
 #ifdef RESUME_DEBUG 
 extern void stop_and_save_print_to_ram(float z_move, float e_move);
 extern void restore_print_from_ram_and_continue(float e_move);
@@ -2216,6 +2225,10 @@ static void lcd_support_menu()
 #if defined (VOLT_BED_PIN) || defined (VOLT_PWR_PIN)
   MENU_ITEM_SUBMENU_P(_i("Voltages"), lcd_menu_voltages);////MSG_MENU_VOLTAGES c=18 r=1
 #endif //defined VOLT_BED_PIN || defined VOLT_PWR_PIN
+
+#ifdef TMC2209
+  MENU_ITEM_SUBMENU_P(_N("TMC2209 Debug"), lcd_debug_tmc2209);
+#endif //TMC2209
 
 #ifdef DEBUG_BUILD
   MENU_ITEM_SUBMENU_P(PSTR("Debug"), lcd_menu_debug);////c=18 r=1
@@ -4476,7 +4489,8 @@ static void lcd_silent_mode_set() {
 	switch (SilentModeMenu) {
 #ifdef TMC2130
 	case SILENT_MODE_NORMAL: SilentModeMenu = SILENT_MODE_STEALTH; break;
-	case SILENT_MODE_STEALTH: SilentModeMenu = SILENT_MODE_NORMAL; break;
+	case SILENT_MODE_STEALTH: SilentModeMenu = SILENT_MODE_AUTO; break;
+	case SILENT_MODE_AUTO: SilentModeMenu = SILENT_MODE_NORMAL; break;
 	default: SilentModeMenu = SILENT_MODE_NORMAL; break; // (probably) not needed
 #else
 	case SILENT_MODE_POWER: SilentModeMenu = SILENT_MODE_SILENT; break;
@@ -4496,7 +4510,17 @@ static void lcd_silent_mode_set() {
 //  else
 //	  MYSERIAL.print("standstill NG!");
 	cli();
+#ifdef TMC2209
+	switch (SilentModeMenu)
+	{
+		case SILENT_MODE_NORMAL: tmc2130_mode = TMC2130_MODE_NORMAL; break;
+		case SILENT_MODE_STEALTH: tmc2130_mode = TMC2130_MODE_SILENT; break;
+		case SILENT_MODE_AUTO:
+		default: tmc2130_mode = TMC2130_MODE_AUTO; break;
+	}
+#else //TMC2209
 	tmc2130_mode = (SilentModeMenu != SILENT_MODE_NORMAL)?TMC2130_MODE_SILENT:TMC2130_MODE_NORMAL;
+#endif //TMC2209
 	update_mode_profile();
 	tmc2130_init();
   // We may have missed a stepper timer interrupt due to the time spent in tmc2130_init.
@@ -4506,8 +4530,13 @@ static void lcd_silent_mode_set() {
 #endif //TMC2130
   st_current_init();
 #ifdef TMC2130
+#ifdef TMC2209
+  if (lcd_crash_detect_enabled() && (SilentModeMenu == SILENT_MODE_NORMAL))
+	  menu_submenu(lcd_crash_mode_info2);
+#else //TMC2209
   if (lcd_crash_detect_enabled() && (SilentModeMenu != SILENT_MODE_NORMAL))
 	  menu_submenu(lcd_crash_mode_info2);
+#endif //TMC2209
   lcd_encoder_diff=0;                             // reset 'encoder buffer'
 #endif //TMC2130
 }
@@ -5302,6 +5331,31 @@ while(0)
 #endif //MMU_HAS_CUTTER
 
 #ifdef TMC2130
+#ifdef TMC2209
+
+#define SETTINGS_SILENT_MODE \
+do\
+{\
+    if(!farm_mode)\
+    {\
+        if (SilentModeMenu == SILENT_MODE_NORMAL)\
+            MENU_ITEM_TOGGLE_P(_T(MSG_MODE), _T(MSG_NORMAL), lcd_silent_mode_set);\
+		else if (SilentModeMenu == SILENT_MODE_AUTO)\
+			MENU_ITEM_TOGGLE_P(_T(MSG_MODE), _T(MSG_AUTO_POWER), lcd_silent_mode_set);\
+        else\
+			MENU_ITEM_TOGGLE_P(_T(MSG_MODE), _T(MSG_STEALTH), lcd_silent_mode_set);\
+        if (SilentModeMenu != SILENT_MODE_NORMAL)\
+        {\
+            if (lcd_crash_detect_enabled()) MENU_ITEM_TOGGLE_P(_T(MSG_CRASHDETECT), _T(MSG_ON), crash_mode_switch);\
+            else MENU_ITEM_TOGGLE_P(_T(MSG_CRASHDETECT), _T(MSG_OFF), crash_mode_switch);\
+        }\
+        else MENU_ITEM_TOGGLE_P(_T(MSG_CRASHDETECT), NULL, lcd_crash_mode_info);\
+    }\
+}\
+while (0)
+
+#else //TMC2209
+
 #define SETTINGS_SILENT_MODE \
 do\
 {\
@@ -5322,6 +5376,7 @@ do\
 }\
 while (0)
 
+#endif //TMC2209
 #else //TMC2130
 #define SETTINGS_SILENT_MODE \
 do\
@@ -7155,6 +7210,23 @@ static void lcd_tune_menu()
      }
 
 #ifdef TMC2130
+#ifdef TMC2209
+	if(!farm_mode)
+    {
+        if (SilentModeMenu == SILENT_MODE_NORMAL)
+            MENU_ITEM_TOGGLE_P(_T(MSG_MODE), _T(MSG_NORMAL), lcd_silent_mode_set);
+		else if (SilentModeMenu == SILENT_MODE_AUTO)
+			MENU_ITEM_TOGGLE_P(_T(MSG_MODE), _T(MSG_AUTO_POWER), lcd_silent_mode_set);
+        else
+			MENU_ITEM_TOGGLE_P(_T(MSG_MODE), _T(MSG_STEALTH), lcd_silent_mode_set);
+        if (SilentModeMenu != SILENT_MODE_NORMAL)
+        {
+            if (lcd_crash_detect_enabled()) MENU_ITEM_TOGGLE_P(_T(MSG_CRASHDETECT), _T(MSG_ON), crash_mode_switch);
+            else MENU_ITEM_TOGGLE_P(_T(MSG_CRASHDETECT), _T(MSG_OFF), crash_mode_switch);
+        }
+        else MENU_ITEM_TOGGLE_P(_T(MSG_CRASHDETECT), NULL, lcd_crash_mode_info);
+    }
+#else //TMC2209
      if(!farm_mode)
      {
           if (SilentModeMenu == SILENT_MODE_NORMAL) MENU_ITEM_TOGGLE_P(_T(MSG_MODE), _T(MSG_NORMAL), lcd_silent_mode_set);
@@ -7167,6 +7239,7 @@ static void lcd_tune_menu()
           }
           else MENU_ITEM_TOGGLE_P(_T(MSG_CRASHDETECT), NULL, lcd_crash_mode_info);
      }
+#endif //TMC2209
 #else //TMC2130
 	if (!farm_mode) { //dont show in menu if we are in farm mode
 		switch (SilentModeMenu) {

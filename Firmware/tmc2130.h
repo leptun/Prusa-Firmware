@@ -24,6 +24,7 @@ extern uint8_t tmc2130_sg_homing_axes_mask;
 
 #define TMC2130_MODE_NORMAL 0
 #define TMC2130_MODE_SILENT 1
+#define TMC2130_MODE_AUTO   2
 
 #define TMC2130_WAVE_FAC1000_MIN  30
 #define TMC2130_WAVE_FAC1000_MAX 200
@@ -107,6 +108,8 @@ extern void tmc2130_do_steps(uint8_t axis, uint16_t steps, uint8_t dir, uint16_t
 extern void tmc2130_goto_step(uint8_t axis, uint8_t step, uint8_t dir, uint16_t delay_us, uint16_t microstep_resolution);
 extern void tmc2130_get_wave(uint8_t axis, uint8_t* data, FILE* stream);
 extern void tmc2130_set_wave(uint8_t axis, uint8_t amp, uint8_t fac1000);
+
+extern uint16_t tmc2130_rd_TSTEP(uint8_t axis);
 
 extern bool tmc2130_home_calibrate(uint8_t axis);
 

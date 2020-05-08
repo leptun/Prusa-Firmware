@@ -4,6 +4,7 @@
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
 #include "rbuf.h"
+#include "Configuration_prusa.h"
 
 #define UART2_BAUD 115200
 #define UART_BAUD_SELECT(baudRate,xtalCpu) (((float)(xtalCpu))/(((float)(baudRate))*8.0)-1.0+0.5)
@@ -72,6 +73,7 @@ int8_t uart2_rx_str_P(const char* str)
 	return 1;                                  //all characters match - return 1
 }
 
+#ifndef NO_MMU
 ISR(USART2_RX_vect)
 {
 	//printf_P(PSTR("USART2_RX_vect \n") );
@@ -81,4 +83,4 @@ ISR(USART2_RX_vect)
 		printf_P(PSTR("USART2 rx Full!!!\n"));
 	}
 }
-
+#endif //NO_MMU

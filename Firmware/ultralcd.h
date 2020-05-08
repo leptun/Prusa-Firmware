@@ -132,6 +132,7 @@ extern uint8_t farm_status;
 #ifdef TMC2130
 #define SILENT_MODE_NORMAL 0
 #define SILENT_MODE_STEALTH 1
+#define SILENT_MODE_AUTO 2
 #define SILENT_MODE_OFF SILENT_MODE_NORMAL
 #else
 #define SILENT_MODE_POWER 0

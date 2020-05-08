@@ -1434,6 +1434,13 @@ void update_mode_profile()
 		max_feedrate = cs.max_feedrate_silent;
 		max_acceleration_units_per_sq_second = cs.max_acceleration_units_per_sq_second_silent;
 	}
+#ifdef TMC2209
+	else
+	{
+		max_feedrate = cs.max_feedrate_normal;
+		max_acceleration_units_per_sq_second = cs.max_acceleration_units_per_sq_second_normal;
+	}
+#endif //TMC2209
 	reset_acceleration_rates();
 }
 #endif //TMC2130
