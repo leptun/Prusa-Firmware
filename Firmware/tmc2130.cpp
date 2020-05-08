@@ -193,6 +193,7 @@ void tmc2209_load_mode(uint8_t mode)
 		tmc2130_wr(axis, TMC2130_REG_GCONF, (mode == TMC2130_MODE_NORMAL)?TMC2209_GCONF_NORMAL:TMC2209_GCONF_SILENT);
 		tmc2130_wr_PWMCONF(axis, tmc2130_pwm_ampl[axis], tmc2130_pwm_grad[axis], tmc2130_pwm_freq[axis], tmc2130_pwm_auto[axis], 0, 0);
 		tmc2130_wr_TPWMTHRS(axis, (mode == TMC2130_MODE_AUTO)?TMC2130_TPWMTHRS:0);
+		// tmc2130_wr(axis, TMC2130_REG_COOLCONF, (0b01 << 13) | (2 << 8) | (5 << 0)); //COOLSTEP
 	}
 	for (uint_least8_t axis = 2; axis < 3; axis++) // Z axis
 	{
@@ -203,6 +204,7 @@ void tmc2209_load_mode(uint8_t mode)
 		tmc2130_wr(axis, TMC2130_REG_GCONF, (mode == TMC2130_MODE_NORMAL)?TMC2209_GCONF_NORMAL:TMC2209_GCONF_SILENT);
 		tmc2130_wr_PWMCONF(axis, tmc2130_pwm_ampl[axis], tmc2130_pwm_grad[axis], tmc2130_pwm_freq[axis], tmc2130_pwm_auto[axis], 0, 0);
 		tmc2130_wr_TPWMTHRS(axis, (mode == TMC2130_MODE_AUTO)?TMC2130_TPWMTHRS:0);
+		// tmc2130_wr(axis, TMC2130_REG_COOLCONF, (0b01 << 13) | (2 << 8) | (5 << 0)); //COOLSTEP
 	}
 	for (uint_least8_t axis = 3; axis < 4; axis++) // E axis
 	{
