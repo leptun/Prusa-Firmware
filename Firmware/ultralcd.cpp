@@ -2010,8 +2010,9 @@ static void lcd_menu_belt_status()
 #ifdef TMC2209
 static void lcd_debug_tmc2209()
 {
+	lcd_timeoutToStatus.stop(); //infinite timeout
 	lcd_home();
-    lcd_printf_P(PSTR("TSTEP: %5u\n"), tmc2130_rd_TSTEP(X_AXIS));
+    lcd_printf_P(PSTR("TSTEP: %5u\nCS_ACTUAL: %2hu\nSG_RESULT: %3u\n"), tmc2130_rd_TSTEP(X_AXIS), tmc2209_rd_CS_ACTUAL(X_AXIS), tmc2209_rd_SG_RESULT(X_AXIS));
     menu_back_if_clicked();
 }
 #endif //TMC2209

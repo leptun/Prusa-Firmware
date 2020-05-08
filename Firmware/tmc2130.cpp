@@ -663,6 +663,22 @@ uint32_t tmc2130_rd_MSCURACT(uint8_t axis)
 	return val32;
 }
 
+#ifdef TMC2209
+uint8_t tmc2209_rd_CS_ACTUAL(uint8_t axis)
+{
+	uint32_t val32 = 0;
+	tmc2130_rd(axis, TMC2130_REG_DRV_STATUS, &val32);
+	return ((val32 >> 16) & 0x1F);
+}
+
+uint16_t tmc2209_rd_SG_RESULT(uint8_t axis)
+{
+	uint32_t val32 = 0;
+	tmc2130_rd(axis, TMC2209_REG_SG_RESULT, &val32);
+	return (val32 & 0x1FF);
+}
+#endif //TMC2209
+
 #ifndef TMC2209
 void tmc2130_wr_MSLUTSTART(uint8_t axis, uint8_t start_sin, uint8_t start_sin90)
 {
