@@ -56,7 +56,7 @@
 #define Z_MIN_ENDSTOP_INVERTING 0 // set to 1 to invert the logic of the endstop.
 
 // Direction inverting
-#define INVERT_X_DIR 0    // for Mendel set to 0, for Orca set to 1
+#define INVERT_X_DIR 1    // for Mendel set to 0, for Orca set to 1
 #define INVERT_Y_DIR 1    // for Mendel set to 1, for Orca set to 0
 #define INVERT_Z_DIR 1     // for Mendel set to 0, for Orca set to 1
 #define INVERT_E0_DIR 0   // for direct drive extruder v9 set to 1, for geared extruder set to 0
@@ -258,20 +258,20 @@
 //#define TMC2130_TCOOLTHRS_Y 450       // TCOOLTHRS - coolstep treshold
 #define TMC2130_TCOOLTHRS_X 430       // TCOOLTHRS - coolstep treshold
 #define TMC2130_TCOOLTHRS_Y 430       // TCOOLTHRS - coolstep treshold
-#define TMC2130_TCOOLTHRS_Z 500       // TCOOLTHRS - coolstep treshold
+#define TMC2130_TCOOLTHRS_Z 430       // TCOOLTHRS - coolstep treshold
 #define TMC2130_TCOOLTHRS_E 500       // TCOOLTHRS - coolstep treshold
 
 #define TMC2130_SG_HOMING       1     // stallguard homing
 #define TMC2130_SG_THRS_X       0     // stallguard sensitivity for X axis
 #define TMC2130_SG_THRS_Y       0     // stallguard sensitivity for Y axis
-#define TMC2130_SG_THRS_Z     130     // stallguard sensitivity for Z axis
+#define TMC2130_SG_THRS_Z      60     // stallguard sensitivity for Z axis
 #define TMC2130_SG_THRS_E       0     // stallguard sensitivity for E axis
 #define TMC2130_SG_THRS_HOME {125, 125, TMC2130_SG_THRS_Z, TMC2130_SG_THRS_E}
 
 //new settings is possible for vsense = 1, running current value > 31 set vsense to zero and shift both currents by 1 bit right (Z axis only)
-#define TMC2130_CURRENTS_H {8, 30, 35, 30}  // default holding currents for all axes
-#define TMC2130_CURRENTS_R {10, 30, 35, 30}  // default running currents for all axes
-#define TMC2130_CURRENTS_R_HOME {16, 30, 20, 18}  // homing running currents for all axes
+#define TMC2130_CURRENTS_H {10, 10, 15, 15}  // default holding currents for all axes
+#define TMC2130_CURRENTS_R {12, 12, 15, 15}  // default running currents for all axes
+#define TMC2130_CURRENTS_R_HOME {10, 10, 15, 15}  // homing running currents for all axes
 // #define TMC2130_UNLOAD_CURRENT_R 12			 // lower current for M600 to protect filament sensor - Unused
 
 #define TMC2130_STEALTH_Z
