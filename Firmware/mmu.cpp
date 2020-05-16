@@ -836,7 +836,7 @@ void mmu_M600_wait_and_beep() {
 		KEEPALIVE_STATE(PAUSED_FOR_USER);
 
 		int counterBeep = 0;
-		lcd_display_message_fullscreen_P(_i("Remove old filament and press the knob to start loading new filament."));
+		lcd_display_message_fullscreen_P(_i("Remove old filament and press the knob to start loading new filament.")); ////MSG_REMOVE_OLD_FILAMENT c=20 r=5
 		bool bFirst=true;
 
 		while (!lcd_clicked()){
@@ -1391,7 +1391,7 @@ void mmu_cut_filament(uint8_t filament_nr)
     {
         LcdUpdateDisabler disableLcdUpdate;
         lcd_clear();
-        lcd_set_cursor(0, 1); lcd_puts_P(_i("Cutting filament")); //// c=18 r=1
+        lcd_set_cursor(0, 1); lcd_puts_P(_i("Cutting filament")); //// c=18
         lcd_print(" ");
         lcd_print(filament_nr + 1);
         mmu_filament_ramming();
