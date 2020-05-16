@@ -901,7 +901,7 @@ static uint8_t calcCRC(uint8_t datagram[], uint8_t len) {
 
 static void tmc2209_tx(uint8_t axis, uint8_t addr, uint32_t wval)
 {
-	printf_P(PSTR("tmc2209_tx(%02hX,%02hX,%08lX)\n"), axis, addr, wval);
+	// printf_P(PSTR("tmc2209_tx(%02hX,%02hX,%08lX)\n"), axis, addr, wval);
 	uint8_t datagram[8] = {TMC2209_SYNC, axis, addr, (uint8_t)(wval>>24), (uint8_t)(wval>>16), (uint8_t)(wval>>8), (uint8_t)(wval>>0), 0x00};
 	datagram[sizeof(datagram) - 1] = calcCRC(datagram, sizeof(datagram) - 1);
 	Serial2.write(datagram, sizeof(datagram));
@@ -909,7 +909,7 @@ static void tmc2209_tx(uint8_t axis, uint8_t addr, uint32_t wval)
 
 static void tmc2209_rx(uint8_t axis, uint8_t addr, uint32_t* rval)
 {
-	printf_P(PSTR("tmc2209_rx(%02hX,%02hX) -> "), axis, addr);
+	// printf_P(PSTR("tmc2209_rx(%02hX,%02hX) -> "), axis, addr);
 	uint8_t datagram[4] = {TMC2209_SYNC, axis, addr, 0x00};
 	datagram[sizeof(datagram) - 1] = calcCRC(datagram, sizeof(datagram) - 1);
 	while (Serial2.available() > 0) Serial2.read(); // Flush
@@ -965,10 +965,10 @@ static void tmc2209_rx(uint8_t axis, uint8_t addr, uint32_t* rval)
 	while (Serial2.available() > 0) Serial2.read(); // Flush
 	
 	*rval = (uint32_t)(out >> 8);
-	printf_P(PSTR("%08lX\n"), *rval);
+	// printf_P(PSTR("%08lX\n"), *rval);
 	return;
 err_timeout:
-	printf_P(PSTR("timeout\n"));
+	// printf_P(PSTR("timeout\n"));
 	memset(rval, 0xFF, 4);
 	return;
 }
