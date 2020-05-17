@@ -111,7 +111,7 @@
 #define MANUAL_FEEDRATE {2700, 2700, 1200, 100}   // set the speeds for manual moves (mm/min)
 
 //Silent mode limits
-#define SILENT_MAX_ACCEL_XY     5000ul  // max acceleration in silent mode in mm/s^2
+#define SILENT_MAX_ACCEL_XY     2000ul  // max acceleration in silent mode in mm/s^2
 #define SILENT_MAX_FEEDRATE_XY   200  // max feedrate in mm/s
 
 //Normal mode limits
@@ -219,12 +219,12 @@
 #define TMC2130_INTPOL_Z    1         // extrapolate 256 for Z axis
 #define TMC2130_INTPOL_E    1         // extrapolate 256 for E axis
 
-#define TMC2130_PWM_GRAD_X  2         // PWMCONF
+#define TMC2130_PWM_GRAD_X  4         // PWMCONF
 #define TMC2130_PWM_AMPL_X  230       // PWMCONF
 #define TMC2130_PWM_AUTO_X  1         // PWMCONF
 #define TMC2130_PWM_FREQ_X  2         // PWMCONF
 
-#define TMC2130_PWM_GRAD_Y  2         // PWMCONF
+#define TMC2130_PWM_GRAD_Y  4         // PWMCONF
 #define TMC2130_PWM_AMPL_Y  235       // PWMCONF
 #define TMC2130_PWM_AUTO_Y  1         // PWMCONF
 #define TMC2130_PWM_FREQ_Y  2         // PWMCONF
@@ -247,18 +247,18 @@
 #define TMC2130_STEALTH_E // Extruder stealthChop mode
 //#define TMC2130_CNSTOFF_E // Extruder constant-off-time mode (similar to MK2)
 
-//#define TMC2130_PWM_DIV   683         // PWM frequency divider (1024, 683, 512, 410)
-#define TMC2130_PWM_DIV   512         // PWM frequency divider (1024, 683, 512, 410)
+#define TMC2130_PWM_DIV   683         // PWM frequency divider (1024, 683, 512, 410)
+// #define TMC2130_PWM_DIV   512         // PWM frequency divider (1024, 683, 512, 410)
 #define TMC2130_PWM_CLK   (2 * TMC2130_FCLK / TMC2130_PWM_DIV) // PWM frequency (23.4kHz, 35.1kHz, 46.9kHz, 58.5kHz for 12MHz fclk)
 
-#define TMC2130_TPWMTHRS  64         // TPWMTHRS - Sets the switching speed threshold based on TSTEP from stealthChop to spreadCycle mode
+#define TMC2130_TPWMTHRS  64        // TPWMTHRS - Sets the switching speed threshold based on TSTEP from stealthChop to spreadCycle mode
 #define TMC2130_THIGH     0         // THIGH - unused
 
 //#define TMC2130_TCOOLTHRS_X 450       // TCOOLTHRS - coolstep treshold
 //#define TMC2130_TCOOLTHRS_Y 450       // TCOOLTHRS - coolstep treshold
 #define TMC2130_TCOOLTHRS_X 430       // TCOOLTHRS - coolstep treshold
 #define TMC2130_TCOOLTHRS_Y 430       // TCOOLTHRS - coolstep treshold
-#define TMC2130_TCOOLTHRS_Z 430       // TCOOLTHRS - coolstep treshold
+#define TMC2130_TCOOLTHRS_Z 300       // TCOOLTHRS - coolstep treshold
 #define TMC2130_TCOOLTHRS_E 500       // TCOOLTHRS - coolstep treshold
 
 #define TMC2130_SG_HOMING       1     // stallguard homing
@@ -269,9 +269,9 @@
 #define TMC2130_SG_THRS_HOME {125, 125, TMC2130_SG_THRS_Z, TMC2130_SG_THRS_E}
 
 //new settings is possible for vsense = 1, running current value > 31 set vsense to zero and shift both currents by 1 bit right (Z axis only)
-#define TMC2130_CURRENTS_H {10, 10, 15, 15}  // default holding currents for all axes
-#define TMC2130_CURRENTS_R {12, 12, 15, 15}  // default running currents for all axes
-#define TMC2130_CURRENTS_R_HOME {10, 10, 15, 15}  // homing running currents for all axes
+#define TMC2130_CURRENTS_H {8, 8, 8, 8}  // default holding currents for all axes
+#define TMC2130_CURRENTS_R {12, 12, 12, 12}  // default running currents for all axes
+#define TMC2130_CURRENTS_R_HOME {12, 12, 10, 12}  // homing running currents for all axes
 // #define TMC2130_UNLOAD_CURRENT_R 12			 // lower current for M600 to protect filament sensor - Unused
 
 #define TMC2130_STEALTH_Z

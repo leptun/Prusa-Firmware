@@ -2199,10 +2199,17 @@ bool calibrate_z_auto()
 	current_position[Z_AXIS] = 0;
 	plan_set_position(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS]);
 	set_destination_to_current();
+#ifdef TMC2209
+	uint8_t tmc2130_current_Z_bak = tmc2130_current_r[Z_AXIS];
+	tmc2130_set_current_r(Z_AXIS, tmc2130_current_Z_bak / 4);
+#endif //TMC2209
 	destination[Z_AXIS] += 10 * axis_up_dir; //10mm up
 	feedrate = homing_feedrate[Z_AXIS] / 2;
 	plan_buffer_line(destination[X_AXIS], destination[Y_AXIS], destination[Z_AXIS], destination[E_AXIS], feedrate / 60, active_extruder);
 	st_synchronize();
+#ifdef TMC2209
+	tmc2130_set_current_r(Z_AXIS, tmc2130_current_Z_bak);
+#endif //TMC2209
 	enable_endstops(endstops_enabled);
 	if (PRINTER_TYPE == PRINTER_MK3) {
 		current_position[Z_AXIS] = Z_MAX_POS + 2.0;

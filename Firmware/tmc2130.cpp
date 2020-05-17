@@ -136,6 +136,8 @@ bool skip_debug_msg = false;
 #define TMC2130_REG_CHOPCONF   0x6c // 32 bits
 #define TMC2130_REG_DRV_STATUS 0x6f // 32 bits
 #define TMC2130_REG_PWMCONF    0x70 // 32 bits
+#define TMC2209_REG_PWM_SCALE  0x71 // 9+8 bits
+#define TMC2209_REG_PWM_AUTO   0x72 // 8+8 bits
 
 
 #define TMC2209_GCONF_NORMAL 0x000000C4 // spreadCycle
@@ -202,9 +204,11 @@ void tmc2209_load_mode(uint8_t mode)
 		tmc2130_wr(axis, TMC2130_REG_TPOWERDOWN, 0x00000010);
 		tmc2130_wr(axis, TMC2209_REG_SGTHRS, tmc2130_sg_thr[axis]);
 		tmc2130_wr(axis, TMC2130_REG_TCOOLTHRS, __tcoolthrs(axis));
-		tmc2130_wr(axis, TMC2130_REG_GCONF, (mode == TMC2130_MODE_NORMAL)?TMC2209_GCONF_NORMAL:TMC2209_GCONF_SILENT);
+		// tmc2130_wr(axis, TMC2130_REG_GCONF, (mode == TMC2130_MODE_NORMAL)?TMC2209_GCONF_NORMAL:TMC2209_GCONF_SILENT);
+		tmc2130_wr(axis, TMC2130_REG_GCONF, TMC2209_GCONF_SILENT);
 		tmc2130_wr_PWMCONF(axis, tmc2130_pwm_ampl[axis], tmc2130_pwm_grad[axis], tmc2130_pwm_freq[axis], tmc2130_pwm_auto[axis], 0, 0);
-		tmc2130_wr_TPWMTHRS(axis, (mode == TMC2130_MODE_AUTO)?TMC2130_TPWMTHRS:0);
+		// tmc2130_wr_TPWMTHRS(axis, (mode == TMC2130_MODE_AUTO)?TMC2130_TPWMTHRS:0);
+		tmc2130_wr_TPWMTHRS(axis, 0);
 		// tmc2130_wr(axis, TMC2130_REG_COOLCONF, (0b01 << 13) | (2 << 8) | (5 << 0)); //COOLSTEP
 	}
 	for (uint_least8_t axis = 3; axis < 4; axis++) // E axis
@@ -216,9 +220,11 @@ void tmc2209_load_mode(uint8_t mode)
 #else //TMC2130_STEALTH_E
 		tmc2130_wr(axis, TMC2209_REG_SGTHRS, tmc2130_sg_thr[axis]);
 		tmc2130_wr(axis, TMC2130_REG_TCOOLTHRS, __tcoolthrs(axis));
-		tmc2130_wr(axis, TMC2130_REG_GCONF, (mode == TMC2130_MODE_NORMAL)?TMC2209_GCONF_NORMAL:TMC2209_GCONF_SILENT);
+		// tmc2130_wr(axis, TMC2130_REG_GCONF, (mode == TMC2130_MODE_NORMAL)?TMC2209_GCONF_NORMAL:TMC2209_GCONF_SILENT);
+		tmc2130_wr(axis, TMC2130_REG_GCONF, TMC2209_GCONF_SILENT);
 		tmc2130_wr_PWMCONF(axis, tmc2130_pwm_ampl[axis], tmc2130_pwm_grad[axis], tmc2130_pwm_freq[axis], tmc2130_pwm_auto[axis], 0, 0);
-		tmc2130_wr_TPWMTHRS(axis, (mode == TMC2130_MODE_AUTO)?TMC2130_TPWMTHRS:0);
+		// tmc2130_wr_TPWMTHRS(axis, (mode == TMC2130_MODE_AUTO)?TMC2130_TPWMTHRS:0);
+		tmc2130_wr_TPWMTHRS(axis, 0);
 #endif //TMC2130_STEALTH_E
 	}
 }
@@ -681,6 +687,34 @@ uint16_t tmc2209_rd_SG_RESULT(uint8_t axis)
 	tmc2130_rd(axis, TMC2209_REG_SG_RESULT, &val32);
 	return (val32 & 0x1FF);
 }
+
+uint8_t tmc2209_rd_PWM_OFS_AUTO(uint8_t axis)
+{
+	uint32_t val32 = 0;
+	tmc2130_rd(axis, TMC2209_REG_PWM_AUTO, &val32);
+	return (val32 & 0xFF);
+}
+
+uint8_t tmc2209_rd_PWM_GRAD_AUTO(uint8_t axis)
+{
+	uint32_t val32 = 0;
+	tmc2130_rd(axis, TMC2209_REG_PWM_AUTO, &val32);
+	return ((val32 >> 16) & 0xFF);
+}
+
+uint8_t tmc2209_rd_PWM_SCALE_SUM(uint8_t axis)
+{
+	uint32_t val32 = 0;
+	tmc2130_rd(axis, TMC2209_REG_PWM_SCALE, &val32);
+	return (val32 & 0xFF);
+}
+
+int16_t tmc2209_rd_PWM_SCALE_AUTO(uint8_t axis)
+{
+	uint32_t val32 = 0;
+	tmc2130_rd(axis, TMC2209_REG_PWM_AUTO, &val32);
+	return (int16_t)(((val32 & ((uint32_t)1 << 24))?-256:0) + (val32 & 0xFF));
+}
 #endif //TMC2209
 
 #ifndef TMC2209
@@ -737,16 +771,17 @@ void tmc2130_wr_CHOPCONF(uint8_t axis, uint8_t toff, uint8_t hstrt, uint8_t hend
 	tmc2130_wr(axis, TMC2130_REG_CHOPCONF, val);
 }
 
-void tmc2130_wr_PWMCONF(uint8_t axis, uint8_t pwm_ampl, uint8_t pwm_grad, uint8_t pwm_freq, uint8_t pwm_auto, uint8_t pwm_symm, uint8_t freewheel)
+void tmc2130_wr_PWMCONF(uint8_t axis, uint8_t pwm_ampl, uint8_t pwm_grad, uint8_t pwm_freq, uint8_t pwm_auto, __attribute__((unused)) uint8_t pwm_symm, uint8_t freewheel)
 {
 	uint32_t val = 0;
 	val |= (uint32_t)(pwm_ampl & 255);
 	val |= (uint32_t)(pwm_grad & 255) << 8;
 	val |= (uint32_t)(pwm_freq & 3) << 16;
 	val |= (uint32_t)(pwm_auto & 1) << 18;
-	val |= (uint32_t)(pwm_symm & 1) << 19;
+	val |= (uint32_t)(0x01 & 1) << 19; //pwm_autograd
+	// val |= (uint32_t)(pwm_symm & 1) << 19;
 	val |= (uint32_t)(freewheel & 3) << 20;
-	val |= (uint32_t)(0x04 & 15) << 24; //PWM_REG
+	val |= (uint32_t)(0x08 & 15) << 24; //PWM_REG
 	val |= (uint32_t)(0x0C & 15) << 28; //PWM_LIM
 	tmc2130_wr(axis, TMC2130_REG_PWMCONF, val);
 }

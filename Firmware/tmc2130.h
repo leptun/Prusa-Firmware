@@ -112,6 +112,10 @@ extern void tmc2130_set_wave(uint8_t axis, uint8_t amp, uint8_t fac1000);
 extern uint16_t tmc2130_rd_TSTEP(uint8_t axis);
 extern uint8_t tmc2209_rd_CS_ACTUAL(uint8_t axis);
 extern uint16_t tmc2209_rd_SG_RESULT(uint8_t axis);
+extern uint8_t tmc2209_rd_PWM_OFS_AUTO(uint8_t axis);
+extern uint8_t tmc2209_rd_PWM_GRAD_AUTO(uint8_t axis);
+extern uint8_t tmc2209_rd_PWM_SCALE_SUM(uint8_t axis);
+extern int16_t tmc2209_rd_PWM_SCALE_AUTO(uint8_t axis);
 
 extern bool tmc2130_home_calibrate(uint8_t axis);
 

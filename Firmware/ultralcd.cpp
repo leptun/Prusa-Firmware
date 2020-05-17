@@ -2016,8 +2016,9 @@ static void lcd_debug_tmc2209()
 {
 	lcd_timeoutToStatus.stop(); //infinite timeout
 	lcd_home();
-    lcd_printf_P(PSTR("TSTEP: %5u\nCS_ACTUAL: %2hu\nSG_RESULT: %3u\n"), tmc2130_rd_TSTEP(X_AXIS), tmc2209_rd_CS_ACTUAL(X_AXIS), tmc2209_rd_SG_RESULT(X_AXIS));
-    menu_back_if_clicked();
+	// lcd_printf_P(PSTR("TSTEP: %5u\nCS_ACTUAL: %2hu\nSG_RESULT: %3u\n"), tmc2130_rd_TSTEP(Y_AXIS), tmc2209_rd_CS_ACTUAL(Y_AXIS), tmc2209_rd_SG_RESULT(Y_AXIS));
+	lcd_printf_P(PSTR("PWM_OFS_AUTO: %3hu\nPWM_GRAD_AUTO: %3hu\nPWM_SCALE_SUM: %3hu\nPWM_SCALE_AUTO: %d"), tmc2209_rd_PWM_OFS_AUTO(Y_AXIS), tmc2209_rd_PWM_GRAD_AUTO(Y_AXIS), tmc2209_rd_PWM_SCALE_SUM(Y_AXIS), tmc2209_rd_PWM_SCALE_AUTO(Y_AXIS));
+	menu_back_if_clicked();
 }
 #endif //TMC2209
 

@@ -54,8 +54,8 @@
 #define Z_STEP_PIN          35
 #define Z_DIR_PIN           47
 #define Z_MIN_PIN           10
-//#define Z_MAX_PIN           23
-#define Z_MAX_PIN           Z_TMC2130_DIAG
+#define Z_MAX_PIN           74
+//#define Z_MAX_PIN           Z_TMC2130_DIAG
 #define Z_ENABLE_PIN        27
 #define Z_MS1_PIN           -1
 #define Z_MS2_PIN           -1
