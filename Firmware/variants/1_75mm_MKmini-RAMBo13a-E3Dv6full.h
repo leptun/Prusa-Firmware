@@ -86,7 +86,7 @@
 #define Z_PAUSE_LIFT 20
 
 #define NUM_AXIS 4 // The axis order in all axis related arrays is X, Y, Z, E
-#define HOMING_FEEDRATE {3000, 3000, 800, 0}  // set the homing speeds (mm/min) // 3000 is also valid for stallGuard homing. Valid range: 2200 - 3000
+#define HOMING_FEEDRATE {6000, 6000, 800, 0}  // set the homing speeds (mm/min) // 3000 is also valid for stallGuard homing. Valid range: 2200 - 3000
 
 //#define DEFAULT_Y_OFFSET    4.f // Default distance of Y_MIN_POS point from endstop, when the printer is not calibrated.
 /**
@@ -266,12 +266,12 @@
 #define TMC2130_SG_THRS_Y       0     // stallguard sensitivity for Y axis
 #define TMC2130_SG_THRS_Z      60     // stallguard sensitivity for Z axis
 #define TMC2130_SG_THRS_E       0     // stallguard sensitivity for E axis
-#define TMC2130_SG_THRS_HOME {125, 125, TMC2130_SG_THRS_Z, TMC2130_SG_THRS_E}
+#define TMC2130_SG_THRS_HOME {135, 135, TMC2130_SG_THRS_Z, TMC2130_SG_THRS_E}
 
 //new settings is possible for vsense = 1, running current value > 31 set vsense to zero and shift both currents by 1 bit right (Z axis only)
-#define TMC2130_CURRENTS_H {8, 8, 8, 8}  // default holding currents for all axes
-#define TMC2130_CURRENTS_R {12, 12, 12, 12}  // default running currents for all axes
-#define TMC2130_CURRENTS_R_HOME {12, 12, 10, 12}  // homing running currents for all axes
+#define TMC2130_CURRENTS_H {8, 8, 4, 6}  // default holding currents for all axes
+#define TMC2130_CURRENTS_R {8, 8, 8, 8}  // default running currents for all axes
+#define TMC2130_CURRENTS_R_HOME {8, 8, 8, 8}  // homing running currents for all axes
 // #define TMC2130_UNLOAD_CURRENT_R 12			 // lower current for M600 to protect filament sensor - Unused
 
 #define TMC2130_STEALTH_Z

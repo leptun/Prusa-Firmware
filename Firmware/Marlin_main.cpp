@@ -2293,7 +2293,7 @@ void homeaxis(int axis, uint8_t cnt)
 			// Now move left up to the collision, this time with a repeatable velocity.
 			enable_endstops(true);
 			destination[axis] = 11.f * axis_home_dir;
-#ifdef TMC2130
+#if defined(TMC2130) && !defined(TMC2209)
 			feedrate = homing_feedrate[axis];
 #else //TMC2130
 			feedrate = homing_feedrate[axis] / 2;
