@@ -8457,6 +8457,12 @@ Sigma_Exit:
         if (code_seen('E')) tmc2130_set_pwm_grad(3, code_value());
     }
     break;
+	case 919:
+	{
+		if (code_seen('X')) tmc2130_wr_TPWMTHRS(X_AXIS, code_value_long());
+		if (code_seen('Y')) tmc2130_wr_TPWMTHRS(Y_AXIS, code_value_long());
+	}
+	break;
 
 #endif //TMC2130_SERVICE_CODES_M910_M918
 

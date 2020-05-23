@@ -117,6 +117,8 @@ extern uint8_t tmc2209_rd_PWM_GRAD_AUTO(uint8_t axis);
 extern uint8_t tmc2209_rd_PWM_SCALE_SUM(uint8_t axis);
 extern int16_t tmc2209_rd_PWM_SCALE_AUTO(uint8_t axis);
 
+extern void tmc2130_wr_TPWMTHRS(uint8_t axis, uint32_t val32);
+
 extern bool tmc2130_home_calibrate(uint8_t axis);
 
 extern uint8_t tmc2130_cur2val(float cur);

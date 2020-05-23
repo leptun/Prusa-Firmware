@@ -151,7 +151,6 @@ uint32_t tmc2130_rd_MSCURACT(uint8_t axis);
 
 void tmc2130_wr_CHOPCONF(uint8_t axis, uint8_t toff = 3, uint8_t hstrt = 4, uint8_t hend = 1, uint8_t fd3 = 0, uint8_t disfdcc = 0, uint8_t rndtf = 0, uint8_t chm = 0, uint8_t tbl = 2, uint8_t vsense = 0, uint8_t vhighfs = 0, uint8_t vhighchm = 0, uint8_t sync = 0, uint8_t mres = 0b0100, uint8_t intpol = 1, uint8_t dedge = 0, uint8_t diss2g = 0);
 void tmc2130_wr_PWMCONF(uint8_t axis, uint8_t pwm_ampl, uint8_t pwm_grad, uint8_t pwm_freq, uint8_t pwm_auto, uint8_t pwm_symm, uint8_t freewheel);
-void tmc2130_wr_TPWMTHRS(uint8_t axis, uint32_t val32);
 #ifndef TMC2209
 void tmc2130_wr_THIGH(uint8_t axis, uint32_t val32);
 #endif //TMC2209
