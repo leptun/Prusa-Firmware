@@ -871,14 +871,14 @@ static void check_if_fw_is_on_right_printer(){
     swi2c_init();
     const uint8_t pat9125_detected = swi2c_readByte_A8(PAT9125_I2C_ADDR,0x00,NULL);
       if (pat9125_detected){
-        lcd_show_fullscreen_message_and_wait_P(_i("MK3S firmware detected on MK3 printer"));}
+        lcd_show_fullscreen_message_and_wait_P(_i("MK3S firmware detected on MK3 printer"));}////c=20 r=3
     #endif //IR_SENSOR
 
     #ifdef PAT9125
       //will return 1 only if IR can detect filament in bondtech extruder so this may fail even when we have IR sensor
       const uint8_t ir_detected = !(PIN_GET(IR_SENSOR_PIN));
       if (ir_detected){
-        lcd_show_fullscreen_message_and_wait_P(_i("MK3 firmware detected on MK3S printer"));}
+        lcd_show_fullscreen_message_and_wait_P(_i("MK3 firmware detected on MK3S printer"));}////c=20 r=3
     #endif //PAT9125
   }
 #endif //FILAMENT_SENSOR
@@ -1517,7 +1517,7 @@ void setup()
   }
 
   if (!previous_settings_retrieved) {
-	  lcd_show_fullscreen_message_and_wait_P(_i("Old settings found. Default PID, Esteps etc. will be set.")); //if EEPROM version or printer type was changed, inform user that default setting were loaded////MSG_DEFAULT_SETTINGS_LOADED c=20 r=4
+	  lcd_show_fullscreen_message_and_wait_P(_i("Old settings found. Default PID, Esteps etc. will be set.")); //if EEPROM version or printer type was changed, inform user that default setting were loaded////MSG_DEFAULT_SETTINGS_LOADED c=20 r=5
 	  Config_StoreSettings();
   }
   if (eeprom_read_byte((uint8_t*)EEPROM_WIZARD_ACTIVE) == 1) {
@@ -2068,15 +2068,16 @@ static float probe_pt(float x, float y, float z_before) {
 inline void gcode_M900() {
     float newK = code_seen('K') ? code_value_float() : -2;
 #ifdef LA_NOCOMPAT
-    if (newK >= 0 && newK < 10)
+    if (newK >= 0 && newK < LA_K_MAX)
         extruder_advance_K = newK;
     else
         SERIAL_ECHOLNPGM("K out of allowed range!");
 #else
     if (newK == 0)
+    {
         extruder_advance_K = 0;
-    else if (newK == -1)
         la10c_reset();
+    }
     else
     {
         newK = la10c_value(newK);
@@ -2199,9 +2200,24 @@ bool calibrate_z_auto()
 #endif //TMC2130
 
 #ifdef TMC2130
-bool homeaxis(int axis, bool doError, uint8_t cnt, uint8_t* pstep)
+static void check_Z_crash(void)
+{
+	if (READ(Z_TMC2130_DIAG) != 0) { //Z crash
+		FORCE_HIGH_POWER_END;
+		current_position[Z_AXIS] = 0;
+		plan_set_position(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS]);
+		current_position[Z_AXIS] += MESH_HOME_Z_SEARCH;
+		plan_buffer_line_curposXYZE(max_feedrate[Z_AXIS], active_extruder);
+		st_synchronize();
+		kill(_T(MSG_BED_LEVELING_FAILED_POINT_LOW));
+	}
+}
+#endif //TMC2130
+
+#ifdef TMC2130
+void homeaxis(int axis, uint8_t cnt, uint8_t* pstep)
 #else
-bool homeaxis(int axis, bool doError, uint8_t cnt)
+void homeaxis(int axis, uint8_t cnt)
 #endif //TMC2130
 {
 	bool endstops_enabled  = enable_endstops(true); //RP: endstops should be allways enabled durring homing
@@ -2314,13 +2330,7 @@ bool homeaxis(int axis, bool doError, uint8_t cnt)
         plan_buffer_line(destination[X_AXIS], destination[Y_AXIS], destination[Z_AXIS], destination[E_AXIS], feedrate/60, active_extruder);
         st_synchronize();
 #ifdef TMC2130
-		if (READ(Z_TMC2130_DIAG) != 0) { //Z crash
-			FORCE_HIGH_POWER_END;
-			if (doError) kill(_T(MSG_BED_LEVELING_FAILED_POINT_LOW));
-            current_position[axis] = -5; //assume that nozzle crashed into bed
-            plan_set_position(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS]);
-			return 0; 
-		}
+        check_Z_crash();
 #endif //TMC2130
         current_position[axis] = 0;
         plan_set_position(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS]);
@@ -2332,13 +2342,7 @@ bool homeaxis(int axis, bool doError, uint8_t cnt)
         plan_buffer_line(destination[X_AXIS], destination[Y_AXIS], destination[Z_AXIS], destination[E_AXIS], feedrate/60, active_extruder);
         st_synchronize();
 #ifdef TMC2130
-		if (READ(Z_TMC2130_DIAG) != 0) { //Z crash
-			FORCE_HIGH_POWER_END;
-			if (doError) kill(_T(MSG_BED_LEVELING_FAILED_POINT_LOW));
-            current_position[axis] = -5; //assume that nozzle crashed into bed
-            plan_set_position(current_position[X_AXIS], current_position[Y_AXIS], current_position[Z_AXIS], current_position[E_AXIS]);
-			return 0; 
-		}
+        check_Z_crash();
 #endif //TMC2130
         axis_is_at_home(axis);
         destination[axis] = current_position[axis];
@@ -2350,7 +2354,6 @@ bool homeaxis(int axis, bool doError, uint8_t cnt)
 #endif	
     }
     enable_endstops(endstops_enabled);
-    return 1;
 }
 
 /**/
@@ -4864,11 +4867,6 @@ if(eSoundMode!=e_SOUND_MODE_SILENT)
 	case_G80:
 	{
 		mesh_bed_leveling_flag = true;
-#ifndef LA_NOCOMPAT
-        // When printing via USB there's no clear boundary between prints. Abuse MBL to indicate
-        // the beginning of a new print, allowing a new autodetected setting just after G80.
-        la10c_reset();
-#endif
 #ifndef PINDA_THERMISTOR
         static bool run = false; // thermistor-less PINDA temperature compensation is running
 #endif // ndef PINDA_THERMISTOR
@@ -7116,7 +7114,6 @@ Sigma_Exit:
       {
           float e = code_value();
 #ifndef LA_NOCOMPAT
-
           e = la10c_jerk(e);
 #endif
           cs.max_jerk[E_AXIS] = e;
@@ -8837,7 +8834,7 @@ Sigma_Exit:
 	case 2:
 		dcode_2(); break;
 #endif //DEBUG_DCODES
-#ifdef DEBUG_DCODE3
+#if defined DEBUG_DCODE3 || defined DEBUG_DCODES
 
     /*!
     ### D3 - Read/Write EEPROM <a href="https://reprap.org/wiki/G-code#D3:_Read.2FWrite_EEPROM">D3: Read/Write EEPROM</a>
@@ -8878,7 +8875,7 @@ Sigma_Exit:
 	case 4:
 		dcode_4(); break;
 #endif //DEBUG_DCODES
-#ifdef DEBUG_DCODE5
+#if defined DEBUG_DCODE5 || defined DEBUG_DCODES
 
     /*!
     ### D5 - Read/Write FLASH <a href="https://reprap.org/wiki/G-code#D5:_Read.2FWrite_FLASH">D5: Read/Write Flash</a>
@@ -8890,7 +8887,7 @@ Sigma_Exit:
     #### Parameters
     - `A` - Address (x00000-x3ffff)
     - `C` - Count (1-8192)
-    - `X` - Data
+    - `X` - Data (hex)
     - `E` - Erase
  	
 	#### Notes
@@ -8901,7 +8898,6 @@ Sigma_Exit:
    */
 	case 5:
 		dcode_5(); break;
-		break;
 #endif //DEBUG_DCODE5
 #ifdef DEBUG_DCODES
 
@@ -8984,28 +8980,7 @@ Sigma_Exit:
     - `J` - Offset Y (default 34)
   */
 	case 80:
-	{
-		float dimension_x = 40;
-		float dimension_y = 40;
-		int points_x = 40;
-		int points_y = 40;
-		float offset_x = 74;
-		float offset_y = 33;
-
-		if (code_seen('E')) dimension_x = code_value();
-		if (code_seen('F')) dimension_y = code_value();
-		if (code_seen('G')) {points_x = code_value(); }
-		if (code_seen('H')) {points_y = code_value(); }
-		if (code_seen('I')) {offset_x = code_value(); }
-		if (code_seen('J')) {offset_y = code_value(); }
-		printf_P(PSTR("DIM X: %f\n"), dimension_x);
-		printf_P(PSTR("DIM Y: %f\n"), dimension_y);
-		printf_P(PSTR("POINTS X: %d\n"), points_x);
-		printf_P(PSTR("POINTS Y: %d\n"), points_y);
-		printf_P(PSTR("OFFSET X: %f\n"), offset_x);
-		printf_P(PSTR("OFFSET Y: %f\n"), offset_y);
- 		bed_check(dimension_x,dimension_y,points_x,points_y,offset_x,offset_y);
-	}break;
+		dcode_80(); break;
 
     /*!
     ### D81 - Bed analysis <a href="https://reprap.org/wiki/G-code#D81:_Bed_analysis">D80: Bed analysis</a>
@@ -9023,24 +8998,7 @@ Sigma_Exit:
     - `J` - Offset Y (default 34)
   */
 	case 81:
-	{
-		float dimension_x = 40;
-		float dimension_y = 40;
-		int points_x = 40;
-		int points_y = 40;
-		float offset_x = 74;
-		float offset_y = 33;
-
-		if (code_seen('E')) dimension_x = code_value();
-		if (code_seen('F')) dimension_y = code_value();
-		if (code_seen("G")) { strchr_pointer+=1; points_x = code_value(); }
-		if (code_seen("H")) { strchr_pointer+=1; points_y = code_value(); }
-		if (code_seen("I")) { strchr_pointer+=1; offset_x = code_value(); }
-		if (code_seen("J")) { strchr_pointer+=1; offset_y = code_value(); }
-		
-		bed_analysis(dimension_x,dimension_y,points_x,points_y,offset_x,offset_y);
-		
-	} break;
+		dcode_81(); break;
 	
 #endif //HEATBED_ANALYSIS
 #ifdef DEBUG_DCODES
@@ -9049,17 +9007,7 @@ Sigma_Exit:
     ### D106 - Print measured fan speed for different pwm values <a href="https://reprap.org/wiki/G-code#D106:_Print_measured_fan_speed_for_different_pwm_values">D106: Print measured fan speed for different pwm values</a>
     */
 	case 106:
-	{
-		for (int i = 255; i > 0; i = i - 5) {
-			fanSpeed = i;
-			//delay_keep_alive(2000);
-			for (int j = 0; j < 100; j++) {
-				delay_keep_alive(100);
-
-			}
-			printf_P(_N("%d: %d\n"), i, fan_speed[1]);
-		}
-	}break;
+		dcode_106(); break;
 
 #ifdef TMC2130
     /*!
@@ -9496,13 +9444,13 @@ static void handleSafetyTimer()
 }
 #endif //SAFETYTIMER
 
-#define FS_CHECK_COUNT 15
+#define FS_CHECK_COUNT 250
 void manage_inactivity(bool ignore_stepper_queue/*=false*/) //default argument set in Marlin.h
 {
 #ifdef FILAMENT_SENSOR
 bool bInhibitFlag;
 #ifdef IR_SENSOR_ANALOG
-static uint8_t nFSCheckCount=0;
+static uint16_t nFSCheckCount=0;
 #endif // IR_SENSOR_ANALOG
 
 	if (mmu_enabled == false)
@@ -9522,25 +9470,53 @@ static uint8_t nFSCheckCount=0;
 			if (!moves_planned() && !IS_SD_PRINTING && !is_usb_printing && (lcd_commands_type != LcdCommands::Layer1Cal) && ! eeprom_read_byte((uint8_t*)EEPROM_WIZARD_ACTIVE))
 			{
 #ifdef IR_SENSOR_ANALOG
-                    bool bTemp=current_voltage_raw_IR>IRsensor_Hmin_TRESHOLD;
-                    bTemp=bTemp&&current_voltage_raw_IR<IRsensor_Hopen_TRESHOLD;
-                    bTemp=bTemp&&(!CHECK_ALL_HEATERS);
-                    bTemp=bTemp&&(menu_menu==lcd_status_screen);
-                    bTemp=bTemp&&((oFsensorPCB==ClFsensorPCB::_Old)||(oFsensorPCB==ClFsensorPCB::_Undef));
-                    bTemp=bTemp&&fsensor_enabled;
-                    if(bTemp)
-                    {
+				static uint16_t minVolt = Voltage2Raw(6.F), maxVolt = 0;
+				// detect min-max, some long term sliding window for filtration may be added
+				// avoiding floating point operations, thus computing in raw
+				if( current_voltage_raw_IR > maxVolt )maxVolt = current_voltage_raw_IR;
+				if( current_voltage_raw_IR < minVolt )minVolt = current_voltage_raw_IR;
+				
+#if 0
+				{ // debug print
+					static uint16_t lastVolt = ~0U;
+					if( current_voltage_raw_IR != lastVolt ){
+						printf_P(PSTR("fs volt=%4.2fV (min=%4.2f max=%4.2f)\n"), Raw2Voltage(current_voltage_raw_IR), Raw2Voltage(minVolt), Raw2Voltage(maxVolt) );
+						lastVolt = current_voltage_raw_IR;
+					}
+				}
+#endif
+				// the trouble is, I can hold the filament in the hole in such a way, that it creates the exact voltage
+				// to be detected as the new fsensor
+				// We can either fake it by extending the detection window to a looooong time
+				// or do some other countermeasures
+				
+				// what we want to detect:
+				// if minvolt gets below ~0.6V, it means there is an old fsensor
+				// if maxvolt gets above 4.6V, it means we either have an old fsensor or broken cables/fsensor
+				// So I'm waiting for a situation, when minVolt gets to range <0, 0.7> and maxVolt gets into range <4.4, 5>
+				// If and only if minVolt is in range <0.6, 0.7> and maxVolt is in range <4.4, 4.5>, I'm considering a situation with the new fsensor
+				// otherwise, I don't care
+				
+				if( minVolt >= Voltage2Raw(0.3F) && minVolt <= Voltage2Raw(0.5F) 
+				 && maxVolt >= Voltage2Raw(4.2F) && maxVolt <= Voltage2Raw(4.6F)
+				){
+                    bool bTemp = (!CHECK_ALL_HEATERS);
+                    bTemp = bTemp && (menu_menu==lcd_status_screen);
+                    bTemp = bTemp && ((oFsensorPCB==ClFsensorPCB::_Old)||(oFsensorPCB==ClFsensorPCB::_Undef));
+                    bTemp = bTemp && fsensor_enabled;
+                    if(bTemp){
                          nFSCheckCount++;
-                         if(nFSCheckCount>FS_CHECK_COUNT)
-                         {
+                         if(nFSCheckCount>FS_CHECK_COUNT){
                               nFSCheckCount=0;    // not necessary
-                              oFsensorPCB=ClFsensorPCB::_Rev03b;
+                              oFsensorPCB=ClFsensorPCB::_Rev04;
                               eeprom_update_byte((uint8_t*)EEPROM_FSENSOR_PCB,(uint8_t)oFsensorPCB);
                               printf_IRSensorAnalogBoardChange(true);
-                              lcd_setstatuspgm(_i("FS rev. 03b or newer"));
+                              lcd_setstatuspgm(_i("FS v0.4 or newer"));////c=18
                          }
-                    }
-                    else nFSCheckCount=0;
+                    } else {
+						nFSCheckCount=0;
+					}
+				}
 #endif // IR_SENSOR_ANALOG
 				if (fsensor_check_autoload())
 				{
@@ -9747,6 +9723,24 @@ void Stop()
 }
 
 bool IsStopped() { return Stopped; };
+
+void finishAndDisableSteppers()
+{
+  st_synchronize();
+  disable_x();
+  disable_y();
+  disable_z();
+  disable_e0();
+  disable_e1();
+  disable_e2();
+
+#ifndef LA_NOCOMPAT
+  // Steppers are disabled both when a print is stopped and also via M84 (which is additionally
+  // checked-for to indicate a complete file), so abuse this function to reset the LA detection
+  // state for the next print.
+  la10c_reset();
+#endif
+}
 
 #ifdef FAST_PWM_FAN
 void setPwmFrequency(uint8_t pin, int val)
@@ -10888,7 +10882,7 @@ void recover_print(uint8_t automatic) {
 	char cmd[30];
 	lcd_update_enable(true);
 	lcd_update(2);
-  lcd_setstatuspgm(_i("Recovering print    "));////MSG_RECOVERING_PRINT c=20 r=1
+  lcd_setstatuspgm(_i("Recovering print    "));////MSG_RECOVERING_PRINT c=20
 
   // Recover position, temperatures and extrude_multipliers
   bool mbl_was_active = recover_machine_state_after_power_panic();
