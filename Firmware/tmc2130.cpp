@@ -939,6 +939,7 @@ static void tmc2209_tx(uint8_t axis, uint8_t addr, uint32_t wval)
 	uint8_t datagram[8] = {TMC2209_SYNC, axis, addr, (uint8_t)(wval>>24), (uint8_t)(wval>>16), (uint8_t)(wval>>8), (uint8_t)(wval>>0), 0x00};
 	datagram[sizeof(datagram) - 1] = calcCRC(datagram, sizeof(datagram) - 1);
 	Serial2.write(datagram, sizeof(datagram));
+	_delay_us(750);
 }
 
 static void tmc2209_rx(uint8_t axis, uint8_t addr, uint32_t* rval)
@@ -948,7 +949,7 @@ static void tmc2209_rx(uint8_t axis, uint8_t addr, uint32_t* rval)
 	datagram[sizeof(datagram) - 1] = calcCRC(datagram, sizeof(datagram) - 1);
 	while (Serial2.available() > 0) Serial2.read(); // Flush
 	Serial2.write(datagram, sizeof(datagram));
-	_delay(2);
+	_delay_us(750);
 	
 	// scan for the rx frame and read it
 	uint32_t ms = _millis();
@@ -999,6 +1000,7 @@ static void tmc2209_rx(uint8_t axis, uint8_t addr, uint32_t* rval)
 	while (Serial2.available() > 0) Serial2.read(); // Flush
 	
 	*rval = (uint32_t)(out >> 8);
+	_delay_us(750);
 	// printf_P(PSTR("%08lX\n"), *rval);
 	return;
 err_timeout:
