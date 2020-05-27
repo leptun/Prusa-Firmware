@@ -694,7 +694,7 @@ do
 		# Check if the motherboard is an EINSY and if so only one hex file will generated
 		MOTHERBOARD=$(grep --max-count=1 "\bMOTHERBOARD\b" $SCRIPT_PATH/Firmware/variants/$VARIANT.h | sed -e's/  */ /g' |cut -d ' ' -f3)
 		# If the motherboard is an EINSY just copy one hexfile
-		if [[ "$MOTHERBOARD" == "BOARD_EINSY_1_0a" || "$MOTHERBOARD" == "BOARD_RAMBO_MINI_1_3T" ]]; then
+		if [[ "$MOTHERBOARD" == "BOARD_EINSY_1_0a" || "$MOTHERBOARD" == "BOARD_RAMBO_MINI_1_3T" || "$MOTHERBOARD" == "BOARD_RAMBO_MINI_1_3M" ]]; then
 			echo "$(tput setaf 2)Copying multi language firmware for MK3/Einsy board to PF-build-hex folder$(tput sgr 0)"
 			cp -f firmware.hex $SCRIPT_PATH/../$OUTPUT_FOLDER/FW$FW-Build$BUILD-$VARIANT.hex
 		else
