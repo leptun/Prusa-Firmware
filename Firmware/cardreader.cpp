@@ -737,9 +737,6 @@ void CardReader::presort() {
 			fileCnt = SDSORT_LIMIT;
 		}
 		lcd_clear();
-		#if !SDSORT_USES_RAM
-			lcd_set_progress();
-		#endif
 		lcd_puts_at_P(0, 1, _i("Sorting files"));////MSG_SORTING c=20 r=1
 
 		// Sort order is always needed. May be static or dynamic.
@@ -871,7 +868,7 @@ void CardReader::presort() {
 					if (column < (percent / 5))
 					{
 						lcd_set_cursor(column, 2);
-						lcd_print('\x01'); //simple progress bar
+						lcd_print('\xFF'); //simple progress bar
 					}
 				}
 				counter++;
@@ -950,10 +947,9 @@ void CardReader::presort() {
 	for (int column = 0; column <= 19; column++)
 	{
 		lcd_set_cursor(column, 2);
-		lcd_print('\x01'); //simple progress bar
+		lcd_print('\xFF'); //simple progress bar
 	}
 	_delay(300);
-	lcd_set_degree();
 	lcd_clear();
 #endif
 	lcd_update(2);

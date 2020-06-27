@@ -64,9 +64,6 @@ static void lcd_sd_updir();
 static void lcd_mesh_bed_leveling_settings();
 static void lcd_backlight_menu();
 
-int8_t ReInitLCD = 0;
-
-
 int8_t SilentModeMenu = SILENT_MODE_OFF;
 uint8_t SilentModeMenu_MMU = 1; //activate mmu unit stealth mode
 
@@ -1008,18 +1005,6 @@ void lcd_status_screen()                          // NOT static due to using ins
 
 	if (lcd_draw_update)
 	{
-		ReInitLCD++;
-		if (ReInitLCD == 30)
-		{
-			lcd_refresh(); // to maybe revive the LCD if static electricity killed it.
-			ReInitLCD = 0 ;
-		}
-		else
-		{
-			if ((ReInitLCD % 10) == 0)
-				lcd_refresh_noclear(); //to maybe revive the LCD if static electricity killed it.
-		}
-
 		lcdui_print_status_screen();
 
 		if (farm_mode)
@@ -1074,7 +1059,6 @@ void lcd_status_screen()                          // NOT static due to using ins
 	{
 		menu_depth = 0; //redundant, as already done in lcd_return_to_status(), just to be sure
 		menu_submenu(lcd_main_menu);
-		lcd_refresh(); // to maybe revive the LCD if static electricity killed it.
 	}
 
 #ifdef ULTIPANEL_FEEDMULTIPLY
@@ -1573,7 +1557,6 @@ void lcd_commands()
 
 void lcd_return_to_status()
 {
-	lcd_refresh(); // to maybe revive the LCD if static electricity killed it.
 	menu_goto(lcd_status_screen, 0, false, true);
 	menu_depth = 0;
     eFilamentAction = FilamentAction::None; // i.e. non-autoLoad
@@ -1933,6 +1916,23 @@ static void lcd_menu_temperatures_line(const char *ipgmLabel, int value){
     lcd_printf_P(PSTR(" %s%3d\x01 \n"), tmp, value); // no need to add -14.14 to string alignment
 }
 
+#ifdef LCD_DEBUG
+static void lcd_lcd_test_menu()
+{
+	lcd_clear();
+	for (uint8_t i = 0; i <= LCD_STR_CONFIRM[0]; i++)
+	{
+		lcd_set_cursor(i, 0);
+		if (i == '\n') lcd_print(' ');
+		else lcd_print(char(i));
+		lcd_set_cursor(0, 1);
+		lcd_printf_P(PSTR("%hX"), lcd_custom_character_bank);
+		manage_heater();
+		_delay_ms(500);
+	}
+}
+#endif //LCD_DEBUG
+
 //! @brief Show Temperatures
 //!
 //! @code{.unparsed}
@@ -2208,6 +2208,10 @@ static void lcd_support_menu()
 #if defined (VOLT_BED_PIN) || defined (VOLT_PWR_PIN)
   MENU_ITEM_SUBMENU_P(_i("Voltages"), lcd_menu_voltages);////MSG_MENU_VOLTAGES c=18 r=1
 #endif //defined VOLT_BED_PIN || defined VOLT_PWR_PIN
+
+#ifdef LCD_DEBUG
+  MENU_ITEM_FUNCTION_P(PSTR("LCD char test"), lcd_lcd_test_menu);
+#endif
 
 #ifdef DEBUG_BUILD
   MENU_ITEM_SUBMENU_P(PSTR("Debug"), lcd_menu_debug);////c=18 r=1
@@ -3379,7 +3383,6 @@ void lcd_adjust_z() {
 
 #ifdef PINDA_THERMISTOR
 bool lcd_wait_for_pinda(float temp) {
-	lcd_set_custom_characters_degree();
 	setAllTargetHotends(0);
 	setTargetBed(0);
 	LongTimer pinda_timeout;
@@ -3394,7 +3397,7 @@ bool lcd_wait_for_pinda(float temp) {
 		lcd_print(ftostr3(current_temperature_pinda));
 		lcd_print("/");
 		lcd_print(ftostr3(temp));
-		lcd_print(LCD_STR_DEGREE);
+		lcd_print(LCD_STR_DEGREE[0]);
 		delay_keep_alive(1000);
 		serialecho_temperatures();
 		if (pinda_timeout.expired(8 * 60 * 1000ul)) { //PINDA cooling from 60 C to 35 C takes about 7 minutes
@@ -3402,7 +3405,6 @@ bool lcd_wait_for_pinda(float temp) {
 			break;
 		}
 	}
-	lcd_set_custom_characters_arrows();
 	lcd_update_enable(true);
 	return target_temp_reached;
 }
@@ -3410,17 +3412,15 @@ bool lcd_wait_for_pinda(float temp) {
 
 void lcd_wait_for_heater() {
 		lcd_display_message_fullscreen_P(_T(MSG_WIZARD_HEATING));
-		lcd_set_degree();
 		lcd_set_cursor(0, 4);
 		lcd_print(LCD_STR_THERMOMETER[0]);
 		lcd_print(ftostr3(degHotend(active_extruder)));
 		lcd_print("/");
 		lcd_print(ftostr3(degTargetHotend(active_extruder)));
-		lcd_print(LCD_STR_DEGREE);
+		lcd_print(LCD_STR_DEGREE[0]);
 }
 
 void lcd_wait_for_cool_down() {
-	lcd_set_custom_characters_degree();
 	setAllTargetHotends(0);
 	setTargetBed(0);
 	int fanSpeedBckp = fanSpeed;
@@ -3432,19 +3432,17 @@ void lcd_wait_for_cool_down() {
 		lcd_print(LCD_STR_THERMOMETER[0]);
 		lcd_print(ftostr3(degHotend(0)));
 		lcd_print("/0");		
-		lcd_print(LCD_STR_DEGREE);
+		lcd_print(LCD_STR_DEGREE[0]);
 
 		lcd_set_cursor(9, 4);
 		lcd_print(LCD_STR_BEDTEMP[0]);
 		lcd_print(ftostr3(degBed()));
 		lcd_print("/0");		
-		lcd_print(LCD_STR_DEGREE);
-		lcd_set_custom_characters();
+		lcd_print(LCD_STR_DEGREE[0]);
 		delay_keep_alive(1000);
 		serialecho_temperatures();
 	}
 	fanSpeed = fanSpeedBckp;
-	lcd_set_custom_characters_arrows();
 	lcd_update_enable(true);
 }
 
@@ -3587,11 +3585,9 @@ static const char* lcd_display_message_fullscreen_nonBlocking_P(const char *msg,
 
     if (multi_screen) {
         // Display the "next screen" indicator character.
-        // lcd_set_custom_characters_arrows();
-        lcd_set_custom_characters_nextpage();
         lcd_set_cursor(19, 3);
         // Display the down arrow.
-        lcd_print(char(1));
+        lcd_print(LCD_STR_ARROW_2_DOWN[0]);
     }
 
     nlines = row;
@@ -3624,7 +3620,6 @@ void lcd_show_fullscreen_message_and_wait_P(const char *msg)
     LcdUpdateDisabler lcdUpdateDisabler;
     const char *msg_next = lcd_display_message_fullscreen_P(msg);
     bool multi_screen = msg_next != NULL;
-	lcd_set_custom_characters_nextpage();
 	lcd_consume_click();
 	KEEPALIVE_STATE(PAUSED_FOR_USER);
 	// Until confirmed by a button click.
@@ -3632,7 +3627,7 @@ void lcd_show_fullscreen_message_and_wait_P(const char *msg)
 		if (!multi_screen) {
 			lcd_set_cursor(19, 3);
 			// Display the confirm char.
-			lcd_print(char(2));
+			lcd_print(LCD_STR_CONFIRM[0]);
 		}
         // Wait for 5 seconds before displaying the next text.
         for (uint8_t i = 0; i < 100; ++ i) {
@@ -3640,7 +3635,6 @@ void lcd_show_fullscreen_message_and_wait_P(const char *msg)
             if (lcd_clicked()) {
 				if (msg_next == NULL) {
 					KEEPALIVE_STATE(IN_HANDLER);
-					lcd_set_custom_characters();
 					lcd_update_enable(true);
 					lcd_update(2);
 					return;
@@ -3658,7 +3652,7 @@ void lcd_show_fullscreen_message_and_wait_P(const char *msg)
 
 				lcd_set_cursor(19, 3);
 				// Display the confirm char.
-				lcd_print(char(2));
+				lcd_print(LCD_STR_CONFIRM[0]);
 			}
         }
     }
@@ -3757,7 +3751,6 @@ int8_t lcd_show_multiscreen_message_two_choices_and_wait_P(const char *msg, bool
 				Sound_MakeSound(e_SOUND_TYPE_ButtonEcho);
 				if (msg_next == NULL) {
 					//KEEPALIVE_STATE(IN_HANDLER);
-					lcd_set_custom_characters();
 					return yes;
 				}
 				else break;
@@ -4543,17 +4536,6 @@ static void lcd_fsensor_state_set()
 }
 #endif //FILAMENT_SENSOR
 
-
-#if !SDSORT_USES_RAM
-void lcd_set_degree() {
-	lcd_set_custom_characters_degree();
-}
-
-void lcd_set_progress() {
-	lcd_set_custom_characters_progress();
-}
-#endif
-
 #if (LANG_MODE != 0)
 
 void menu_setlang(unsigned char lang)
@@ -4895,7 +4877,6 @@ static void wait_preheat()
     plan_buffer_line_curposXYZE(homing_feedrate[Z_AXIS] / 60);
     delay_keep_alive(2000);
     lcd_display_message_fullscreen_P(_T(MSG_WIZARD_HEATING));
-	lcd_set_custom_characters();
 	while (abs(degHotend(0) - degTargetHotend(0)) > 3) {
         lcd_display_message_fullscreen_P(_T(MSG_WIZARD_HEATING));
 
@@ -8842,12 +8823,10 @@ void ultralcd_init()
     }
     backlight_init();
 	lcd_init();
-	lcd_refresh();
+	lcd_redraw(true); //forced redraw. Might be redundant.
 	lcd_longpress_func = menu_lcd_longpress_func;
-	lcd_charsetup_func = menu_lcd_charsetup_func;
 	lcd_lcdupdate_func = menu_lcd_lcdupdate_func;
 	menu_menu = lcd_status_screen;
-	menu_lcd_charsetup_func();
 
   SET_INPUT(BTN_EN1);
   SET_INPUT(BTN_EN2);
@@ -8892,7 +8871,6 @@ static void lcd_connect_printer() {
 	
 	int i = 0;
 	int t = 0;
-	lcd_set_custom_characters_progress();
 	lcd_puts_at_P(0, 0, _i("Connect printer to")); 
 	lcd_puts_at_P(0, 1, _i("monitoring or hold"));
 	lcd_puts_at_P(0, 2, _i("the knob to continue"));
@@ -8909,12 +8887,11 @@ static void lcd_connect_printer() {
 			i = 0; 
 			lcd_puts_at_P(0, 3, PSTR("                    "));
 		}
-		if (i!=0) lcd_puts_at_P((i * 20) / (NC_BUTTON_LONG_PRESS * 10), 3, "\x01");
+		if (i!=0) lcd_puts_at_P((i * 20) / (NC_BUTTON_LONG_PRESS * 10), 3, "\xFF");
 		if (i == NC_BUTTON_LONG_PRESS * 10) {
 			no_response = false;
 		}
 	}
-	lcd_set_custom_characters_degree();
 	lcd_update_enable(true);
 	lcd_update(2);
 }
@@ -9036,14 +9013,6 @@ void menu_lcd_longpress_func(void)
     }
 }
 
-void menu_lcd_charsetup_func(void)
-{
-	if (menu_menu == lcd_status_screen)
-		lcd_set_custom_characters_degree();
-	else
-		lcd_set_custom_characters_arrows();
-}
-
 static inline bool z_menu_expired()
 {
     return (menu_menu == lcd_babystep_z
@@ -9070,7 +9039,6 @@ void menu_lcd_lcdupdate_func(void)
 	{
 		lcd_draw_update = 2;
 		lcd_oldcardstatus = IS_SD_INSERTED;
-		lcd_refresh(); // to maybe revive the LCD if static electricity killed it.
         backlight_wake();
 		if (lcd_oldcardstatus)
 		{
