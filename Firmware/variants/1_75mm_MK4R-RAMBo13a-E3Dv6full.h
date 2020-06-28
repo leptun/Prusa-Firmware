@@ -23,7 +23,7 @@
 #define DEVELOPER
 
 // Printer name
-#define CUSTOM_MENDEL_NAME "Prusa i3 MKmini"
+#define CUSTOM_MENDEL_NAME "Prusa i3 MK4R"
 
 // Electronics
 #define MOTHERBOARD BOARD_RAMBO_MINI_1_3M
@@ -146,7 +146,7 @@
 
 // Filament sensor
 #define FILAMENT_SENSOR
-#define IR_SENSOR
+#define PAT9125
 
 // Backlash - 
 //#define BACKLASH_X

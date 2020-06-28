@@ -44,7 +44,7 @@
 #define Y_MS1_PIN           -1
 #define Y_MS2_PIN           -1
 
-#define Z_TMC2130_DIAG      21
+#define Z_TMC2130_DIAG      30
 #define Z_STEP_PIN          35
 #define Z_DIR_PIN           47
 #define Z_MIN_PIN           10
