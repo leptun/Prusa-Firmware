@@ -5008,7 +5008,11 @@ if(eSoundMode!=e_SOUND_MODE_SILENT)
 
 		uint8_t mesh_point = 0; //index number of calibration point
 
+#ifdef TMC2209
+		int XY_AXIS_FEEDRATE = homing_feedrate[X_AXIS] / 12;
+#else //TMC2209
 		int XY_AXIS_FEEDRATE = homing_feedrate[X_AXIS] / 20;
+#endif //TMC2209
 		int Z_LIFT_FEEDRATE = homing_feedrate[Z_AXIS] / 40;
 		bool has_z = is_bed_z_jitter_data_valid(); //checks if we have data from Z calibration (offsets of the Z heiths of the 8 calibration points from the first point)
 		#ifdef SUPPORT_VERBOSITY

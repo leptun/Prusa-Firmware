@@ -98,25 +98,28 @@
  */
 #define SHEET_PRINT_ZERO_REF_Y 1.f
 
-#define DEFAULT_MAX_FEEDRATE                {300, 300, 12, 120}      // (mm/sec)   max feedrate (M203)
-#define DEFAULT_MAX_FEEDRATE_SILENT         {200, 200, 12, 120}      // (mm/sec)   max feedrate (M203), silent mode
+#define DEFAULT_MAX_FEEDRATE                {500, 500, 12, 120}      // (mm/sec)   max feedrate (M203)
+#define DEFAULT_MAX_FEEDRATE_SILENT         {500, 500, 12, 120}      // (mm/sec)   max feedrate (M203), silent mode
 
 #define DEFAULT_MAX_ACCELERATION            {5000, 5000, 300, 5000}  // (mm/sec^2) max acceleration (M201)
 #define DEFAULT_MAX_ACCELERATION_SILENT     {2000, 2000, 300, 5000}    // (mm/sec^2) max acceleration (M201), silent mode
 
 
-#define DEFAULT_ACCELERATION          1250   // X, Y, Z and E max acceleration in mm/s^2 for printing moves (M204S)
-#define DEFAULT_RETRACT_ACCELERATION  1250   // X, Y, Z and E max acceleration in mm/s^2 for retracts (M204T)
+#define DEFAULT_ACCELERATION          3000   // X, Y, Z and E max acceleration in mm/s^2 for printing moves (M204S)
+#define DEFAULT_RETRACT_ACCELERATION  3000   // X, Y, Z and E max acceleration in mm/s^2 for retracts (M204T)
 
 #define MANUAL_FEEDRATE {2700, 2700, 1200, 100}   // set the speeds for manual moves (mm/min)
 
+#define DEADZONE_Y_MIN 150
+#define DEADZONE_Y_MAX 300
+
 //Silent mode limits
-#define SILENT_MAX_ACCEL_XY     2000ul  // max acceleration in silent mode in mm/s^2
-#define SILENT_MAX_FEEDRATE_XY   200  // max feedrate in mm/s
+#define SILENT_MAX_ACCEL_XY     5000ul  // max acceleration in silent mode in mm/s^2
+#define SILENT_MAX_FEEDRATE_XY   500  // max feedrate in mm/s
 
 //Normal mode limits
 #define NORMAL_MAX_ACCEL_XY     5000ul  // max acceleration in normal mode in mm/s^2
-#define NORMAL_MAX_FEEDRATE_XY   300  // max feedrate in mm/s
+#define NORMAL_MAX_FEEDRATE_XY   500  // max feedrate in mm/s
 
 //number of bytes from end of the file to start check
 #define END_FILE_SECTION 20000
@@ -266,7 +269,7 @@
 #define TMC2130_SG_THRS_Y       0     // stallguard sensitivity for Y axis
 #define TMC2130_SG_THRS_Z      60     // stallguard sensitivity for Z axis
 #define TMC2130_SG_THRS_E       0     // stallguard sensitivity for E axis
-#define TMC2130_SG_THRS_HOME {135, 135, TMC2130_SG_THRS_Z, TMC2130_SG_THRS_E}
+#define TMC2130_SG_THRS_HOME {130, 130, TMC2130_SG_THRS_Z, TMC2130_SG_THRS_E}
 
 //new settings is possible for vsense = 1, running current value > 31 set vsense to zero and shift both currents by 1 bit right (Z axis only)
 #define TMC2130_CURRENTS_H {8, 8, 4, 6}  // default holding currents for all axes

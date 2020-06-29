@@ -2797,7 +2797,11 @@ void go_home_with_z_lift()
     current_position[Y_AXIS] = Y_MIN_POS+0.2;
     // Clamp to the physical coordinates.
     world2machine_clamp(current_position[X_AXIS], current_position[Y_AXIS]);
+#ifdef TMC2209
+	go_to_current(homing_feedrate[X_AXIS]/8);
+#else //TMC2209
 	go_to_current(homing_feedrate[X_AXIS]/20);
+#endif //TMC2209
     // Third move up to a safe height.
     current_position[Z_AXIS] = Z_MIN_POS;
     go_to_current(homing_feedrate[Z_AXIS]/60);    

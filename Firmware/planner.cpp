@@ -1029,6 +1029,16 @@ Having the real displacement of the head, we can calculate the total movement le
   for(int i=0; i < 4; i++)
   {
     current_speed[i] = delta_mm[i] * inverse_second;
+#ifdef DEADZONE_Y_MIN
+    if (i == Y_AXIS)
+    {
+        const float absSpeedY = fabs(current_speed[Y_AXIS]);
+        if ((absSpeedY > DEADZONE_Y_MIN) && (absSpeedY < DEADZONE_Y_MAX))
+        {
+            speed_factor = min(speed_factor, DEADZONE_Y_MIN / absSpeedY);
+        }
+    }
+#endif //DEADZONE_Y_MIN
 	if(fabs(current_speed[i]) > max_feedrate[i])
 	{
       speed_factor = min(speed_factor, max_feedrate[i] / fabs(current_speed[i]));
