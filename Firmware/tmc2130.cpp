@@ -535,6 +535,8 @@ bool tmc2130_wait_standstill_xy(int timeout)
 
 void tmc2130_check_overtemp()
 {
+    return;
+
 	static uint32_t checktime = 0;
 	if (_millis() - checktime > 1000 )
 	{
