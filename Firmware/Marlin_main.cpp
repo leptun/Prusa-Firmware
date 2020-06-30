@@ -402,8 +402,10 @@ static bool setTargetedHotend(int code, uint8_t &extruder);
 static void print_time_remaining_init();
 static void wait_for_heater(long codenum, uint8_t extruder);
 static void gcode_G28(bool home_x_axis, bool home_y_axis, bool home_z_axis);
+#ifndef PINDA_THERMISTOR
 static void temp_compensation_start();
 static void temp_compensation_apply();
+#endif
 
 
 uint16_t gcode_in_progress = 0;
@@ -2994,7 +2996,7 @@ bool gcode_M45(bool onlyZ, int8_t verbosity_level)
 					if (calibration_status() == CALIBRATION_STATUS_Z_CALIBRATION)
 						// Shipped, the nozzle height has been set already. The user can start printing now.
 						calibration_status_store(CALIBRATION_STATUS_CALIBRATED);
-						final_result = true;
+					final_result = true;
 					// babystep_apply();
 				}
 			}
@@ -8621,6 +8623,10 @@ Sigma_Exit:
 #endif //SNMM
 	}
 	break;
+	case 998:
+		lcd_debug();
+		break;
+
 
     /*!
 	### M999 - Restart after being stopped <a href="https://reprap.org/wiki/G-code#M999:_Restart_after_being_stopped_by_error">M999: Restart after being stopped by error</a>
@@ -8657,8 +8663,8 @@ Sigma_Exit:
   {
       int index;
       bool load_to_nozzle = false;
-      for (index = 1; *(strchr_pointer + index) == ' ' || *(strchr_pointer + index) == '\t'; index++);
-
+      for (index = 1; *(strchr_pointer + index) == ' ' || *(strchr_pointer + index) == '\t'; index++)
+		  ;
 	  *(strchr_pointer + index) = tolower(*(strchr_pointer + index));
 
       if ((*(strchr_pointer + index) < '0' || *(strchr_pointer + index) > '4') && *(strchr_pointer + index) != '?' && *(strchr_pointer + index) != 'x' && *(strchr_pointer + index) != 'c') {

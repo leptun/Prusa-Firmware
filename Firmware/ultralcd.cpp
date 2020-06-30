@@ -56,16 +56,11 @@
 #endif
 
 
-int scrollstuff = 0;
-char longFilenameOLD[LONG_FILENAME_LENGTH];
-
-
 static void lcd_sd_updir();
 static void lcd_mesh_bed_leveling_settings();
 static void lcd_backlight_menu();
 
-int8_t ReInitLCD = 0;
-
+uint8_t scrollstuff = 0;
 
 int8_t SilentModeMenu = SILENT_MODE_OFF;
 uint8_t SilentModeMenu_MMU = 1; //activate mmu unit stealth mode
@@ -170,7 +165,6 @@ static void lcd_selftest_v();
 #ifdef TMC2130
 static void reset_crash_det(unsigned char axis);
 static bool lcd_selfcheck_axis_sg(unsigned char axis);
-static bool lcd_selfcheck_axis(int _axis, int _travel);
 #else
 static bool lcd_selfcheck_axis(int _axis, int _travel);
 static bool lcd_selfcheck_pulleys(int axis);
@@ -334,122 +328,32 @@ bool bSettings;                                   // flag (i.e. 'fake parameter'
 
 const char STR_SEPARATOR[] PROGMEM = "------------";
 
-
-static void lcd_implementation_drawmenu_sdfile_selected(uint8_t row, const char* filename, char* longFilename)
-{
-    char c;
-    int enc_dif = lcd_encoder_diff / ENCODER_PULSES_PER_STEP;
-    uint8_t n = LCD_WIDTH - 1;
-
-    for(uint_least8_t g = 0; g<4;g++){
-      lcd_set_cursor(0, g);
-    lcd_print(' ');
-    }
-    lcd_set_cursor(0, row);
-    lcd_print('>');
-
-    if (longFilename[0] == '\0')
-    {
-        longFilename = filename;
-    }
-
-    int i = 1;
-    int j = 0;
-    char* longFilenameTMP = longFilename;
-
-    while((c = *longFilenameTMP) != '\0')
-    {
-        lcd_set_cursor(i, row);
-        lcd_print(c);
-        i++;
-        longFilenameTMP++;
-        if(i==LCD_WIDTH){
-          i=1;
-          j++;
-          longFilenameTMP = longFilename + j;          
-          n = LCD_WIDTH - 1;
-          for(int g = 0; g<300 ;g++){
-			  manage_heater();
-            if(LCD_CLICKED || ( enc_dif != (lcd_encoder_diff / ENCODER_PULSES_PER_STEP))){
-				longFilenameTMP = longFilename;
-				*(longFilenameTMP + LCD_WIDTH - 2) = '\0';
-				i = 1;
-				j = 0;
-				break;
-            }else{
-				if (j == 1) _delay_ms(3);	//wait around 1.2 s to start scrolling text
-				_delay_ms(1);				//then scroll with redrawing every 300 ms 
-            }
-
-          }
-        }
-    }
-    if(c!='\0'){
-      lcd_set_cursor(i, row);
-        lcd_print(c);
-        i++;
-    }
-    n=n-i+1;
-    while(n--)
-        lcd_print(' ');
-}
-static void lcd_implementation_drawmenu_sdfile(uint8_t row, const char* filename, char* longFilename)
+static void lcd_implementation_drawmenu_sdfile(uint8_t row, const char* longFilename)
 {
     char c;
     uint8_t n = LCD_WIDTH - 1;
     lcd_set_cursor(0, row);
-    lcd_print(' ');
-    if (longFilename[0] != '\0')
-    {
-        filename = longFilename;
-        longFilename[LCD_WIDTH-1] = '\0';
-    }
-    while( ((c = *filename) != '\0') && (n>0) )
+	lcd_print((lcd_encoder == menu_item)?'>':' ');
+    while( ((c = *longFilename) != '\0') && (n>0) )
     {
         lcd_print(c);
-        filename++;
+        longFilename++;
         n--;
     }
     while(n--)
         lcd_print(' ');
 }
-static void lcd_implementation_drawmenu_sddirectory_selected(uint8_t row, const char* filename, char* longFilename)
+static void lcd_implementation_drawmenu_sddirectory(uint8_t row, const char* longFilename)
 {
     char c;
     uint8_t n = LCD_WIDTH - 2;
     lcd_set_cursor(0, row);
-    lcd_print('>');
-    lcd_print(LCD_STR_FOLDER[0]);
-    if (longFilename[0] != '\0')
-    {
-        filename = longFilename;
-        longFilename[LCD_WIDTH-2] = '\0';
-    }
-    while( ((c = *filename) != '\0') && (n>0) )
+	lcd_print((lcd_encoder == menu_item)?'>':' ');
+	lcd_print(LCD_STR_FOLDER[0]);
+    while( ((c = *longFilename) != '\0') && (n>0) )
     {
         lcd_print(c);
-        filename++;
-        n--;
-    }
-    while(n--)
-        lcd_print(' ');
-}
-static void lcd_implementation_drawmenu_sddirectory(uint8_t row, const char* filename, char* longFilename)
-{
-    char c;
-    uint8_t n = LCD_WIDTH - 2;
-    lcd_set_cursor(0, row);
-    lcd_print(' ');
-    lcd_print(LCD_STR_FOLDER[0]);
-    if (longFilename[0] != '\0')
-    {
-        filename = longFilename;
-        longFilename[LCD_WIDTH-2] = '\0';
-    }
-    while( ((c = *filename) != '\0') && (n>0) )
-    {
-        lcd_print(c);
-        filename++;
+        longFilename++;
         n--;
     }
     while(n--)
@@ -459,48 +363,16 @@ static void lcd_implementation_drawmenu_sddirectory(uint8_t row, const char* fil
 
 
 #define MENU_ITEM_SDDIR(str_fn, str_fnl) do { if (menu_item_sddir(str_fn, str_fnl)) return; } while (0)
-//#define MENU_ITEM_SDDIR(str, str_fn, str_fnl) MENU_ITEM(sddirectory, str, str_fn, str_fnl)
-//extern uint8_t menu_item_sddir(const char* str, const char* str_fn, char* str_fnl);
-
-#define MENU_ITEM_SDFILE(str, str_fn, str_fnl) do { if (menu_item_sdfile(str, str_fn, str_fnl)) return; } while (0)
-//#define MENU_ITEM_SDFILE(str, str_fn, str_fnl) MENU_ITEM(sdfile, str, str_fn, str_fnl)
-//extern uint8_t menu_item_sdfile(const char* str, const char* str_fn, char* str_fnl);
+#define MENU_ITEM_SDFILE(str_fn, str_fnl) do { if (menu_item_sdfile(str_fn, str_fnl)) return; } while (0)
 
 
 uint8_t menu_item_sddir(const char* str_fn, char* str_fnl)
 {
-#ifdef NEW_SD_MENU
-//	str_fnl[18] = 0;
-//	printf_P(PSTR("menu dir %d '%s' '%s'\n"), menu_row, str_fn, str_fnl);
 	if (menu_item == menu_line)
 	{
 		if (lcd_draw_update)
 		{
-			lcd_set_cursor(0, menu_row);
-			int cnt = lcd_printf_P(PSTR("%c%c%-18s"), (lcd_encoder == menu_item)?'>':' ', LCD_STR_FOLDER[0], str_fnl[0]?str_fnl:str_fn);
-//			int cnt = lcd_printf_P(PSTR("%c%c%-18s"), (lcd_encoder == menu_item)?'>':' ', LCD_STR_FOLDER[0], str_fn);
-		}
-		if (menu_clicked && (lcd_encoder == menu_item))
-		{
-			uint8_t depth = (uint8_t)card.getWorkDirDepth();
-			strcpy(dir_names[depth], str_fn);
-//			printf_P(PSTR("%s\n"), dir_names[depth]);
-			card.chdir(str_fn);
-			lcd_encoder = 0;
-			return menu_item_ret();
-		}
-	}
-	menu_item++;
-	return 0;
-#else //NEW_SD_MENU
-	if (menu_item == menu_line)
-	{
-		if (lcd_draw_update)
-		{
-			if (lcd_encoder == menu_item)
-				lcd_implementation_drawmenu_sddirectory_selected(menu_row, str_fn, str_fnl);
-			else
-				lcd_implementation_drawmenu_sddirectory(menu_row, str_fn, str_fnl);
+			lcd_implementation_drawmenu_sddirectory(menu_row, (str_fnl[0] == '\0') ? str_fn : str_fnl);
 		}
 		if (menu_clicked && (lcd_encoder == menu_item))
 		{
@@ -508,80 +380,32 @@ uint8_t menu_item_sddir(const char* str_fn, char* str_fnl)
 			lcd_update_enabled = 0;
 			menu_action_sddirectory(str_fn);
 			lcd_update_enabled = 1;
-			return menu_item_ret();
+			/* return */ menu_item_ret();
+			return 1;
 		}
 	}
 	menu_item++;
 	return 0;
-
-#endif //NEW_SD_MENU
 }
 
-static uint8_t menu_item_sdfile(const char*
-#ifdef NEW_SD_MENU
-        str
-#endif //NEW_SD_MENU
-         ,const char* str_fn, char* str_fnl)
+static uint8_t menu_item_sdfile(const char* str_fn, char* str_fnl)
 {
-#ifdef NEW_SD_MENU
-//	printf_P(PSTR("menu sdfile\n"));
-//	str_fnl[19] = 0;
-//	printf_P(PSTR("menu file %d '%s' '%s'\n"), menu_row, str_fn, str_fnl);
 	if (menu_item == menu_line)
 	{
 		if (lcd_draw_update)
 		{
-//			printf_P(PSTR("menu file %d %d '%s'\n"), menu_row, menuData.sdcard_menu.viewState, str_fnl[0]?str_fnl:str_fn);
-			lcd_set_cursor(0, menu_row);
-/*			if (lcd_encoder == menu_item)
-			{
-				lcd_printf_P(PSTR("%c%-19s"), (lcd_encoder == menu_item)?'>':' ', (str_fnl[0]?str_fnl:str_fn) + 1);
-				if (menuData.sdcard_menu.viewState == 0)
-				{
-					menuData.sdcard_menu.viewState++;
-					lcd_printf_P(PSTR("%c%-19s"), (lcd_encoder == menu_item)?'>':' ', (str_fnl[0]?str_fnl:str_fn) + 1);
-				}
-				else if (menuData.sdcard_menu.viewState == 1)
-				{
-					lcd_printf_P(PSTR("%c%-19s"), (lcd_encoder == menu_item)?'>':' ', (str_fnl[0]?str_fnl:str_fn) + 2);
-				}
-			}
-			else*/
-			{
-				str_fnl[19] = 0;
-				lcd_printf_P(PSTR("%c%-19s"), (lcd_encoder == menu_item)?'>':' ', str_fnl[0]?str_fnl:str_fn);
-			}
-
-//			int cnt = lcd_printf_P(PSTR("%c%-19s"), (lcd_encoder == menu_item)?'>':' ', str_fnl);
-//			int cnt = lcd_printf_P(PSTR("%cTESTIK.gcode"), (lcd_encoder == menu_item)?'>':' ');
-		}
-		if (menu_clicked && (lcd_encoder == menu_item))
-		{
-			return menu_item_ret();
-		}
-	}
-	menu_item++;
-	return 0;
-#else //NEW_SD_MENU
-	if (menu_item == menu_line)
-	{
-		if (lcd_draw_update)
-		{
-			if (lcd_encoder == menu_item)
-				lcd_implementation_drawmenu_sdfile_selected(menu_row, str_fn, str_fnl);
-			else
-				lcd_implementation_drawmenu_sdfile(menu_row, str_fn, str_fnl);
+			lcd_implementation_drawmenu_sdfile(menu_row, (str_fnl[0] == '\0') ? str_fn : str_fnl);
 		}
 		if (menu_clicked && (lcd_encoder == menu_item))
 		{
 		    lcd_consume_click();
 			menu_action_sdfile(str_fn);
-			return menu_item_ret();
+			/* return */ menu_item_ret();
+			return 1;
 		}
 	}
 	menu_item++;
 	return 0;
-#endif //NEW_SD_MENU
 }
 
 // Print temperature (nozzle/bed) (9 chars total)
@@ -751,16 +575,6 @@ void lcdui_print_time(void)
 //Print status line on status screen
 void lcdui_print_status_line(void)
 {
-	if (IS_SD_PRINTING)
-	{
-		if (strcmp(longFilenameOLD, (card.longFilename[0] ? card.longFilename : card.filename)) != 0)
-		{
-			memset(longFilenameOLD, '\0', strlen(longFilenameOLD));
-			sprintf_P(longFilenameOLD, PSTR("%s"), (card.longFilename[0] ? card.longFilename : card.filename));
-			scrollstuff = 0;
-		}
-	}
-
 	if (heating_status)
 	{ // If heating flag, show progress of heating
 		heating_status_counter++;
@@ -804,6 +618,7 @@ void lcdui_print_status_line(void)
 	}
 	else if ((IS_SD_PRINTING) && (custom_message_type == CustomMsg::Status))
 	{ // If printing from SD, show what we are printing
+		const char* longFilenameOLD = (card.longFilename[0] ? card.longFilename : card.filename);
 		if(strlen(longFilenameOLD) > LCD_WIDTH)
 		{
 			int inters = 0;
@@ -1009,18 +824,6 @@ void lcd_status_screen()                          // NOT static due to using ins
 
 	if (lcd_draw_update)
 	{
-		ReInitLCD++;
-		if (ReInitLCD == 30)
-		{
-			lcd_refresh(); // to maybe revive the LCD if static electricity killed it.
-			ReInitLCD = 0 ;
-		}
-		else
-		{
-			if ((ReInitLCD % 10) == 0)
-				lcd_refresh_noclear(); //to maybe revive the LCD if static electricity killed it.
-		}
-
 		lcdui_print_status_screen();
 
 		if (farm_mode)
@@ -1075,7 +878,6 @@ void lcd_status_screen()                          // NOT static due to using ins
 	{
 		menu_depth = 0; //redundant, as already done in lcd_return_to_status(), just to be sure
 		menu_submenu(lcd_main_menu);
-		lcd_refresh(); // to maybe revive the LCD if static electricity killed it.
 	}
 
 #ifdef ULTIPANEL_FEEDMULTIPLY
@@ -1574,7 +1376,6 @@ void lcd_commands()
 
 void lcd_return_to_status()
 {
-	lcd_refresh(); // to maybe revive the LCD if static electricity killed it.
 	menu_goto(lcd_status_screen, 0, false, true);
 	menu_depth = 0;
     eFilamentAction = FilamentAction::None; // i.e. non-autoLoad
@@ -1934,6 +1735,23 @@ static void lcd_menu_temperatures_line(const char *ipgmLabel, int value){
     lcd_printf_P(PSTR(" %s%3d\x01 \n"), tmp, value); // no need to add -14.14 to string alignment
 }
 
+#ifdef LCD_DEBUG
+static void lcd_lcd_test_menu()
+{
+	lcd_clear();
+	for (uint8_t i = 0; i <= LCD_STR_CONFIRM[0]; i++)
+	{
+		lcd_set_cursor(i, 0);
+		if (i == '\n') lcd_print(' ');
+		else lcd_print(char(i));
+		lcd_set_cursor(0, 1);
+		lcd_printf_P(PSTR("%hX"), lcd_custom_character_bank);
+		manage_heater();
+		_delay_ms(500);
+	}
+}
+#endif //LCD_DEBUG
+
 //! @brief Show Temperatures
 //!
 //! @code{.unparsed}
@@ -2225,6 +2043,10 @@ static void lcd_support_menu()
   MENU_ITEM_SUBMENU_P(_N("TMC2209 Debug"), lcd_debug_tmc2209);
 #endif //TMC2209
 
+#ifdef LCD_DEBUG
+  MENU_ITEM_FUNCTION_P(PSTR("LCD char test"), lcd_lcd_test_menu);
+#endif
+
 #ifdef DEBUG_BUILD
   MENU_ITEM_SUBMENU_P(PSTR("Debug"), lcd_menu_debug);////c=18 r=1
 #endif /* DEBUG_BUILD */
@@ -2323,7 +2145,7 @@ if(lcd_clicked())
           {
           case FilamentAction::AutoLoad:
                eFilamentAction=FilamentAction::None; // i.e. non-autoLoad
-               // no break
+               [[fallthrough]];
           case FilamentAction::Load:
                loading_flag=true;
                enquecommand_P(PSTR("M701"));      // load filament
@@ -3395,7 +3217,6 @@ void lcd_adjust_z() {
 
 #ifdef PINDA_THERMISTOR
 bool lcd_wait_for_pinda(float temp) {
-	lcd_set_custom_characters_degree();
 	setAllTargetHotends(0);
 	setTargetBed(0);
 	LongTimer pinda_timeout;
@@ -3410,7 +3231,7 @@ bool lcd_wait_for_pinda(float temp) {
 		lcd_print(ftostr3(current_temperature_pinda));
 		lcd_print("/");
 		lcd_print(ftostr3(temp));
-		lcd_print(LCD_STR_DEGREE);
+		lcd_print(LCD_STR_DEGREE[0]);
 		delay_keep_alive(1000);
 		serialecho_temperatures();
 		if (pinda_timeout.expired(8 * 60 * 1000ul)) { //PINDA cooling from 60 C to 35 C takes about 7 minutes
@@ -3418,7 +3239,6 @@ bool lcd_wait_for_pinda(float temp) {
 			break;
 		}
 	}
-	lcd_set_custom_characters_arrows();
 	lcd_update_enable(true);
 	return target_temp_reached;
 }
@@ -3426,17 +3246,15 @@ bool lcd_wait_for_pinda(float temp) {
 
 void lcd_wait_for_heater() {
 		lcd_display_message_fullscreen_P(_T(MSG_WIZARD_HEATING));
-		lcd_set_degree();
 		lcd_set_cursor(0, 4);
 		lcd_print(LCD_STR_THERMOMETER[0]);
 		lcd_print(ftostr3(degHotend(active_extruder)));
 		lcd_print("/");
 		lcd_print(ftostr3(degTargetHotend(active_extruder)));
-		lcd_print(LCD_STR_DEGREE);
+		lcd_print(LCD_STR_DEGREE[0]);
 }
 
 void lcd_wait_for_cool_down() {
-	lcd_set_custom_characters_degree();
 	setAllTargetHotends(0);
 	setTargetBed(0);
 	int fanSpeedBckp = fanSpeed;
@@ -3448,19 +3266,17 @@ void lcd_wait_for_cool_down() {
 		lcd_print(LCD_STR_THERMOMETER[0]);
 		lcd_print(ftostr3(degHotend(0)));
 		lcd_print("/0");		
-		lcd_print(LCD_STR_DEGREE);
+		lcd_print(LCD_STR_DEGREE[0]);
 
 		lcd_set_cursor(9, 4);
 		lcd_print(LCD_STR_BEDTEMP[0]);
 		lcd_print(ftostr3(degBed()));
 		lcd_print("/0");		
-		lcd_print(LCD_STR_DEGREE);
-		lcd_set_custom_characters();
+		lcd_print(LCD_STR_DEGREE[0]);
 		delay_keep_alive(1000);
 		serialecho_temperatures();
 	}
 	fanSpeed = fanSpeedBckp;
-	lcd_set_custom_characters_arrows();
 	lcd_update_enable(true);
 }
 
@@ -3603,11 +3419,9 @@ static const char* lcd_display_message_fullscreen_nonBlocking_P(const char *msg,
 
     if (multi_screen) {
         // Display the "next screen" indicator character.
-        // lcd_set_custom_characters_arrows();
-        lcd_set_custom_characters_nextpage();
         lcd_set_cursor(19, 3);
         // Display the down arrow.
-        lcd_print(char(1));
+        lcd_print(LCD_STR_ARROW_2_DOWN[0]);
     }
 
     nlines = row;
@@ -3640,7 +3454,6 @@ void lcd_show_fullscreen_message_and_wait_P(const char *msg)
     LcdUpdateDisabler lcdUpdateDisabler;
     const char *msg_next = lcd_display_message_fullscreen_P(msg);
     bool multi_screen = msg_next != NULL;
-	lcd_set_custom_characters_nextpage();
 	lcd_consume_click();
 	KEEPALIVE_STATE(PAUSED_FOR_USER);
 	// Until confirmed by a button click.
@@ -3648,7 +3461,7 @@ void lcd_show_fullscreen_message_and_wait_P(const char *msg)
 		if (!multi_screen) {
 			lcd_set_cursor(19, 3);
 			// Display the confirm char.
-			lcd_print(char(2));
+			lcd_print(LCD_STR_CONFIRM[0]);
 		}
         // Wait for 5 seconds before displaying the next text.
         for (uint8_t i = 0; i < 100; ++ i) {
@@ -3656,7 +3469,6 @@ void lcd_show_fullscreen_message_and_wait_P(const char *msg)
             if (lcd_clicked()) {
 				if (msg_next == NULL) {
 					KEEPALIVE_STATE(IN_HANDLER);
-					lcd_set_custom_characters();
 					lcd_update_enable(true);
 					lcd_update(2);
 					return;
@@ -3674,7 +3486,7 @@ void lcd_show_fullscreen_message_and_wait_P(const char *msg)
 
 				lcd_set_cursor(19, 3);
 				// Display the confirm char.
-				lcd_print(char(2));
+				lcd_print(LCD_STR_CONFIRM[0]);
 			}
         }
     }
@@ -3773,7 +3585,6 @@ int8_t lcd_show_multiscreen_message_two_choices_and_wait_P(const char *msg, bool
 				Sound_MakeSound(e_SOUND_TYPE_ButtonEcho);
 				if (msg_next == NULL) {
 					//KEEPALIVE_STATE(IN_HANDLER);
-					lcd_set_custom_characters();
 					return yes;
 				}
 				else break;
@@ -4244,7 +4055,7 @@ static void prusa_stat_printinfo()
 	SERIAL_ECHO("][FEM:");
 	SERIAL_ECHO(itostr3(feedmultiply));
 	SERIAL_ECHO("][FNM:");
-	SERIAL_ECHO(longFilenameOLD);
+	SERIAL_ECHO(card.longFilename);
 	SERIAL_ECHO("][TIM:");
 	if (starttime != 0)
 	{
@@ -4578,17 +4389,6 @@ static void lcd_fsensor_state_set()
 	}
 }
 #endif //FILAMENT_SENSOR
-
-
-#if !SDSORT_USES_RAM
-void lcd_set_degree() {
-	lcd_set_custom_characters_degree();
-}
-
-void lcd_set_progress() {
-	lcd_set_custom_characters_progress();
-}
-#endif
 
 #if (LANG_MODE != 0)
 
@@ -4931,7 +4731,6 @@ static void wait_preheat()
     plan_buffer_line_curposXYZE(homing_feedrate[Z_AXIS] / 60);
     delay_keep_alive(2000);
     lcd_display_message_fullscreen_P(_T(MSG_WIZARD_HEATING));
-	lcd_set_custom_characters();
 	while (abs(degHotend(0) - degTargetHotend(0)) > 3) {
         lcd_display_message_fullscreen_P(_T(MSG_WIZARD_HEATING));
 
@@ -7386,17 +7185,25 @@ static void lcd_control_temperature_menu()
 }
 
 
-#if SDCARDDETECT == -1
+
 static void lcd_sd_refresh()
 {
+#if SDCARDDETECT == -1
   card.initsd();
-  menu_top = 0;
-}
+#else
+  card.presort();
 #endif
+  menu_top = 0;
+  lcd_encoder = 0;
+  menu_data_reset(); //Forces reloading of cached variables.
+}
+
 static void lcd_sd_updir()
 {
   card.updir();
   menu_top = 0;
+  lcd_encoder = 0;
+  menu_data_reset(); //Forces reloading of cached variables.
 }
 
 void lcd_print_stop()
@@ -7495,57 +7302,131 @@ void lcd_sdcard_stop()
 
 void lcd_sdcard_menu()
 {
-  uint8_t sdSort = eeprom_read_byte((uint8_t*)EEPROM_SD_SORT);
-
-  if (presort_flag == true) {
-	  presort_flag = false;
-	  card.presort();
-  }
-  if (lcd_draw_update == 0 && LCD_CLICKED == 0)
-    //_delay(100);
-    return; // nothing to do (so don't thrash the SD card)
-  uint16_t fileCnt = card.getnrfilenames();
-
-
-  MENU_BEGIN();
-  MENU_ITEM_BACK_P(_T(bMain?MSG_MAIN:MSG_BACK));  // i.e. default menu-item / menu-item after card insertion
-  card.getWorkDirName();
-  if (card.filename[0] == '/')
-  {
-#if SDCARDDETECT == -1
-    MENU_ITEM_FUNCTION_P(_T(MSG_REFRESH), lcd_sd_refresh);
-#endif
-  } else {
-    MENU_ITEM_FUNCTION_P(PSTR(LCD_STR_FOLDER ".."), lcd_sd_updir);
-  }
-
-  for (uint16_t i = 0; i < fileCnt; i++)
-  {
-    if (menu_item == menu_line)
-    {
-		const uint16_t nr = ((sdSort == SD_SORT_NONE) || farm_mode || (sdSort == SD_SORT_TIME)) ? (fileCnt - 1 - i) : i;
-		/*#ifdef SDCARD_RATHERRECENTFIRST
-			#ifndef SDCARD_SORT_ALPHA
-				fileCnt - 1 -
-			#endif
-		#endif
-		i;*/
-		#ifdef SDCARD_SORT_ALPHA
-			if (sdSort == SD_SORT_NONE) card.getfilename(nr);
-			else card.getfilename_sorted(nr);
-		#else
-			 card.getfilename(nr);
-		#endif
+	typedef struct
+	{
+		uint8_t menuState = 0; //start as uninitialized
+		uint8_t offset;
+		bool isDir;
+		const char* scrollPointer;
+		uint16_t fileCnt;
+		uint8_t row;
+		uint8_t sdSort;
+		ShortTimer lcd_scrollTimer;
+	} _menu_data_sdcard_t;
+	static_assert(sizeof(menu_data)>= sizeof(_menu_data_sdcard_t),"_menu_data_sdcard_t doesn't fit into menu_data");
+	_menu_data_sdcard_t* _md = (_menu_data_sdcard_t*)&(menu_data[0]);
+	
+	switch(_md->menuState)
+	{
+		case 0: //Initialize menu data
+		{
+			if (presort_flag == true) { //used to force resorting if sorting type is changed.
+				presort_flag = false;
+				card.presort();
+			}
+			_md->fileCnt = card.getnrfilenames();
+			_md->sdSort = eeprom_read_byte((uint8_t*)EEPROM_SD_SORT);
+			_md->menuState = 1;
+		} //Begin the first menu state instantly.
+		case 1: //normal menu structure.
+		{
+			if (!_md->lcd_scrollTimer.running()) //if the timer is not running, then the menu state was just switched, so redraw the screen.
+			{
+				_md->lcd_scrollTimer.start();
+				lcd_draw_update = 1;
+			}
+			if (_md->lcd_scrollTimer.expired(500) && _md->scrollPointer) //switch to the scrolling state on timeout if a file/dir is selected.
+			{
+				_md->menuState = 2;
+				_md->offset = 0;
+				_md->lcd_scrollTimer.start();
+				lcd_draw_update = 1; //forces last load before switching to state:2.
+			}
+			if (lcd_draw_update == 0 && !LCD_CLICKED) return; // nothing to do (so don't thrash the SD card)
 			
-		if (card.filenameIsDir)
-			MENU_ITEM_SDDIR(card.filename, card.longFilename);
-		else
-			MENU_ITEM_SDFILE(_T(MSG_CARD_MENU), card.filename, card.longFilename);
-    } else {
-      MENU_ITEM_DUMMY();
-    }
-  }
-  MENU_END();
+			//if we reached this point it means that the encoder moved or clicked or the state is being switched. Reset the scrollTimer.
+			_md->lcd_scrollTimer.start();
+			
+			_md->scrollPointer = NULL; //clear scrollPointer. Used for differentiating between a file/dir and another menu item that is selected.
+			
+			MENU_BEGIN();
+			MENU_ITEM_BACK_P(_T(bMain?MSG_MAIN:MSG_BACK));  // i.e. default menu-item / menu-item after card insertion
+			card.getWorkDirName();
+			if (card.filename[0] == '/')
+			{
+#if SDCARDDETECT == -1
+				MENU_ITEM_FUNCTION_P(_T(MSG_REFRESH), lcd_sd_refresh);
+#else
+				if (card.ToshibaFlashAir_isEnabled()) MENU_ITEM_FUNCTION_P(_T(MSG_REFRESH), lcd_sd_refresh); //show the refresh option if in flashAir mode.
+#endif
+			}
+			else MENU_ITEM_FUNCTION_P(PSTR(LCD_STR_FOLDER ".."), lcd_sd_updir); //Show the updir button if in a subdir.
+
+			for (uint16_t i = 0; i < _md->fileCnt; i++) // Every file, from top to bottom.
+			{
+				if (menu_item == menu_line) //If the file is on the screen.
+				{
+					const uint16_t nr = _md->fileCnt - 1 - i; //file index inversion.
+					
+					//load filename to memory.
+#ifdef SDCARD_SORT_ALPHA
+					if (_md->sdSort == SD_SORT_NONE) card.getfilename(nr);
+					else card.getfilename_sorted(nr);
+#else
+					card.getfilename(nr);
+#endif
+					if (lcd_encoder == menu_item) //If the file is selected.
+					{
+						_md->scrollPointer = (card.longFilename[0] == '\0') ? card.filename : card.longFilename;
+						_md->isDir = card.filenameIsDir;
+						_md->row = menu_row;
+						if(_md->menuState == 2) return; //return early if switching states. At this point the selected filename should be loaded into memory.
+					}
+					if (card.filenameIsDir) MENU_ITEM_SDDIR(card.filename, card.longFilename);
+					else MENU_ITEM_SDFILE(card.filename, card.longFilename);
+				}
+				else MENU_ITEM_DUMMY(); //dummy item that just increments the internal menu counters.
+			}
+			MENU_END();
+		} break;
+		case 2: //scrolling filename
+		{
+			const bool rewindFlag = LCD_CLICKED || lcd_draw_update; //flag that says whether the menu should return to state:1.
+			if (rewindFlag == 1) _md->offset = 0; //redraw once again from the beginning.
+			if (_md->lcd_scrollTimer.expired(300) || rewindFlag)
+			{
+				uint8_t i = LCD_WIDTH - ((_md->isDir)?2:1);
+				lcd_set_cursor(0, _md->row);
+				lcd_print('>');
+				if (_md->isDir) lcd_print(LCD_STR_FOLDER[0]);
+				for (; i != 0; i--)
+				{
+					char c = *(_md->scrollPointer + _md->offset +((LCD_WIDTH - ((_md->isDir)?2:1)) - i));
+					if (c == '\0')
+					{
+						_md->lcd_scrollTimer.stop();
+						break; //stop at the end of the string
+					}
+					else
+					{
+						lcd_print(c);
+						_md->lcd_scrollTimer.start();
+					}
+				}
+				if (i != 0) //adds spaces if string is incomplete or at the end (instead of null).
+				{
+					lcd_space(i);
+				}
+				_md->offset++;
+			}
+			if (rewindFlag) //go back to sd_menu.
+			{
+				_md->lcd_scrollTimer.stop(); //forces redraw in state:1
+				_md->menuState = 1;
+			}
+		} break;
+		default: _md->menuState = 0; //shouldn't ever happen. Anyways, initialize the menu.
+	}
 }
 #ifdef TMC2130
 static void lcd_belttest_v()
@@ -7690,7 +7571,7 @@ bool lcd_selftest()
 			break;
 		case FanCheck::SwappedFan:
 			_swapped_fan = true;
-			// no break
+			[[fallthrough]];
 		default:
 			_result = true;
 			break;
@@ -7713,7 +7594,7 @@ bool lcd_selftest()
 			break;
 		case FanCheck::SwappedFan:
 			_swapped_fan = true;
-			// no break
+			[[fallthrough]];
 		default:
 			_result = true;
 			break;
@@ -8908,6 +8789,7 @@ void menu_action_sddirectory(const char* filename)
 	MYSERIAL.println(dir_names[depth]);
   card.chdir(filename);
   lcd_encoder = 0;
+  menu_data_reset(); //Forces reloading of cached variables.
 }
 
 /** LCD API **/
@@ -8922,12 +8804,10 @@ void ultralcd_init()
     }
     backlight_init();
 	lcd_init();
-	lcd_refresh();
+	lcd_redraw(true); //forced redraw. Might be redundant.
 	lcd_longpress_func = menu_lcd_longpress_func;
-	lcd_charsetup_func = menu_lcd_charsetup_func;
 	lcd_lcdupdate_func = menu_lcd_lcdupdate_func;
 	menu_menu = lcd_status_screen;
-	menu_lcd_charsetup_func();
 
   SET_INPUT(BTN_EN1);
   SET_INPUT(BTN_EN2);
@@ -8972,7 +8852,6 @@ static void lcd_connect_printer() {
 	
 	int i = 0;
 	int t = 0;
-	lcd_set_custom_characters_progress();
 	lcd_puts_at_P(0, 0, _i("Connect printer to")); 
 	lcd_puts_at_P(0, 1, _i("monitoring or hold"));
 	lcd_puts_at_P(0, 2, _i("the knob to continue"));
@@ -8989,12 +8868,11 @@ static void lcd_connect_printer() {
 			i = 0; 
 			lcd_puts_at_P(0, 3, PSTR("                    "));
 		}
-		if (i!=0) lcd_puts_at_P((i * 20) / (NC_BUTTON_LONG_PRESS * 10), 3, "\x01");
+		if (i!=0) lcd_puts_at_P((i * 20) / (NC_BUTTON_LONG_PRESS * 10), 3, "\xFF");
 		if (i == NC_BUTTON_LONG_PRESS * 10) {
 			no_response = false;
 		}
 	}
-	lcd_set_custom_characters_degree();
 	lcd_update_enable(true);
 	lcd_update(2);
 }
@@ -9116,14 +8994,6 @@ void menu_lcd_longpress_func(void)
     }
 }
 
-void menu_lcd_charsetup_func(void)
-{
-	if (menu_menu == lcd_status_screen)
-		lcd_set_custom_characters_degree();
-	else
-		lcd_set_custom_characters_arrows();
-}
-
 static inline bool z_menu_expired()
 {
     return (menu_menu == lcd_babystep_z
@@ -9150,7 +9020,6 @@ void menu_lcd_lcdupdate_func(void)
 	{
 		lcd_draw_update = 2;
 		lcd_oldcardstatus = IS_SD_INSERTED;
-		lcd_refresh(); // to maybe revive the LCD if static electricity killed it.
         backlight_wake();
 		if (lcd_oldcardstatus)
 		{

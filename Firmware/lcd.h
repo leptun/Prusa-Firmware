@@ -7,37 +7,32 @@
 #include "Timer.h"
 
 
+// #define VT100
+// #define LCD_DEBUG
+
 
 extern FILE _lcdout;
 
 #define lcdout (&_lcdout)
 
+extern uint8_t vga_get_char(int i, int j);
+
 extern void lcd_init(void);
 
-extern void lcd_refresh(void);
+extern void lcd_timer_enable(void);
 
-extern void lcd_refresh_noclear(void);
+extern void lcd_timer_disable(void);
+
+extern void lcd_redraw(bool forceRedraw = false);
 
 extern void lcd_clear(void);
 
 extern void lcd_home(void);
 
 /*extern void lcd_no_display(void);
-extern void lcd_display(void);
-extern void lcd_no_blink(void);
-extern void lcd_blink(void);
-extern void lcd_no_cursor(void);
-extern void lcd_cursor(void);
-extern void lcd_scrollDisplayLeft(void);
-extern void lcd_scrollDisplayRight(void);
-extern void lcd_leftToRight(void);
-extern void lcd_rightToLeft(void);
-extern void lcd_autoscroll(void);
-extern void lcd_no_autoscroll(void);*/
+extern void lcd_display(void);*/
 
 extern void lcd_set_cursor(uint8_t col, uint8_t row);
-
-extern void lcd_createChar_P(uint8_t, const uint8_t*);
 
 
 extern int lcd_putc(int c);
@@ -79,8 +74,6 @@ extern void lcd_print(double, int = 2);
 
 typedef void (*lcd_longpress_func_t)(void);
 
-typedef void (*lcd_charsetup_func_t)(void);
-
 typedef void (*lcd_lcdupdate_func_t)(void);
 
 //Set to none-zero when the LCD needs to draw, decreased after every draw. Set to 2 in LCD routines so the LCD gets at least 1 full redraw (first redraw is partial)
@@ -107,8 +100,6 @@ extern uint32_t lcd_next_update_millis;
 extern uint8_t lcd_status_update_delay;
 
 extern lcd_longpress_func_t lcd_longpress_func;
-
-extern lcd_charsetup_func_t lcd_charsetup_func;
 
 extern lcd_lcdupdate_func_t lcd_lcdupdate_func;
 
@@ -150,6 +141,11 @@ private:
     bool m_updateEnabled;
 };
 
+#define LcdTimerDisabler_START bool oldTimerStatus = lcd_status & 0x01; lcd_timer_disable();
+#define LcdTimerDisabler_END if (oldTimerStatus) lcd_timer_enable();
+
+extern void lcd_debug();
+
 
 ////////////////////////////////////
 // Setup button and encode mappings for each panel (into 'lcd_buttons' variable
@@ -187,23 +183,34 @@ private:
 
 
 //Custom characters defined in the first 8 characters of the LCD
-#define LCD_STR_BEDTEMP     "\x00"
-#define LCD_STR_DEGREE      "\x01"
-#define LCD_STR_THERMOMETER "\x02"
-#define LCD_STR_UPLEVEL     "\x03"
-#define LCD_STR_REFRESH     "\x04"
-#define LCD_STR_FOLDER      "\x05"
-#define LCD_STR_FEEDRATE    "\x06"
-#define LCD_STR_CLOCK       "\x07"
-#define LCD_STR_ARROW_UP    "\x0B"
-#define LCD_STR_ARROW_DOWN  "\x01"
-#define LCD_STR_ARROW_RIGHT "\x7E" //from the default character set
 
-extern void lcd_set_custom_characters(void);
-extern void lcd_set_custom_characters_arrows(void);
-extern void lcd_set_custom_characters_progress(void);
-extern void lcd_set_custom_characters_nextpage(void);
-extern void lcd_set_custom_characters_degree(void);
+//It is split into two memory banks. On the actual LCD, only one is in memory at a time.
+//Data from the two banks can be mixed together, but one must make sure the symbols of the same 3 bit address don't overlap.
+//for example, you can't have LCD_STR_BEDTEMP[0] and LCD_STR_ARROW_DOWN[0] on the screen at the same time,
+//but LCD_STR_THERMOMETER[0], LCD_STR_DEGREE[0] and LCD_STR_ARROW_DOWN[0] can all be used together.
+//Also, since we are overwriting the standard ASCII table with the custom characters, 0x0A must remain the NL character.
+
+//BANK 0:
+#define LCD_STR_BEDTEMP       "\x00"
+#define LCD_STR_DEGREE        "\x01"
+#define LCD_STR_THERMOMETER   "\x02"
+#define LCD_STR_UPLEVEL       "\x03"
+#define LCD_STR_REFRESH       "\x04"
+#define LCD_STR_FOLDER        "\x05"
+#define LCD_STR_FEEDRATE      "\x06"
+#define LCD_STR_CLOCK         "\x07"
+//BANK 1:
+#define LCD_STR_ARROW_DOWN    "\x08"
+#define LCD_STR_ARROW_2_DOWN  "\x09"
+#define LCD_STR_RESERVED_NL   "\x0A" //this is the newLine character. It is reserved for it's original purpose.
+#define LCD_STR_CONFIRM       "\x0B"
+
+//BANK DEFAULT - from the default character set
+#define LCD_STR_ARROW_RIGHT   "\x7E"
+#define LCD_STR_PROGRESS      "\xFF"
+
+extern uint8_t lcd_custom_character_bank;
+
 
 //! @brief Consume click event
 inline void lcd_consume_click()

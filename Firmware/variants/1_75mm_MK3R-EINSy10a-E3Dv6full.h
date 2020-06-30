@@ -9,11 +9,11 @@
  *------------------------------------*/
 
 // Printer revision
-#define PRINTER_TYPE PRINTER_MK3
-#define PRINTER_NAME PRINTER_MK3_NAME
-#define PRINTER_MMU_TYPE PRINTER_MK3_MMU2
-#define PRINTER_MMU_NAME PRINTER_MK3_MMU2_NAME
-#define FILAMENT_SIZE "1_75mm_MK3"
+#define PRINTER_TYPE PRINTER_MK3S
+#define PRINTER_NAME PRINTER_MK3S_NAME
+#define PRINTER_MMU_TYPE PRINTER_MK3S_MMU2
+#define PRINTER_MMU_NAME PRINTER_MK3S_MMU2_NAME
+#define FILAMENT_SIZE "1_75mm_MK3S"
 #define NOZZLE_TYPE "E3Dv6full"
 
 // Custom Firmware by leptun flag
@@ -143,7 +143,8 @@
 
 // Filament sensor
 #define FILAMENT_SENSOR
-#define PAT9125
+// #define PAT9125
+#define IR_SENSOR
 
 // Backlash - 
 //#define BACKLASH_X

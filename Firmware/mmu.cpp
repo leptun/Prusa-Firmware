@@ -734,8 +734,6 @@ void manage_response(bool move_axes, bool turn_off_nozzle, uint8_t move)
 				  screen=0;
 			  }
 
-			  lcd_set_degree();
-
 
 			  //5 seconds delay
 			  for (uint8_t i = 0; i < 5; i++) {
@@ -1563,7 +1561,7 @@ void mmu_continue_loading(bool blocking)
         {
         case Ls::Enter:
             increment_load_fail();
-            // no break
+            [[fallthrough]];
         case Ls::Retry:
             ++retry; // overflow not handled, as it is not dangerous.
             if (retry >= max_retry)
