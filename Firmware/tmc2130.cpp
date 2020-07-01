@@ -404,18 +404,14 @@ void tmc2130_home_enter(uint8_t axes_mask)
 	printf_P(PSTR("tmc2130_home_enter(axes_mask=0x%02x)\n"), axes_mask);
 	if (axes_mask & 0x03) //X or Y
 		tmc2130_wait_standstill_xy(1000);
+	tmc2209_load_mode(TMC2130_MODE_SILENT);
 	for (uint8_t axis = X_AXIS; axis <= Z_AXIS; axis++) //X Y and Z axes
 	{
 		uint8_t mask = (X_AXIS_MASK << axis);
 		if (axes_mask & mask)
 		{
 			tmc2130_sg_homing_axes_mask |= mask;
-			tmc2209_load_mode(TMC2130_MODE_SILENT);
 			tmc2130_wr(axis, TMC2209_REG_SGTHRS, tmc2130_sg_thr_home[axis]);
-			// tmc2130_wr(axis, TMC2130_REG_TCOOLTHRS, __tcoolthrs(axis));
-			// tmc2130_setup_chopper(axis, tmc2130_mres[axis], tmc2130_current_h[axis], tmc2130_current_r_home[axis]);
-			// if (mask & (X_AXIS_MASK | Y_AXIS_MASK | Z_AXIS_MASK))
-				// tmc2130_wr(axis, TMC2130_REG_GCONF, TMC2209_GCONF_SILENT); //stallguard output DIAG
 		}
 	}
 }
