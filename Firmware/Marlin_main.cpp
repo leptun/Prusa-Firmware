@@ -2635,12 +2635,10 @@ static void gcode_G28(bool home_x_axis, long home_x_value, bool home_y_axis, lon
       // In the quick mode, if both x and y are to be homed, a diagonal move will be performed initially.
       if(home_x && home_y)  //first diagonal move
       {
-        current_position[X_AXIS] = 0;current_position[Y_AXIS] = 0;
+#ifdef TMC2130
+        tmc2130_home_enter(X_AXIS_MASK | Y_AXIS_MASK);
+#endif //TMC2130
 
-        int x_axis_home_dir = home_dir(X_AXIS);
-
-        plan_set_position_curposXYZE();
-        destination[X_AXIS] = 1.5 * max_length(X_AXIS) * x_axis_home_dir;destination[Y_AXIS] = 1.5 * max_length(Y_AXIS) * home_dir(Y_AXIS);
         feedrate = homing_feedrate[X_AXIS];
         if(homing_feedrate[Y_AXIS]<feedrate)
           feedrate = homing_feedrate[Y_AXIS];
@@ -2649,22 +2647,30 @@ static void gcode_G28(bool home_x_axis, long home_x_value, bool home_y_axis, lon
         } else {
           feedrate *= sqrt(pow(max_length(X_AXIS) / max_length(Y_AXIS), 2) + 1);
         }
+        current_position[X_AXIS] = 0; current_position[Y_AXIS] = 0;
+        plan_set_position_curposXYZE();
+        set_destination_to_current();
+        destination[X_AXIS] = -3.f * home_dir(X_AXIS); destination[Y_AXIS] = -3.f * home_dir(Y_AXIS);
         plan_buffer_line_destinationXYZE(feedrate/60);
         st_synchronize();
 
-        axis_is_at_home(X_AXIS);
-        axis_is_at_home(Y_AXIS);
+        destination[X_AXIS] = 1.5 * max_length(X_AXIS) * home_dir(X_AXIS); destination[Y_AXIS] = 1.5 * max_length(Y_AXIS) * home_dir(Y_AXIS);
+        plan_buffer_line_destinationXYZE(feedrate/60);
+        st_synchronize();
+
+        axis_is_at_home(X_AXIS); axis_is_at_home(Y_AXIS);
         plan_set_position_curposXYZE();
-        destination[X_AXIS] = current_position[X_AXIS];
-        destination[Y_AXIS] = current_position[Y_AXIS];
+        set_destination_to_current();
         plan_buffer_line_destinationXYZE(feedrate/60);
         feedrate = 0.0;
         st_synchronize();
         endstops_hit_on_purpose();
 
-        current_position[X_AXIS] = destination[X_AXIS];
-        current_position[Y_AXIS] = destination[Y_AXIS];
-        current_position[Z_AXIS] = destination[Z_AXIS];
+        set_current_to_destination();
+
+#ifdef TMC2130
+        tmc2130_home_exit();
+#endif //TMC2130
       }
       #endif /* QUICK_HOME */
 

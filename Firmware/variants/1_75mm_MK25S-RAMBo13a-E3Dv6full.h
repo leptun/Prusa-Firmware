@@ -69,7 +69,7 @@
 #define Z_MIN_POS 0.15
 
 // Canceled home position
-#define X_CANCEL_POS 50
+#define X_CANCEL_POS 240
 #define Y_CANCEL_POS 190
 
 //Pause print position
