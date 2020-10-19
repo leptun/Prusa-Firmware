@@ -5,6 +5,7 @@
 #include <avr/pgmspace.h>
 #include "rbuf.h"
 #include "Configuration_prusa.h"
+#include "macros.h"
 
 #define UART2_BAUD 115200
 #define UART_BAUD_SELECT(baudRate,xtalCpu) (((float)(xtalCpu))/(((float)(baudRate))*8.0)-1.0+0.5)
@@ -17,7 +18,7 @@ uint8_t uart2_ibuf[14] = {0, 0};
 FILE _uart2io = {0};
 
 
-int uart2_putchar(char c, __attribute((unused)) FILE *stream)
+int uart2_putchar(char c, _UNUSED FILE *stream)
 {
 	while (!uart2_txready);
 	UDR2 = c; // transmit byte
@@ -26,7 +27,7 @@ int uart2_putchar(char c, __attribute((unused)) FILE *stream)
 	return 0;
 }
 
-int uart2_getchar(__attribute((unused)) FILE *stream)
+int uart2_getchar(_UNUSED FILE *stream)
 {
 	if (rbuf_empty(uart2_ibuf)) return -1;
 	return rbuf_get(uart2_ibuf);
