@@ -5,23 +5,25 @@
 #include <stdarg.h>
 #include <avr/pgmspace.h>
 #include <util/delay.h>
+#include <util/atomic.h>
 #include "Timer.h"
 
 #include "Configuration.h"
 #include "pins.h"
-#include <binary.h>
-#include <Arduino.h>
-#include "Marlin.h"
+#include "system_timer.h"
+#include "static_assert.h"
 #include "fastio.h"
-//-//
-#include "sound.h"
+#include "macros.h"
 
-#define LCD_DEFAULT_DELAY 100 //ms
+#define LCD_DEFAULT_DELAY 100 //us
 #define LCD_REDRAW_PERIOD (30 * 1000) //ms
+#define LCD_ISR_DELAY_MULTIPLIER 1 //increase this to make the drawing slower
 
 #if (defined(LCD_PINS_D0) && defined(LCD_PINS_D1) && defined(LCD_PINS_D2) && defined(LCD_PINS_D3))
 	#define LCD_8BIT
 #endif
+
+static_assert(LCD_WIDTH == 20 && LCD_HEIGHT == 4, "Only 20x4 LCDs are supported");
 
 // commands
 #define LCD_CLEARDISPLAY 0x01
@@ -34,32 +36,22 @@
 #define LCD_SETDDRAMADDR 0x80
 
 // flags for display entry mode
-#define LCD_ENTRYRIGHT 0x00
-#define LCD_ENTRYLEFT 0x02
-#define LCD_ENTRYSHIFTINCREMENT 0x01
-#define LCD_ENTRYSHIFTDECREMENT 0x00
+#define LCD_ENTRYMODESET_DIRECTION 0x02 //else decrement cursor address.
+#define LCD_ENTRYMODESET_SHIFT 0x01 //moves display. Cursor remains stationary. Direction dictated by increment flag.
 
 // flags for display on/off control
-#define LCD_DISPLAYON 0x04
-#define LCD_DISPLAYOFF 0x00
-#define LCD_CURSORON 0x02
-#define LCD_CURSOROFF 0x00
-#define LCD_BLINKON 0x01
-#define LCD_BLINKOFF 0x00
+#define LCD_DISPLAYCONTROL_DISPLAYON 0x04
+#define LCD_DISPLAYCONTROL_CURSORON 0x02
+#define LCD_DISPLAYCONTROL_BLINKON 0x01
 
 // flags for display/cursor shift
-#define LCD_DISPLAYMOVE 0x08
-#define LCD_CURSORMOVE 0x00
-#define LCD_MOVERIGHT 0x04
-#define LCD_MOVELEFT 0x00
+#define LCD_CURSORSHIFT_DISPLAYMOVE 0x08
+#define LCD_CURSORSHIFT_DIRECTION 0x04
 
 // flags for function set
-#define LCD_8BITMODE 0x10
-#define LCD_4BITMODE 0x00
-#define LCD_2LINE 0x08
-#define LCD_1LINE 0x00
-#define LCD_5x10DOTS 0x04
-#define LCD_5x8DOTS 0x00
+#define LCD_FUNCTIONSET_8BITMODE 0x10
+#define LCD_FUNCTIONSET_2LINE 0x08
+#define LCD_FUNCTIONSET_5x10DOTS 0x04
 
 // bitmasks for flag argument settings
 #define LCD_RS_FLAG 0x01
@@ -72,20 +64,13 @@ uint8_t lcd_displayfunction = 0;
 uint8_t lcd_displaycontrol = 0;
 uint8_t lcd_displaymode = 0;
 
-#define VGA_MAP_SIZE ((LCD_WIDTH * LCD_HEIGHT) / 8)
-#ifdef LCD_DEBUG
-	#define DEBUG(x) MYSERIAL.println(x);
-#else
-	#define DEBUG(x)
-#endif
-
-volatile uint8_t lcd_curpos;
+uint8_t lcd_curpos;
 //xbbbbaaa: cursor position from 0 to (LCD_WIDTH * LCD_HEIGHT)-1
-//bbbb: index of the cluster in vga_map to search. From 0 to VGA_MAP_SIZE-1
+//bbbb: index of the cluster in vga_map to search. From 0 to sizeof(vga_map)-1
 //aaa: Rshift value for the bit to search. From 0 to 7
 //x: unused. Leave it clear.
 
-volatile uint8_t vga_map[VGA_MAP_SIZE]; //bitmap for changes on the display. Individual bits are set when lcd_write() is used
+uint8_t vga_map[DIVIDE_ROUND_UP(LCD_WIDTH * LCD_HEIGHT, 8)]; //bitmap for changes on the display. Individual bits are set when lcd_write() is used
 //    01234567890123456789
   
 // 0  00000000111111112222
@@ -123,56 +108,64 @@ static void lcd_no_display(void);
 uint8_t lcd_escape[8];
 #endif
 
-#if ((MOTHERBOARD == BOARD_RAMBO_MINI_1_0) || (MOTHERBOARD == BOARD_RAMBO_MINI_1_3) || (MOTHERBOARD == BOARD_RAMBO_MINI_1_3T))
-	#define TCCRxA TCCR3A
-	#define TCCRxB TCCR3B
-	#define TCCRxC TCCR3C
-	#define TCNTx TCNT3
-	#define OCRxA OCR3A
-	#define TIMSKx TIMSK3
-	#define TIFRx TIFR3
-	#define TIMERx_COMPA_vect TIMER3_COMPA_vect
-#elif ((MOTHERBOARD == BOARD_EINSY_1_0a))
-	#define TCCRxA TCCR5A
-	#define TCCRxB TCCR5B
-	#define TCCRxC TCCR5C
-	#define TCNTx TCNT5
-	#define OCRxA OCR5A
-	#define TIMSKx TIMSK5
-	#define TIFRx TIFR5
-	#define TIMERx_COMPA_vect TIMER5_COMPA_vect
-#endif
+#define LCD_TIMER_REGNAME(registerbase,number,suffix) _REGNAME(registerbase,number,suffix)
+#undef B0 //Necessary hack because of "binary.h" included in "Arduino.h" included in "system_timer.h" included in this file...
 
+#define TCCRxA LCD_TIMER_REGNAME(TCCR, LCD_TIMER, A)
+#define TCCRxB LCD_TIMER_REGNAME(TCCR, LCD_TIMER, B)
+#define TCCRxC LCD_TIMER_REGNAME(TCCR, LCD_TIMER, C)
+#define TCNTx LCD_TIMER_REGNAME(TCNT, LCD_TIMER,)
+#define OCRxA LCD_TIMER_REGNAME(OCR, LCD_TIMER, A)
+#define TIMSKx LCD_TIMER_REGNAME(TIMSK, LCD_TIMER,)
+#define TIFRx LCD_TIMER_REGNAME(TIFR, LCD_TIMER,)
+#define TIMERx_COMPA_vect LCD_TIMER_REGNAME(TIMER, LCD_TIMER, _COMPA_vect)
+#define CSx0 LCD_TIMER_REGNAME(CS, LCD_TIMER, 0)
+#define CSx1 LCD_TIMER_REGNAME(CS, LCD_TIMER, 1)
+#define CSx2 LCD_TIMER_REGNAME(CS, LCD_TIMER, 2)
+#define WGMx0 LCD_TIMER_REGNAME(WGM, LCD_TIMER, 0)
+#define WGMx1 LCD_TIMER_REGNAME(WGM, LCD_TIMER, 1)
+#define WGMx2 LCD_TIMER_REGNAME(WGM, LCD_TIMER, 2)
+#define WGMx3 LCD_TIMER_REGNAME(WGM, LCD_TIMER, 3)
+#define COMxA0 LCD_TIMER_REGNAME(COM, LCD_TIMER, A0)
+#define COMxB0 LCD_TIMER_REGNAME(COM, LCD_TIMER, B0)
+#define COMxC0 LCD_TIMER_REGNAME(COM, LCD_TIMER, C0)
+#define OCIExA LCD_TIMER_REGNAME(OCIE, LCD_TIMER, A)
+#define OCFxA LCD_TIMER_REGNAME(OCF, LCD_TIMER, A)
+
+#define LCD_TIMER_IS_ENABLED() (TIMSKx & _BV(OCIExA))
+
+#ifdef LCD_DEBUG
 void lcd_debug(){
-	MYSERIAL.println("VGA:");
+	puts_P(PSTR("VGA:"));
 	for (int i = 0; i < LCD_HEIGHT; i++){
 		for (int j = 0; j < LCD_WIDTH; j++){
-			MYSERIAL.print(vga[j][i]);
+			putchar(vga[j][i]);
 		}
-		MYSERIAL.print("\n");
+		putchar('\n');
 	}
 	
-	for (int i = 0; i < 10; i++)
+	for (uint8_t i = 0; i < sizeof(vga_map); i++)
 	{
-		MYSERIAL.print(vga_map[i], HEX);
-		MYSERIAL.print(' ');
+		printf_P(PSTR("%02hX "), vga_map[i]);
 	}
-	MYSERIAL.print('\n');
+	putchar('\n');
 	
-	MYSERIAL.print("curpos:"); MYSERIAL.println(lcd_curpos, DEC);
-	MYSERIAL.print("timer_status:"); MYSERIAL.println(lcd_status, BIN);
-	MYSERIAL.print("TCCRxB:"); MYSERIAL.println(TCCRxB, BIN);
+	printf_P(PSTR("lcd_curpos: %02hX\n"), lcd_curpos);
+	printf_P(PSTR("lcd_status: %02hX\n"), lcd_status);
+	printf_P(PSTR("TCCRxB: %02hX\n"), TCCRxB);
 }
+#endif //LCD_DEBUG
 
 void lcd_timer_enable(void)
-{	
-	CRITICAL_SECTION_START; //prevent unwanted timer interrupts while messing with the timer.
-	lcd_status |= 0x01; //set timer enabled flag
-	lcd_status &= ~0x02; //clear timer force disable flag. Shouldn't be needed, but just to be safe.
-	TCCRxB |= 0x02; //start timer. Set clock source
-	TCNTx = 0; //clear timer value
-	TIFRx |= (1 << OCF3A); //clear interrupt flag by writing 1 in register.
-	CRITICAL_SECTION_END;
+{
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+	{
+		lcd_status |= 0x01; //set timer enabled flag
+		lcd_status &= ~0x02; //clear timer force disable flag. Shouldn't be needed, but just to be safe.
+		TCNTx = 0; //clear timer value
+		TIMSKx |= _BV(OCIExA); // enable interrupt
+		TIFRx |= _BV(OCFxA); //clear interrupt flag by writing 1 in register.
+	}
 }
 
 void lcd_timer_disable(void)
@@ -180,46 +173,61 @@ void lcd_timer_disable(void)
 	if ((lcd_status & 0x01) && !(lcd_status & 0x02)) //do not wait recursively
 	{
 		lcd_status |= 0x02;
-		while(lcd_status & 0x02) 
+		while(lcd_status & 0x02) //wait for isr to finish what it has to do. The ISR might run a second time to make sure the nibble doesn't get out of sync.
+		{
 			// lcd_debug();
-			asm ("nop"); //wait for isr to finish what it has to do. The ISR might run a second time to make sure the nibble doesn't get out of sync.
+		}
 		return; //the ISR disables itself. no need to also disable it here.
 	}
-	CRITICAL_SECTION_START; //prevent unwanted timer interrupts while messing with the timer.
-	lcd_status &= ~0x03; //clear both timer flags
-	TCCRxB &= ~(0x07); //stop timer
-	TCNTx = 0; //clear timer value
-	TIFRx |= (1 << OCF3A); //clear interrupt flag by writing 1 in register.
-	CRITICAL_SECTION_END;
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+	{
+		lcd_status &= ~0x03; //clear both timer flags
+		TIMSKx &= ~_BV(OCIExA); // disable interrupt
+	}
 }
 
+class LcdTimerDisabler
+{
+public:
+	LcdTimerDisabler(): m_updateEnabled(LCD_TIMER_IS_ENABLED())
+	{
+		lcd_timer_disable();
+	}
+	~LcdTimerDisabler()
+	{
+		if (m_updateEnabled)
+			lcd_timer_enable();
+	}
+private:
+	bool m_updateEnabled;
+};
+
 static void lcd_pulseEnable(void) //lcd
-{  
-	WRITE(LCD_PINS_ENABLE,HIGH);
-	_delay_us(1);    // enable pulse must be >450ns
-	WRITE(LCD_PINS_ENABLE,LOW);
+{
+	WRITE(LCD_PINS_ENABLE, 1);
+	_delay_us(1); // enable pulse must be >450ns
+	WRITE(LCD_PINS_ENABLE, 0);
 }
 
 static void lcd_writebits(uint8_t value) //lcd
 {
 #ifdef LCD_8BIT
-	WRITE(LCD_PINS_D0, value & 0x01);
-	WRITE(LCD_PINS_D1, value & 0x02);
-	WRITE(LCD_PINS_D2, value & 0x04);
-	WRITE(LCD_PINS_D3, value & 0x08);
+	WRITE(LCD_PINS_D0, value & _BV(0));
+	WRITE(LCD_PINS_D1, value & _BV(1));
+	WRITE(LCD_PINS_D2, value & _BV(2));
+	WRITE(LCD_PINS_D3, value & _BV(3));
 #endif
-	WRITE(LCD_PINS_D4, value & 0x10);
-	WRITE(LCD_PINS_D5, value & 0x20);
-	WRITE(LCD_PINS_D6, value & 0x40);
-	WRITE(LCD_PINS_D7, value & 0x80);
+	WRITE(LCD_PINS_D4, value & _BV(4));
+	WRITE(LCD_PINS_D5, value & _BV(5));
+	WRITE(LCD_PINS_D6, value & _BV(6));
+	WRITE(LCD_PINS_D7, value & _BV(7));
 	
 	lcd_pulseEnable();
 }
 
-static void lcd_send(uint8_t data, uint8_t flags, uint16_t duration = LCD_DEFAULT_DELAY) //lcd
+static void lcd_send(uint8_t data, uint8_t flags) //lcd
 {
 	WRITE(LCD_PINS_RS,flags&LCD_RS_FLAG);
-	// _delay_us(5);
 	lcd_writebits(data);
 #ifndef LCD_8BIT
 	if (!(flags & LCD_HALF_FLAG))
@@ -228,15 +236,15 @@ static void lcd_send(uint8_t data, uint8_t flags, uint16_t duration = LCD_DEFAUL
 		lcd_writebits(data<<4);
 	}
 #endif
-	delayMicroseconds(duration);
 #ifdef LCD_DEBUG
-	MYSERIAL.print("SEND:"); MYSERIAL.print((flags&LCD_RS_FLAG)?1:0, BIN); MYSERIAL.print(' '); MYSERIAL.println(data, HEX);
-#endif
+	printf_P(PSTR("lcd_send: %02hX, %c\n"), data, (flags&LCD_RS_FLAG)?1:0);
+#endif //LCD_DEBUG
 }
 
-static void lcd_command(uint8_t value, uint16_t delayExtra = 0) //lcd
+static void lcd_command(uint8_t value) //lcd
 {
-	lcd_send(value, LOW, LCD_DEFAULT_DELAY + delayExtra);
+	lcd_send(value, 0);
+	_delay_us(LCD_DEFAULT_DELAY);
 }
 
 static void vga_linefeed(void) //vga
@@ -276,34 +284,36 @@ static void lcd_clear_hardware(void);
 
 static void lcd_begin()
 {
-	LcdTimerDisabler_START;
-	lcd_send(LCD_FUNCTIONSET | LCD_8BITMODE, LOW | LCD_HALF_FLAG, 4500); // wait min 4.1ms
+	LcdTimerDisabler _LcdTimerDisabler;
+	lcd_send(LCD_FUNCTIONSET | LCD_FUNCTIONSET_8BITMODE, 0 | LCD_HALF_FLAG); // wait min 4.1ms
+	_delay_us(4500);
 	// second try
-	lcd_send(LCD_FUNCTIONSET | LCD_8BITMODE, LOW | LCD_HALF_FLAG, 150);
+	lcd_send(LCD_FUNCTIONSET | LCD_FUNCTIONSET_8BITMODE, 0 | LCD_HALF_FLAG);
+	_delay_us(150);
 	// third go!
-	lcd_send(LCD_FUNCTIONSET | LCD_8BITMODE, LOW | LCD_HALF_FLAG, 150);
+	lcd_send(LCD_FUNCTIONSET | LCD_FUNCTIONSET_8BITMODE, 0 | LCD_HALF_FLAG);
+	_delay_us(150);
 #ifndef LCD_8BIT
 	// set to 4-bit interface
-	lcd_send(LCD_FUNCTIONSET | LCD_4BITMODE, LOW | LCD_HALF_FLAG, 150);
+	lcd_send(LCD_FUNCTIONSET, 0 | LCD_HALF_FLAG);
+	_delay_us(150);
 #endif
 
 	// finally, set # lines, font size, etc.0
 	lcd_command(LCD_FUNCTIONSET | lcd_displayfunction);
 	// turn the display on with no cursor or blinking default
-	lcd_displaycontrol = LCD_CURSOROFF | LCD_BLINKOFF;  
+	lcd_displaycontrol = 0;  
 	lcd_display();
 	// clear lcd and set all bits to be updated
 	lcd_clear_hardware();
 	// Initialize to default text direction (for romance languages)
-	lcd_displaymode = LCD_ENTRYLEFT | LCD_ENTRYSHIFTDECREMENT;
+	lcd_displaymode = LCD_ENTRYMODESET_DIRECTION;
 	// set the entry mode
 	lcd_command(LCD_ENTRYMODESET | lcd_displaymode);
 	
 	#ifdef VT100
 	lcd_escape[0] = 0;
 	#endif
-	
-	LcdTimerDisabler_END;
 }
 
 static int vga_putchar(char c, FILE *) //vga
@@ -318,25 +328,21 @@ static void vga_init(void) //vga
 	
 	//setup lcd_timer
 	
-	CRITICAL_SECTION_START;
-	// waveform generation = 0100 = CTC
-	TCCRxB &= ~(1<<WGM33);
-	TCCRxB |=  (1<<WGM32);
-	TCCRxA &= ~(1<<WGM31);
-	TCCRxA &= ~(1<<WGM30);
-	
-	// output mode = 00 (disconnected)
-	TCCRxA &= ~(3<<COM3A0);
-	TCCRxA &= ~(3<<COM3B0);
-	TCCRxA &= ~(3<<COM3C0);
-	OCRxA = (LCD_DEFAULT_DELAY * 2 * (F_CPU/1000000/8)) - 1; //set timer TOP value with an 8x prescaler. The push speed is slowed down a bit.
-	
-	lcd_status &= ~0x0b;
-	lcd_timer_disable();
-	
-	// enable interrupt
-	TIMSKx = 0x02;
-	CRITICAL_SECTION_END;
+	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
+	{
+		TCCRxA = 0;
+		TCCRxB = 0;
+		
+		// waveform generation = 0100 = CTC
+		TCCRxB |= _BV(WGMx2);
+		OCRxA = (LCD_DEFAULT_DELAY * LCD_ISR_DELAY_MULTIPLIER * (F_CPU/1000000/8)) - 1; //set timer TOP value with an 8x prescaler.
+		
+		lcd_status = 0;
+		lcd_timer_disable();
+		
+		//start timer. Set clock source
+		TCCRxB |= _BV(CSx1);
+	}
 	
 	fdev_setup_stream(lcdout, vga_putchar, NULL, _FDEV_SETUP_WRITE); //setup lcdout stream
 	lcd_redraw_timer.start();
@@ -344,7 +350,7 @@ static void vga_init(void) //vga
 
 void lcd_init(void) //lcd
 {
-	WRITE(LCD_PINS_ENABLE,LOW);
+	WRITE(LCD_PINS_ENABLE, 0);
 	SET_OUTPUT(LCD_PINS_RS);
 	SET_OUTPUT(LCD_PINS_ENABLE);
 
@@ -360,9 +366,9 @@ void lcd_init(void) //lcd
 	SET_OUTPUT(LCD_PINS_D7);
 	
 #ifdef LCD_8BIT
-	lcd_displayfunction |= LCD_8BITMODE;
+	lcd_displayfunction |= LCD_FUNCTIONSET_8BITMODE;
 #endif
-	lcd_displayfunction |= LCD_2LINE;
+	lcd_displayfunction |= LCD_FUNCTIONSET_2LINE;
 	vga_init();
 	_delay_us(50000);
 	lcd_begin();
@@ -385,15 +391,16 @@ void lcd_clear(void) //vga
 	for (int i = 0; i < LCD_WIDTH; i++)
 		for (int j = 0; j < LCD_HEIGHT; j++)
 			vga[i][j] = ' ';
-	for (int i = 0; i < VGA_MAP_SIZE; i++) vga_map[i] = 0xff; //force entire screen update.
+	for (uint8_t i = 0; i < sizeof(vga_map); i++) vga_map[i] = 0xff; //force entire screen update.
 	lcd_home();
 }
 
 static void lcd_clear_hardware(void) //lcd
 {
-	lcd_command(LCD_CLEARDISPLAY, 1600);  // clear display, set cursor position to zero
+	lcd_command(LCD_CLEARDISPLAY);  // clear display, set cursor position to zero
+	_delay_us(1600); //extra delay according to datasheet
 	lcd_curpos = 0;
-	for (int i = 0; i < VGA_MAP_SIZE; i++) vga_map[i] = 0xff; //force entire screen update.
+	for (uint8_t i = 0; i < sizeof(vga_map); i++) vga_map[i] = 0xff; //force entire screen update.
 	lcd_status &= ~0x08;
 }
 
@@ -406,45 +413,47 @@ void lcd_home(void) //vga
 // Turn the display on/off (quickly)
 void lcd_display(void) //lcd
 {
-	LcdTimerDisabler_START;
-    lcd_displaycontrol |= LCD_DISPLAYON;
-    lcd_command(LCD_DISPLAYCONTROL | lcd_displaycontrol);
-	LcdTimerDisabler_END;
+	LcdTimerDisabler _LcdTimerDisabler;
+	lcd_displaycontrol |= LCD_DISPLAYCONTROL_DISPLAYON;
+	lcd_command(LCD_DISPLAYCONTROL | lcd_displaycontrol);
 }
 
 #if 0
 void lcd_no_display(void)
 {
-	LcdTimerDisabler_START;
-	lcd_displaycontrol &= ~LCD_DISPLAYON;
+	LcdTimerDisabler _LcdTimerDisabler;
+	lcd_displaycontrol &= ~LCD_DISPLAYCONTROL_DISPLAYON;
 	lcd_command(LCD_DISPLAYCONTROL | lcd_displaycontrol);
-	LcdTimerDisabler_END;
 }
 #endif
 
 void lcd_set_cursor(uint8_t col, uint8_t row) //vga
 {
-	vga_currcol = (uint8_t)(constrain((int8_t)(col), 0, LCD_WIDTH-1));
-	vga_currline = (uint8_t)(constrain((int8_t)(row), 0, LCD_HEIGHT-1));
+	vga_currcol = col;
+	NOMORE(vga_currcol, LCD_WIDTH - 1);
+	vga_currline = row;
+	NOMORE(vga_currline, LCD_HEIGHT - 1);
 }
 
-static void lcd_set_cursor_hardware(uint8_t col, uint8_t row, bool nibbleLess = 0) //lcd
+static void lcd_set_cursor_hardware(uint8_t col, uint8_t row, bool doDelay = false) //lcd
 {
-	int row_offsets[] = { 0x00, 0x40, 0x14, 0x54 };
-	if (nibbleLess)
-		lcd_send(LCD_SETDDRAMADDR | (col + row_offsets[row]), LOW, 100);
-	else
-		lcd_send(LCD_SETDDRAMADDR | (col + row_offsets[row]), LOW, 0);
+	constexpr uint8_t row_offsets[] = {0x00, 0x40, 0x14, 0x54};
+	lcd_send(LCD_SETDDRAMADDR | (col + row_offsets[row]), 0); 
+	if (doDelay)
+		_delay_us(100);
 }
 
 // Allows us to fill the first 8 CGRAM locations
 // with custom characters
 static void lcd_createChar_P(uint8_t location, const uint8_t* charmap) //lcd
 {
-  location &= 0x7; // we only have 8 locations 0-7
-  lcd_command(LCD_SETCGRAMADDR | (location << 3));
-  for (int i=0; i<8; i++)
-    lcd_send(pgm_read_byte(&charmap[i]), HIGH);
+	location &= 0x7; // we only have 8 locations 0-7
+	lcd_command(LCD_SETCGRAMADDR | (location << 3));
+	for (uint8_t i = 0; i < 8; i++)
+	{
+		lcd_send(pgm_read_byte(&charmap[i]), 1);
+		_delay_us(LCD_DEFAULT_DELAY);
+	}
 }
 
 ISR(TIMERx_COMPA_vect)
@@ -459,7 +468,7 @@ ISR(TIMERx_COMPA_vect)
 	if (vga_map[lcd_curpos >> 3] & (1 << (7 - (lcd_curpos & 0x07)))) next_command_type = 1;
 	else
 	{
-		for (int i = 0; (i < VGA_MAP_SIZE) && (next_command_type == 0); i++)
+		for (uint8_t i = 0; (i < sizeof(vga_map)) && (next_command_type == 0); i++)
 		{
 			if (vga_map[i] != 0)
 			{
@@ -478,9 +487,9 @@ ISR(TIMERx_COMPA_vect)
 	if ((next_command_type == 1) && !(!(lcd_status & 0x08) && (lcd_curpos % LCD_WIDTH == 0))) //print current char and last char was jump
 	{
 #ifdef LCD_DEBUG
-		MYSERIAL.print("VGA:print: "); MYSERIAL.println(vga[lcd_curpos % LCD_WIDTH][lcd_curpos / LCD_WIDTH]);
-#endif
-		lcd_send(vga[lcd_curpos % LCD_WIDTH][lcd_curpos / LCD_WIDTH], HIGH, 0);
+		printf_P(PSTR("ISR:print: %c\n"), vga[lcd_curpos % LCD_WIDTH][lcd_curpos / LCD_WIDTH]);
+#endif //LCD_DEBUG
+		lcd_send(vga[lcd_curpos % LCD_WIDTH][lcd_curpos / LCD_WIDTH], 1);
 		vga_map[lcd_curpos >> 3] &= ~(1 << (7 - (lcd_curpos & 0x07))); //clear bit in vga_map
 		lcd_status &= ~0x08; //this char is data
 		lcd_curpos++;
@@ -489,8 +498,8 @@ ISR(TIMERx_COMPA_vect)
 	else if (next_command_type == 0) //no character to print was found. vga_map is empty. disable timer.
 	{
 #ifdef LCD_DEBUG
-		MYSERIAL.println("ISR:disable");
-#endif
+		puts_P(PSTR("ISR:disable"));
+#endif //LCD_DEBUG
 		lcd_status &= ~0x01;
 		lcd_timer_disable();
 		return;
@@ -498,8 +507,8 @@ ISR(TIMERx_COMPA_vect)
 	else //a jump command is required to the destination lcd_curpos
 	{
 #ifdef LCD_DEBUG
-		MYSERIAL.print("VGA:jump: "); MYSERIAL.println(lcd_curpos, DEC);
-#endif
+		printf_P(PSTR("ISR:jump: %02hX\n"));
+#endif //LCD_DEBUG
 		lcd_set_cursor_hardware(lcd_curpos % LCD_WIDTH, lcd_curpos / LCD_WIDTH);
 		lcd_status |= 0x08; // the data is jump
 	}
@@ -781,348 +790,138 @@ void lcd_printFloat(double number, uint8_t digits)
 }
 
 
-uint8_t lcd_draw_update = 2;
-int32_t lcd_encoder = 0;
-uint8_t lcd_encoder_bits = 0;
-int8_t lcd_encoder_diff = 0;
-
-uint8_t lcd_buttons = 0;
-uint8_t lcd_button_pressed = 0;
-uint8_t lcd_update_enabled = 1;
-
-uint32_t lcd_next_update_millis = 0;
-uint8_t lcd_status_update_delay = 0;
-
-
-
-lcd_longpress_func_t lcd_longpress_func = 0;
-
-lcd_lcdupdate_func_t lcd_lcdupdate_func = 0;
-
-static ShortTimer buttonBlanking;
-ShortTimer longPressTimer;
-LongTimer lcd_timeoutToStatus;
-
-
-//! @brief Was button clicked?
-//!
-//! Consume click event, following call would return 0.
-//! See #LCD_CLICKED macro for version not consuming the event.
-//!
-//! Generally is used in modal dialogs.
-//!
-//! @retval 0 not clicked
-//! @retval nonzero clicked
-uint8_t lcd_clicked(void)
-{
-	bool clicked = LCD_CLICKED;
-	if(clicked)
-	{
-	    lcd_consume_click();
-	}
-    return clicked;
-}
-
-void lcd_beeper_quick_feedback(void)
-{
-//-//
-Sound_MakeSound(e_SOUND_TYPE_ButtonEcho);
-/*
-	for(int8_t i = 0; i < 10; i++)
-	{
-		Sound_MakeCustom(100,0,false);
-		_delay_us(100);
-	}
-*/
-}
-
-void lcd_quick_feedback(void)
-{
-  lcd_draw_update = 2;
-  lcd_button_pressed = false;
-  lcd_beeper_quick_feedback();
-}
-
-void lcd_update(uint8_t lcdDrawUpdateOverride)
-{
-	lcd_redraw();
-	if (lcd_draw_update < lcdDrawUpdateOverride)
-		lcd_draw_update = lcdDrawUpdateOverride;
-	if (!lcd_update_enabled)
-		return;
-	if (lcd_lcdupdate_func)
-		lcd_lcdupdate_func();
-}
-
-void lcd_update_enable(uint8_t enabled)
-{
-	if (lcd_update_enabled != enabled)
-	{
-		lcd_update_enabled = enabled;
-		if (enabled)
-		{ // Reset encoder position. This is equivalent to re-entering a menu.
-			lcd_encoder = 0;
-			lcd_encoder_diff = 0;
-			// Enabling the normal LCD update procedure.
-			// Reset the timeout interval.
-			lcd_timeoutToStatus.start();
-			// Force the keypad update now.
-			lcd_next_update_millis = _millis() - 1;
-			// Full update.
-			lcd_clear();
-			lcd_update(2);
-		} else
-		{
-			// Clear the LCD always, or let it to the caller?
-		}
-	}
-}
-
-void lcd_buttons_update(void)
-{
-    static uint8_t lcd_long_press_active = 0;
-	uint8_t newbutton = 0;
-	if (READ(BTN_EN1) == 0)  newbutton |= EN_A;
-	if (READ(BTN_EN2) == 0)  newbutton |= EN_B;
-
-    if (READ(BTN_ENC) == 0)
-    { //button is pressed
-        lcd_timeoutToStatus.start();
-        if (!buttonBlanking.running() || buttonBlanking.expired(BUTTON_BLANKING_TIME)) {
-            buttonBlanking.start();
-            safetyTimer.start();
-            if ((lcd_button_pressed == 0) && (lcd_long_press_active == 0))
-            {
-                longPressTimer.start();
-                lcd_button_pressed = 1;
-            }
-            else if (longPressTimer.expired(LONG_PRESS_TIME))
-            {
-                lcd_long_press_active = 1;
-                //long press is not possible in modal mode
-                if (lcd_longpress_func && lcd_update_enabled)
-                    lcd_longpress_func();
-            }
-        }
-    }
-    else
-    { //button not pressed
-        if (lcd_button_pressed)
-        { //button was released
-            buttonBlanking.start();
-            if (lcd_long_press_active == 0)
-            { //button released before long press gets activated
-                newbutton |= EN_C;
-            }
-            //else if (menu_menu == lcd_move_z) lcd_quick_feedback();
-            //lcd_button_pressed is set back to false via lcd_quick_feedback function
-        }
-        lcd_long_press_active = 0;
-    }
-
-	lcd_buttons = newbutton;
-	//manage encoder rotation
-	uint8_t enc = 0;
-	if (lcd_buttons & EN_A) enc |= B01;
-	if (lcd_buttons & EN_B) enc |= B10;
-	if (enc != lcd_encoder_bits)
-	{
-		switch (enc)
-		{
-		case encrot0:
-			if (lcd_encoder_bits == encrot3)
-				lcd_encoder_diff++;
-			else if (lcd_encoder_bits == encrot1)
-				lcd_encoder_diff--;
-			break;
-		case encrot1:
-			if (lcd_encoder_bits == encrot0)
-				lcd_encoder_diff++;
-			else if (lcd_encoder_bits == encrot2)
-				lcd_encoder_diff--;
-			break;
-		case encrot2:
-			if (lcd_encoder_bits == encrot1)
-				lcd_encoder_diff++;
-			else if (lcd_encoder_bits == encrot3)
-				lcd_encoder_diff--;
-			break;
-		case encrot3:
-			if (lcd_encoder_bits == encrot2)
-				lcd_encoder_diff++;
-			else if (lcd_encoder_bits == encrot0)
-				lcd_encoder_diff--;
-			break;
-		}
-	}
-	lcd_encoder_bits = enc;
-}
-
-
 ////////////////////////////////////////////////////////////////////////////////
 // Custom character data
 const uint8_t lcd_custom_character_set[][8] PROGMEM = {
 	{//LCD_STR_BEDTEMP
-	B00000,
-	B11111,
-	B10101,
-	B10001,
-	B10101,
-	B11111,
-	B00000,
-	B00000}, //thanks Sonny Mounicou
+	0b00000,
+	0b11111,
+	0b10101,
+	0b10001,
+	0b10101,
+	0b11111,
+	0b00000,
+	0b00000}, //thanks Sonny Mounicou
 
 	{//LCD_STR_DEGREE
-	B01100,
-	B10010,
-	B10010,
-	B01100,
-	B00000,
-	B00000,
-	B00000,
-	B00000},
+	0b01100,
+	0b10010,
+	0b10010,
+	0b01100,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000},
 
 	{//LCD_STR_THERMOMETER
-	B00100,
-	B01010,
-	B01010,
-	B01010,
-	B01010,
-	B10001,
-	B10001,
-	B01110},
+	0b00100,
+	0b01010,
+	0b01010,
+	0b01010,
+	0b01010,
+	0b10001,
+	0b10001,
+	0b01110},
 
 	{//LCD_STR_UPLEVEL
-	B00100,
-	B01110,
-	B11111,
-	B00100,
-	B11100,
-	B00000,
-	B00000,
-	B00000}, //thanks joris
+	0b00100,
+	0b01110,
+	0b11111,
+	0b00100,
+	0b11100,
+	0b00000,
+	0b00000,
+	0b00000}, //thanks joris
 
 	{//LCD_STR_REFRESH
-	B00000,
-	B00110,
-	B11001,
-	B11000,
-	B00011,
-	B10011,
-	B01100,
-	B00000}, //thanks joris
+	0b00000,
+	0b00110,
+	0b11001,
+	0b11000,
+	0b00011,
+	0b10011,
+	0b01100,
+	0b00000}, //thanks joris
 
 	{//LCD_STR_FOLDER
-	B00000,
-	B11100,
-	B11111,
-	B10001,
-	B10001,
-	B11111,
-	B00000,
-	B00000}, //thanks joris
-
-/*	{//LCD_STR_FEEDRATE
-	B11100,
-	B10000,
-	B11000,
-	B10111,
-	B00101,
-	B00110,
-	B00101,
-	B00000},*/ //thanks Sonny Mounicou
-
-/*	{//LCD_STR_FEEDRATE
-	B11100,
-	B10100,
-	B11000,
-	B10100,
-	B00000,
-	B00111,
-	B00010,
-	B00010},*/
-
-/*	{//LCD_STR_FEEDRATE
-	B01100,
-	B10011,
-	B00000,
-	B01100,
-	B10011,
-	B00000,
-	B01100,
-	B10011},*/
+	0b00000,
+	0b11100,
+	0b11111,
+	0b10001,
+	0b10001,
+	0b11111,
+	0b00000,
+	0b00000}, //thanks joris
 
 	{//LCD_STR_FEEDRATE
-	B00000,
-	B00100,
-	B10010,
-	B01001,
-	B10010,
-	B00100,
-	B00000,
-	B00000},
+	0b00000,
+	0b00100,
+	0b10010,
+	0b01001,
+	0b10010,
+	0b00100,
+	0b00000,
+	0b00000},
 
 	{//LCD_STR_CLOCK
-	B00000,
-	B01110,
-	B10011,
-	B10101,
-	B10001,
-	B01110,
-	B00000,
-	B00000}, //thanks Sonny Mounicou
+	0b00000,
+	0b01110,
+	0b10011,
+	0b10101,
+	0b10001,
+	0b01110,
+	0b00000,
+	0b00000}, //thanks Sonny Mounicou
 
 	{//LCD_STR_ARROW_DOWN
-	B00000,
-	B00000,
-	B00000,
-	B00000,
-	B00000,
-	B10001,
-	B01010,
-	B00100},
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b00000,
+	0b10001,
+	0b01010,
+	0b00100},
 
 	{//LCD_STR_ARROW_2_DOWN
-	B00000,
-	B00000,
-	B10001,
-	B01010,
-	B00100,
-	B10001,
-	B01010,
-	B00100},
+	0b00000,
+	0b00000,
+	0b10001,
+	0b01010,
+	0b00100,
+	0b10001,
+	0b01010,
+	0b00100},
 
 	{/* LCD_STR_RESERVED_NL */},
 	
 	{//LCD_STR_CONFIRM
-	B00000,
-	B00001,
-	B00011,
-	B10110,
-	B11100,
-	B01000,
-	B00000},
+	0b00000,
+	0b00001,
+	0b00011,
+	0b10110,
+	0b11100,
+	0b01000,
+	0b00000},
 };
 
 //sends all 8 custom characters to the lcd
 static void lcd_init_custom_characters(void)
 {
-	LcdTimerDisabler_START;
+	LcdTimerDisabler _LcdTimerDisabler;
 	
 	for (uint8_t i = 0; i < 8; i++)
 		lcd_createChar_P(i, &lcd_custom_character_set[i + ((lcd_custom_character_bank >> i) & 1) * 8][0]);
 	
 	lcd_set_cursor_hardware(lcd_curpos % LCD_WIDTH, lcd_curpos / LCD_WIDTH, true);
-	LcdTimerDisabler_END;
 }
 
 static void lcd_set_custom_character(uint8_t charID)
 {
-	LcdTimerDisabler_START;
+	LcdTimerDisabler _LcdTimerDisabler;
 	
 	lcd_createChar_P(charID, &lcd_custom_character_set[charID][0]);
 	lcd_custom_character_bank = (lcd_custom_character_bank & ~(1 << (charID & 0x07))) | (((charID / 8) & 1) << (charID & 0x07)); //set the bank information
 	
 	lcd_set_cursor_hardware(lcd_curpos % LCD_WIDTH, lcd_curpos / LCD_WIDTH, true);
-	LcdTimerDisabler_END;
 }
