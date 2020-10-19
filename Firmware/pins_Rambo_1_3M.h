@@ -23,8 +23,7 @@
 #define SWI2C_SDA      20 //SDA on P3
 #define SWI2C_SCL      21 //SCL on P3
 
-
-
+#define LCD_TIMER 3
 
 #define X_TMC2130_DIAG      12
 #define X_STEP_PIN          37
