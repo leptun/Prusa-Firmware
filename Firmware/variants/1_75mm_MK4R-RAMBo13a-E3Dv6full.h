@@ -255,6 +255,7 @@
 #define TMC2130_PWM_CLK   (2 * TMC2130_FCLK / TMC2130_PWM_DIV) // PWM frequency (23.4kHz, 35.1kHz, 46.9kHz, 58.5kHz for 12MHz fclk)
 
 #define TMC2130_TPWMTHRS  64        // TPWMTHRS - Sets the switching speed threshold based on TSTEP from stealthChop to spreadCycle mode
+#define TMC2130_TPWMTHRS_E 300
 #define TMC2130_THIGH     0         // THIGH - unused
 
 //#define TMC2130_TCOOLTHRS_X 450       // TCOOLTHRS - coolstep treshold
