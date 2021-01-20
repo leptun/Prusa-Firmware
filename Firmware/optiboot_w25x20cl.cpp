@@ -7,25 +7,13 @@
 #include "w25x20cl.h"
 #include "stk500.h"
 #include "bootapp.h"
+#include "optiboot_w25x20cl.h"
 
 #define OPTIBOOT_MAJVER 6
 #define OPTIBOOT_CUSTOMVER 0
 #define OPTIBOOT_MINVER 2
 static unsigned const int __attribute__((section(".version"))) 
   optiboot_version = 256*(OPTIBOOT_MAJVER + OPTIBOOT_CUSTOMVER) + OPTIBOOT_MINVER;
-
-/* Watchdog settings */
-#define WATCHDOG_OFF    (0)
-#define WATCHDOG_16MS   (_BV(WDE))
-#define WATCHDOG_32MS   (_BV(WDP0) | _BV(WDE))
-#define WATCHDOG_64MS   (_BV(WDP1) | _BV(WDE))
-#define WATCHDOG_125MS  (_BV(WDP1) | _BV(WDP0) | _BV(WDE))
-#define WATCHDOG_250MS  (_BV(WDP2) | _BV(WDE))
-#define WATCHDOG_500MS  (_BV(WDP2) | _BV(WDP0) | _BV(WDE))
-#define WATCHDOG_1S     (_BV(WDP2) | _BV(WDP1) | _BV(WDE))
-#define WATCHDOG_2S     (_BV(WDP2) | _BV(WDP1) | _BV(WDP0) | _BV(WDE))
-#define WATCHDOG_4S     (_BV(WDP3) | _BV(WDE))
-#define WATCHDOG_8S     (_BV(WDP3) | _BV(WDP0) | _BV(WDE))
 
 #if 0
 #define W25X20CL_SIGNATURE_0 9
@@ -38,7 +26,7 @@ static unsigned const int __attribute__((section(".version")))
 #define W25X20CL_SIGNATURE_2 0x01
 #endif
 
-static void watchdogConfig(uint8_t x) {
+void watchdogConfig(uint8_t x) {
   WDTCSR = _BV(WDCE) | _BV(WDE);
   WDTCSR = x;
 }

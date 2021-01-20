@@ -8,6 +8,7 @@
 #include "stepper.h"
 #include "temperature.h"
 #include "sm4.h"
+#include "optiboot_w25x20cl.h"
 
 #define XYZCAL_PINDA_HYST_MIN 20  //50um
 #define XYZCAL_PINDA_HYST_MAX 100 //250um
@@ -148,7 +149,7 @@ void xyzcal_meassure_leave(void)
 #endif //(defined(FANCHECK) && defined(TACH_1) && (TACH_1 >-1))
 	ENABLE_STEPPER_DRIVER_INTERRUPT();
 #ifdef WATCHDOG
-	wdt_enable(WDTO_4S);
+    watchdogConfig(WATCHDOG_4S);
 #endif //WATCHDOG
 	sm4_stop_cb = 0;
 	sm4_update_pos_cb = 0;

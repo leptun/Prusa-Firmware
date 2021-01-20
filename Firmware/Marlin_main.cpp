@@ -651,7 +651,7 @@ void failstats_reset_print()
 void softReset()
 {
     cli();
-    wdt_enable(WDTO_15MS);
+    watchdogConfig(WATCHDOG_16MS);
     while(1);
 }
 
@@ -1640,7 +1640,7 @@ void setup()
   fSetMmuMode(mmu_enabled);
   KEEPALIVE_STATE(NOT_BUSY);
 #ifdef WATCHDOG
-  wdt_enable(WDTO_4S);
+  watchdogConfig(WATCHDOG_4S);
 #endif //WATCHDOG
 }
 
@@ -10600,7 +10600,7 @@ void serialecho_temperatures() {
 void uvlo_drain_reset()
 {
     // burn all that residual power
-    wdt_enable(WDTO_1S);
+    watchdogConfig(WATCHDOG_1S);
     WRITE(BEEPER,HIGH);
     lcd_clear();
     lcd_puts_at_P(0, 1, MSG_POWERPANIC_DETECTED);
@@ -10768,7 +10768,7 @@ void uvlo_()
     plan_buffer_line_curposXYZE(500);
     st_synchronize();
 
-    wdt_enable(WDTO_1S);
+    watchdogConfig(WATCHDOG_1S);
     while(1);
 }
 
@@ -11737,3 +11737,10 @@ tmc2130_init(true);
 WRITE(Z_ENABLE_PIN,Z_ENABLE_ON);                  // slightly redundant ;-p
 }
 #endif // PSU_Delta
+
+ISR(WDT_vect)
+{
+    puts_P(PSTR("WDR"));
+    watchdogConfig(WATCHDOG_16MS);
+    while(1);
+}
