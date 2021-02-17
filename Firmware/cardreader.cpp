@@ -1,4 +1,5 @@
 #include "Marlin.h"
+#include "cmdqueue.h"
 #include "cardreader.h"
 #include "ultralcd.h"
 #include "stepper.h"
@@ -31,6 +32,7 @@ CardReader::CardReader()
    workDirDepth = 0;
    file_subcall_ctr=0;
    memset(workDirParents, 0, sizeof(workDirParents));
+   presort_flag = false;
 
    autostart_stilltocheck=true; //the SD start is delayed, because otherwise the serial cannot answer fast enough to make contact with the host software.
    lastnr=0;
@@ -61,18 +63,30 @@ char *createFilename(char *buffer,const dir_t &p) //buffer>12characters
 
 /**
 +* Dive into a folder and recurse depth-first to perform a pre-set operation lsAction:
-+*   LS_Count       - Add +1 to nrFiles for every file within the parent
-+*   LS_GetFilename - Get the filename of the file indexed by nrFiles
-+*   LS_SerialPrint - Print the full path and size of each file to serial output
++*   LS_Count           - Add +1 to nrFiles for every file within the parent
++*   LS_GetFilename     - Get the filename of the file indexed by nrFiles
++*   LS_SerialPrint     - Print the full path and size of each file to serial output
++*   LS_SerialPrint_LFN - Print the full path, long filename and size of each file to serial output
 +*/
 
 void CardReader::lsDive(const char *prepend, SdFile parent, const char * const match/*=NULL*/) {
+	static uint8_t recursionCnt = 0;
+	// RAII incrementer for the recursionCnt
+	class _incrementer
+	{
+		public:
+		_incrementer() {recursionCnt++;}
+		~_incrementer() {recursionCnt--;}
+	} recursionCntIncrementer;
+	
 	dir_t p;
 	uint8_t cnt = 0;
 		// Read the next entry from a directory
 		while (parent.readDir(p, longFilename) > 0) {
-			// If the entry is a directory and the action is LS_SerialPrint
-			if (DIR_IS_SUBDIR(&p) && lsAction != LS_Count && lsAction != LS_GetFilename) {
+			if (recursionCnt > MAX_DIR_DEPTH)
+				return;
+			else if (DIR_IS_SUBDIR(&p) && lsAction != LS_Count && lsAction != LS_GetFilename) { // If the entry is a directory and the action is LS_SerialPrint
+				
 				// Get the short name for the item, which we know is a folder
 				char lfilename[FILENAME_LENGTH];
 				createFilename(lfilename, p);
@@ -89,9 +103,13 @@ void CardReader::lsDive(const char *prepend, SdFile parent, const char * const m
 				// Serial.print(path);
 				// Get a new directory object using the full path
 				// and dive recursively into it.
+				
+				if (lsAction == LS_SerialPrint_LFN)
+					printf_P(PSTR("DIR_ENTER: %s \"%s\"\n"), path, longFilename[0] ? longFilename : lfilename);
+				
 				SdFile dir;
 				if (!dir.open(parent, lfilename, O_READ)) {
-					if (lsAction == LS_SerialPrint) {
+					if (lsAction == LS_SerialPrint || lsAction == LS_SerialPrint_LFN) {
 						//SERIAL_ECHO_START();
 						//SERIAL_ECHOPGM(_i("Cannot open subdir"));////MSG_SD_CANT_OPEN_SUBDIR
 						//SERIAL_ECHOLN(lfilename);
@@ -99,6 +117,9 @@ void CardReader::lsDive(const char *prepend, SdFile parent, const char * const m
 				}
 				lsDive(path, dir);
 				// close() is done automatically by destructor of SdFile
+				
+				if (lsAction == LS_SerialPrint_LFN)
+					puts_P(PSTR("DIR_EXIT"));
 			}
 			else {
 				uint8_t pn0 = p.name[0];
@@ -113,12 +134,18 @@ void CardReader::lsDive(const char *prepend, SdFile parent, const char * const m
 						nrFiles++;
 						break;
 					
+					case LS_SerialPrint_LFN:
 					case LS_SerialPrint:
 						createFilename(filename, p);
 						SERIAL_PROTOCOL(prepend);
 						SERIAL_PROTOCOL(filename);
 						MYSERIAL.write(' ');
+						
+						if (lsAction == LS_SerialPrint_LFN)
+							printf_P(PSTR("\"%s\" "), LONGEST_FILENAME);
+						
 						SERIAL_PROTOCOLLN(p.fileSize);
+						manage_heater();
 						break;
 				
 					case LS_GetFilename:
@@ -136,8 +163,17 @@ void CardReader::lsDive(const char *prepend, SdFile parent, const char * const m
 						SERIAL_ECHOPGM("Access date: ");
 						MYSERIAL.println(p.lastAccessDate);
 						SERIAL_ECHOLNPGM("");*/
-						modificationDate = p.lastWriteDate;
-						modificationTime = p.lastWriteTime;
+						crmodDate = p.lastWriteDate;
+						crmodTime = p.lastWriteTime;
+						// There are scenarios when simple modification time is not enough (on MS Windows)
+						// For example - extract an old g-code from an archive onto the SD card.
+						// In such case the creation time is current time (which is correct), but the modification time
+						// stays the same - i.e. old.
+						// Therefore let's pick the most recent timestamp from both creation and modification timestamps
+						if( crmodDate < p.creationDate || ( crmodDate == p.creationDate && crmodTime < p.creationTime ) ){
+							crmodDate = p.creationDate;
+							crmodTime = p.creationTime;
+						}
 						//writeDate = p.lastAccessDate;
 						if (match != NULL) {
 							if (strcasecmp(match, filename) == 0) return;
@@ -150,9 +186,9 @@ void CardReader::lsDive(const char *prepend, SdFile parent, const char * const m
 		} // while readDir
 }
 
-void CardReader::ls() 
+void CardReader::ls(bool printLFN)
 {
-  lsAction=LS_SerialPrint;
+  lsAction = printLFN ? LS_SerialPrint_LFN : LS_SerialPrint;
   //if(lsAction==LS_Count)
   //nrFiles=0;
 
@@ -217,23 +253,25 @@ void CardReader::initsd()
   
 }
 
-void CardReader::setroot()
+void CardReader::setroot(bool doPresort)
 {
-  /*if(!workDir.openRoot(&volume))
-  {
-    SERIAL_ECHOLNPGM(MSG_SD_WORKDIR_FAIL);
-  }*/
   workDir=root;
+  workDirDepth = 0;
   
   curDir=&workDir;
-  #ifdef SDCARD_SORT_ALPHA
-	  presort();
-  #endif
+#ifdef SDCARD_SORT_ALPHA
+	if (doPresort)
+		presort();
+	else
+		presort_flag = true;
+#endif
 }
 void CardReader::release()
 {
   sdprinting = false;
   cardOK = false;
+  SERIAL_ECHO_START;
+  SERIAL_ECHOLNRPGM(_n("SD card released"));////MSG_SD_CARD_RELEASED
 }
 
 void CardReader::startFileprint()
@@ -251,7 +289,7 @@ void CardReader::startFileprint()
 void CardReader::openLogFile(const char* name)
 {
   logging = true;
-  openFile(name, false);
+  openFileWrite(name);
 }
 
 void CardReader::getDirName(char* name, uint8_t level)
@@ -278,6 +316,18 @@ void CardReader::getAbsFilename(char *t)
   else
     t[0]=0;
 }
+
+void CardReader::printAbsFilenameFast()
+{
+    SERIAL_PROTOCOL('/');
+    for (uint8_t i = 0; i < getWorkDirDepth(); i++)
+    {
+        SERIAL_PROTOCOL(dir_names[i]);
+        SERIAL_PROTOCOL('/');
+    }
+    SERIAL_PROTOCOL(LONGEST_FILENAME);
+}
+
 /**
  * @brief Dive into subfolder
  *
@@ -291,19 +341,17 @@ void CardReader::getAbsFilename(char *t)
  * @param[in,out] fileName
  *  expects file name including path
  *  in case of absolute path, file name without path is returned
- * @param[in,out] dir SdFile object to operate with,
- *  in case of absolute path, curDir is modified to point to dir,
- *  so it is not possible to create on stack inside this function,
- *  as curDir would point to destroyed object.
  */
-void CardReader::diveSubfolder (const char *fileName, SdFile& dir)
+bool CardReader::diveSubfolder (const char *&fileName)
 {
     curDir=&root;
-    if (!fileName) return;
+    if (!fileName)
+        return 1;
 
     const char *dirname_start, *dirname_end;
     if (fileName[0] == '/') // absolute path
     {
+        setroot(false);
         dirname_start = fileName + 1;
         while (*dirname_start)
         {
@@ -314,23 +362,13 @@ void CardReader::diveSubfolder (const char *fileName, SdFile& dir)
             {
                 const size_t maxLen = 12;
                 char subdirname[maxLen+1];
-                subdirname[maxLen] = 0;
                 const size_t len = ((static_cast<size_t>(dirname_end-dirname_start))>maxLen) ? maxLen : (dirname_end-dirname_start);
                 strncpy(subdirname, dirname_start, len);
-                SERIAL_ECHOLN(subdirname);
-                if (!dir.open(curDir, subdirname, O_READ))
-                {
-                    SERIAL_PROTOCOLRPGM(MSG_SD_OPEN_FILE_FAIL);
-                    SERIAL_PROTOCOL(subdirname);
-                    SERIAL_PROTOCOLLNPGM(".");
-                    return;
-                }
-                else
-                {
-                    //SERIAL_ECHOLN("dive ok");
-                }
+                subdirname[len] = 0;
+                if (!chdir(subdirname, false))
+                    return 0;
 
-                curDir = &dir;
+                curDir = &workDir;
                 dirname_start = dirname_end + 1;
             }
             else // the reminder after all /fsa/fdsa/ is the filename
@@ -347,100 +385,142 @@ void CardReader::diveSubfolder (const char *fileName, SdFile& dir)
     {
         curDir = &workDir;
     }
+    return 1;
 }
 
-void CardReader::openFile(const char* name,bool read, bool replace_current/*=true*/)
-{
-  if(!cardOK)
-    return;
-  if(file.isOpen())  //replacing current file by new file, or subfile call
-  {
-    if(!replace_current)
-    {
-     if((int)file_subcall_ctr>(int)SD_PROCEDURE_DEPTH-1)
-     {
-       // SERIAL_ERROR_START;
-       // SERIAL_ERRORPGM("trying to call sub-gcode files with too many levels. MAX level is:");
-       // SERIAL_ERRORLN(SD_PROCEDURE_DEPTH);
-       kill(_n("trying to call sub-gcode files with too many levels."), 1);
-       return;
-     }
-     
-     SERIAL_ECHO_START;
-     SERIAL_ECHOPGM("SUBROUTINE CALL target:\"");
-     SERIAL_ECHO(name);
-     SERIAL_ECHOPGM("\" parent:\"");
-     
-     //store current filename and position
-     getAbsFilename(filenames[file_subcall_ctr]);
-     
-     SERIAL_ECHO(filenames[file_subcall_ctr]);
-     SERIAL_ECHOPGM("\" pos");
-     SERIAL_ECHOLN(sdpos);
-     filespos[file_subcall_ctr]=sdpos;
-     file_subcall_ctr++;
-    }
-    else
-    {
-     SERIAL_ECHO_START;
-     SERIAL_ECHOPGM("Now doing file: ");
-     SERIAL_ECHOLN(name);
-    }
-    file.close();
-  }
-  else //opening fresh file
-  {
-    file_subcall_ctr=0; //resetting procedure depth in case user cancels print while in procedure
-    SERIAL_ECHO_START;
-    SERIAL_ECHOPGM("Now fresh file: ");
-    SERIAL_ECHOLN(name);
-  }
-  sdprinting = false;
+static const char ofKill[] PROGMEM = "trying to call sub-gcode files with too many levels.";
+static const char ofSubroutineCallTgt[] PROGMEM = "SUBROUTINE CALL target:\"";
+static const char ofParent[] PROGMEM = "\" parent:\"";
+static const char ofPos[] PROGMEM = "\" pos";
+static const char ofNowDoingFile[] PROGMEM = "Now doing file: ";
+static const char ofNowFreshFile[] PROGMEM = "Now fresh file: ";
+static const char ofFileOpened[] PROGMEM = "File opened: ";
+static const char ofSize[] PROGMEM = " Size: ";
+static const char ofFileSelected[] PROGMEM = "File selected";
+static const char ofSDPrinting[] PROGMEM = "SD-PRINTING         ";
+static const char ofWritingToFile[] PROGMEM = "Writing to file: ";
 
-  SdFile myDir;
-  const char *fname=name;
-  diveSubfolder(fname,myDir);
-
-  if(read)
-  {
-    if (file.open(curDir, fname, O_READ)) 
-    {
-      filesize = file.fileSize();
-      SERIAL_PROTOCOLRPGM(_N("File opened: "));////MSG_SD_FILE_OPENED
-      SERIAL_PROTOCOL(fname);
-      SERIAL_PROTOCOLRPGM(_n(" Size: "));////MSG_SD_SIZE
-      SERIAL_PROTOCOLLN(filesize);
-      sdpos = 0;
-      
-      SERIAL_PROTOCOLLNRPGM(_N("File selected"));////MSG_SD_FILE_SELECTED
-      getfilename(0, fname);
-      lcd_setstatus(longFilename[0] ? longFilename : fname);
-      lcd_setstatus("SD-PRINTING         ");
+void CardReader::openFileReadFilteredGcode(const char* name, bool replace_current/* = false*/){
+    if(!cardOK)
+        return;
+    
+    if(file.isOpen()){  //replacing current file by new file, or subfile call
+        if(!replace_current){
+            if((int)file_subcall_ctr>(int)SD_PROCEDURE_DEPTH-1){
+                // SERIAL_ERROR_START;
+                // SERIAL_ERRORPGM("trying to call sub-gcode files with too many levels. MAX level is:");
+                // SERIAL_ERRORLN(SD_PROCEDURE_DEPTH);
+                kill(ofKill, 1);
+                return;
+            }
+            
+            SERIAL_ECHO_START;
+            SERIAL_ECHORPGM(ofSubroutineCallTgt);
+            SERIAL_ECHO(name);
+            SERIAL_ECHORPGM(ofParent);
+            
+            //store current filename and position
+            getAbsFilename(filenames[file_subcall_ctr]);
+            
+            SERIAL_ECHO(filenames[file_subcall_ctr]);
+            SERIAL_ECHORPGM(ofPos);
+            SERIAL_ECHOLN(sdpos);
+            filespos[file_subcall_ctr]=sdpos;
+            file_subcall_ctr++;
+        } else {
+            SERIAL_ECHO_START;
+            SERIAL_ECHORPGM(ofNowDoingFile);
+            SERIAL_ECHOLN(name);
+        }
+        file.close();
+    } else { //opening fresh file
+        file_subcall_ctr=0; //resetting procedure depth in case user cancels print while in procedure
+        SERIAL_ECHO_START;
+        SERIAL_ECHORPGM(ofNowFreshFile);
+        SERIAL_ECHOLN(name);
     }
-    else
-    {
-      SERIAL_PROTOCOLRPGM(MSG_SD_OPEN_FILE_FAIL);
-      SERIAL_PROTOCOL(fname);
-      SERIAL_PROTOCOLLNPGM(".");
-    }
-  }
-  else 
-  { //write
-    if (!file.open(curDir, fname, O_CREAT | O_APPEND | O_WRITE | O_TRUNC))
-    {
-      SERIAL_PROTOCOLRPGM(MSG_SD_OPEN_FILE_FAIL);
-      SERIAL_PROTOCOL(fname);
-      SERIAL_PROTOCOLLNPGM(".");
-    }
-    else
-    {
-      saving = true;
-      SERIAL_PROTOCOLRPGM(_N("Writing to file: "));////MSG_SD_WRITE_TO_FILE
-      SERIAL_PROTOCOLLN(name);
-      lcd_setstatus(fname);
-    }
-  }
+    sdprinting = false;
   
+    const char *fname=name;
+    if (!diveSubfolder(fname))
+      return;
+  
+    if (file.openFilteredGcode(curDir, fname)) {
+        filesize = file.fileSize();
+        SERIAL_PROTOCOLRPGM(ofFileOpened);////MSG_SD_FILE_OPENED
+        SERIAL_PROTOCOL(fname);
+        SERIAL_PROTOCOLRPGM(ofSize);////MSG_SD_SIZE
+        SERIAL_PROTOCOLLN(filesize);
+        sdpos = 0;
+        
+        SERIAL_PROTOCOLLNRPGM(ofFileSelected);////MSG_SD_FILE_SELECTED
+        getfilename(0, fname);
+        lcd_setstatus(longFilename[0] ? longFilename : fname);
+        lcd_setstatuspgm(ofSDPrinting);
+      } else {
+        SERIAL_PROTOCOLRPGM(MSG_SD_OPEN_FILE_FAIL);
+        SERIAL_PROTOCOL(fname);
+        SERIAL_PROTOCOLLN('.');
+      }
+}
+
+void CardReader::openFileWrite(const char* name)
+{
+    if(!cardOK)
+        return;
+    if(file.isOpen()){  //replacing current file by new file, or subfile call
+#if 0
+        // I doubt chained files support is necessary for file saving:
+        // Intentionally disabled because it takes a lot of code size while being not used
+
+        if((int)file_subcall_ctr>(int)SD_PROCEDURE_DEPTH-1){
+            // SERIAL_ERROR_START;
+            // SERIAL_ERRORPGM("trying to call sub-gcode files with too many levels. MAX level is:");
+            // SERIAL_ERRORLN(SD_PROCEDURE_DEPTH);
+            kill(ofKill, 1);
+            return;
+        }
+        
+        SERIAL_ECHO_START;
+        SERIAL_ECHORPGM(ofSubroutineCallTgt);
+        SERIAL_ECHO(name);
+        SERIAL_ECHORPGM(ofParent);
+        
+        //store current filename and position
+        getAbsFilename(filenames[file_subcall_ctr]);
+        
+        SERIAL_ECHO(filenames[file_subcall_ctr]);
+        SERIAL_ECHORPGM(ofPos);
+        SERIAL_ECHOLN(sdpos);
+        filespos[file_subcall_ctr]=sdpos;
+        file_subcall_ctr++;
+        file.close();
+#else
+        SERIAL_ECHOLNPGM("File already opened");
+#endif
+    } else { //opening fresh file
+        file_subcall_ctr=0; //resetting procedure depth in case user cancels print while in procedure
+        SERIAL_ECHO_START;
+        SERIAL_ECHORPGM(ofNowFreshFile);
+        SERIAL_ECHOLN(name);
+    }
+    sdprinting = false;
+    
+    const char *fname=name;
+    if (!diveSubfolder(fname))
+      return;
+    
+    //write
+    if (!file.open(curDir, fname, O_CREAT | O_APPEND | O_WRITE | O_TRUNC)){
+        SERIAL_PROTOCOLRPGM(MSG_SD_OPEN_FILE_FAIL);
+        SERIAL_PROTOCOL(fname);
+        SERIAL_PROTOCOLLN('.');
+    } else {
+        saving = true;
+        SERIAL_PROTOCOLRPGM(ofWritingToFile);////MSG_SD_WRITE_TO_FILE
+        SERIAL_PROTOCOLLN(fname);
+        lcd_setstatus(fname);
+    }
 }
 
 void CardReader::removeFile(const char* name)
@@ -449,9 +529,9 @@ void CardReader::removeFile(const char* name)
     file.close();
     sdprinting = false;
 
-    SdFile myDir;
     const char *fname=name;
-    diveSubfolder(fname,myDir);
+    if (!diveSubfolder(fname))
+      return;
 
     if (file.remove(curDir, fname)) 
     {
@@ -466,7 +546,7 @@ void CardReader::removeFile(const char* name)
     {
       SERIAL_PROTOCOLPGM("Deletion failed, File: ");
       SERIAL_PROTOCOL(fname);
-      SERIAL_PROTOCOLLNPGM(".");
+      SERIAL_PROTOCOLLN('.');
     }
   
 }
@@ -476,33 +556,36 @@ uint32_t CardReader::getFileSize()
 	return filesize;
 }
 
-void CardReader::getStatus()
+void CardReader::getStatus(bool arg_P)
 {
-  if(sdprinting)
-  {
-      if (isPrintPaused) {
-          SERIAL_PROTOCOLLNPGM("SD print paused");
-      }
-      else if (saved_printing) {
-          SERIAL_PROTOCOLLNPGM("Print saved");
-      }
-      else {
-          SERIAL_PROTOCOL(longFilename);
-          SERIAL_PROTOCOLPGM("\n");
-          SERIAL_PROTOCOLRPGM(_N("SD printing byte "));////MSG_SD_PRINTING_BYTE
-          SERIAL_PROTOCOL(sdpos);
-          SERIAL_PROTOCOLPGM("/");
-          SERIAL_PROTOCOLLN(filesize);
-          uint16_t time = _millis()/60000 - starttime/60000;
-          SERIAL_PROTOCOL(itostr2(time/60));
-          SERIAL_PROTOCOL(':');
-          SERIAL_PROTOCOL(itostr2(time%60));
-          SERIAL_PROTOCOLPGM("\n");
-      }
-  }
-  else {
-    SERIAL_PROTOCOLLNPGM("Not SD printing");
-  }
+    if (isPrintPaused)
+    {
+        if (saved_printing && (saved_printing_type == PRINTING_TYPE_SD))
+            SERIAL_PROTOCOLLNPGM("SD print paused");
+        else
+            SERIAL_PROTOCOLLNPGM("Print saved");
+    }
+    else if (sdprinting)
+    {
+        if (arg_P)
+        {
+            printAbsFilenameFast();
+            SERIAL_PROTOCOLLN();
+        }
+        else
+            SERIAL_PROTOCOLLN(LONGEST_FILENAME);
+        
+        SERIAL_PROTOCOLRPGM(_N("SD printing byte "));////MSG_SD_PRINTING_BYTE
+        SERIAL_PROTOCOL(sdpos);
+        SERIAL_PROTOCOL('/');
+        SERIAL_PROTOCOLLN(filesize);
+        uint16_t time = ( _millis() - starttime ) / 60000U;
+        SERIAL_PROTOCOL(itostr2(time/60));
+        SERIAL_PROTOCOL(':');
+        SERIAL_PROTOCOLLN(itostr2(time%60));
+    }
+    else
+        SERIAL_PROTOCOLLNPGM("Not SD printing");
 }
 void CardReader::write_command(char *buf)
 {
@@ -536,7 +619,7 @@ void CardReader::write_command_no_newline(char *buf)
   {
     SERIAL_ERROR_START;
     SERIAL_ERRORLNRPGM(MSG_SD_ERR_WRITE_TO_FILE);
-    MYSERIAL.println("An error while writing to the SD Card.");
+    SERIAL_PROTOCOLLNPGM("An error while writing to the SD Card.");
   }
 }
 
@@ -639,7 +722,7 @@ uint16_t CardReader::getnrfilenames()
   return nrFiles;
 }
 
-void CardReader::chdir(const char * relpath)
+bool CardReader::chdir(const char * relpath, bool doPresort)
 {
   SdFile newfile;
   SdFile *parent=&root;
@@ -647,23 +730,32 @@ void CardReader::chdir(const char * relpath)
   if(workDir.isOpen())
     parent=&workDir;
   
-  if(!newfile.open(*parent,relpath, O_READ))
+  if(!newfile.open(*parent,relpath, O_READ) || ((workDirDepth + 1) >= MAX_DIR_DEPTH))
   {
    SERIAL_ECHO_START;
    SERIAL_ECHORPGM(_n("Cannot enter subdir: "));////MSG_SD_CANT_ENTER_SUBDIR
    SERIAL_ECHOLN(relpath);
+   return 0;
   }
   else
   {
+    strcpy(dir_names[workDirDepth], relpath);
+    puts(relpath);
+
     if (workDirDepth < MAX_DIR_DEPTH) {
       for (int d = ++workDirDepth; d--;)
         workDirParents[d+1] = workDirParents[d];
       workDirParents[0]=*parent;
     }
     workDir=newfile;
-	#ifdef SDCARD_SORT_ALPHA
+
+#ifdef SDCARD_SORT_ALPHA
+	if (doPresort)
 		presort();
-	#endif
+	else
+		presort_flag = true;
+#endif
+	return 1;
   }
 }
 
@@ -726,7 +818,7 @@ void CardReader::presort() {
 		// Never sort more than the max allowed
 		// If you use folders to organize, 20 may be enough
 		if (fileCnt > SDSORT_LIMIT) {
-			lcd_show_fullscreen_message_and_wait_P(_i("Some files will not be sorted. Max. No. of files in 1 folder for sorting is 100."));////MSG_FILE_CNT c=20 r=4
+			lcd_show_fullscreen_message_and_wait_P(_i("Some files will not be sorted. Max. No. of files in 1 folder for sorting is 100."));////MSG_FILE_CNT c=20 r=6
 			fileCnt = SDSORT_LIMIT;
 		}
 		lcd_clear();
@@ -773,8 +865,8 @@ void CardReader::presort() {
 		// retaining only two filenames at a time. This is very
 		// slow but is safest and uses minimal RAM.
 		char name1[LONG_FILENAME_LENGTH + 1];
-		uint16_t modification_time_bckp;
-		uint16_t modification_date_bckp;
+		uint16_t crmod_time_bckp;
+		uint16_t crmod_date_bckp;
 
 		#endif
 		position = 0;
@@ -800,8 +892,8 @@ void CardReader::presort() {
 				#else
 				// Copy filenames into the static array
 				strcpy(sortnames[i], LONGEST_FILENAME);
-				modification_time[i] = modificationTime;
-				modification_date[i] = modificationDate;
+				modification_time[i] = crmodTime;
+				modification_date[i] = crmodDate;
 				#if SDSORT_CACHE_NAMES
 				strcpy(sortshort[i], filename);
 				#endif
@@ -830,8 +922,8 @@ void CardReader::presort() {
 																	(modification_date[o1] < modification_date [o2]))
 			#else
 			#define _SORT_CMP_NODIR() (strcasecmp(name1, name2) > 0) //true if lowercase(name1) > lowercase(name2)
-			#define _SORT_CMP_TIME_NODIR() (((modification_date_bckp == modificationDate) && (modification_time_bckp > modificationTime)) || \
-																	(modification_date_bckp > modificationDate))
+			#define _SORT_CMP_TIME_NODIR() (((crmod_date_bckp == crmodDate) && (crmod_time_bckp > crmodTime)) || \
+																	(crmod_date_bckp > crmodDate))
 
 			#endif
 
@@ -863,8 +955,7 @@ void CardReader::presort() {
 				for (int column = 0; column < 20; column++) {
 					if (column < (percent / 5))
 					{
-						lcd_set_cursor(column, 2);
-						lcd_print('\x01'); //simple progress bar
+						lcd_putc_at(column, 2, '\x01'); //simple progress bar
 					}
 				}
 				counter++;
@@ -882,8 +973,8 @@ void CardReader::presort() {
 					counter++;
 					getfilename_simple(positions[o1]);
 					strcpy(name1, LONGEST_FILENAME); // save (or getfilename below will trounce it)
-					modification_date_bckp = modificationDate;
-					modification_time_bckp = modificationTime;
+					crmod_date_bckp = crmodDate;
+					crmod_time_bckp = crmodTime;
 					#if HAS_FOLDER_SORTING
 					bool dir1 = filenameIsDir;
 					#endif
@@ -942,8 +1033,7 @@ void CardReader::presort() {
 #if !SDSORT_USES_RAM //show progresss bar only if slow sorting method is used
 	for (int column = 0; column <= 19; column++)
 	{
-		lcd_set_cursor(column, 2);
-		lcd_print('\x01'); //simple progress bar
+		lcd_putc_at(column, 2, '\x01'); //simple progress bar
 	}
 	_delay(300);
 	lcd_set_degree();
@@ -982,7 +1072,7 @@ void CardReader::printingHasFinished()
     {
       file.close();
       file_subcall_ctr--;
-      openFile(filenames[file_subcall_ctr],true,true);
+      openFileReadFilteredGcode(filenames[file_subcall_ctr],true);
       setIndex(filespos[file_subcall_ctr]);
       startFileprint();
     }

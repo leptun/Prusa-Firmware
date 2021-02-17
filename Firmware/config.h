@@ -5,10 +5,12 @@
 #include "Configuration_prusa.h"
 #include "pins.h"
 
-#define IR_SENSOR_ANALOG (defined(VOLT_IR_PIN) && defined(IR_SENSOR))
+#if (defined(VOLT_IR_PIN) && defined(IR_SENSOR))
+# define IR_SENSOR_ANALOG
+#endif
 
 //ADC configuration
-#if !IR_SENSOR_ANALOG
+#ifndef IR_SENSOR_ANALOG
 #define ADC_CHAN_MSK      0b0000001001011111 //used AD channels bit mask (0,1,2,3,4,6,9)
 #define ADC_DIDR_MSK      0b0000001001011111 //AD channels DIDR mask (1 ~ disabled digital input)
 #define ADC_CHAN_CNT      7         //number of used channels)
@@ -21,7 +23,6 @@
 #define ADC_CALLBACK      adc_ready //callback function ()
 
 //SWI2C configuration
-#define SWI2C
 //#define SWI2C_SDA         20 //SDA on P3
 //#define SWI2C_SCL         21 //SCL on P3
 #define SWI2C_A8
@@ -29,7 +30,13 @@
 #define SWI2C_TMO         2048 //2048 cycles timeout
 
 //PAT9125 configuration
-#define PAT9125_SWI2C
+//#define PAT9125_SWSPI // software SPI mode (incomplete)
+#ifdef SWI2C_SCL
+#define PAT9125_SWI2C   // software I2C mode
+#else
+#define PAT9125_I2C     // hardware I2C mode
+#endif
+
 #define PAT9125_I2C_ADDR  0x75  //ID=LO
 //#define PAT9125_I2C_ADDR  0x79  //ID=HI
 //#define PAT9125_I2C_ADDR  0x73  //ID=NC
@@ -56,7 +63,7 @@
 #define W25X20CL_SPSR          SPI_SPSR(W25X20CL_SPI_RATE)
 
 //LANG - Multi-language support
-//define LANG_MODE              0 // primary language only
+//#define LANG_MODE              0 // primary language only
 #define LANG_MODE              1 // sec. language support
 
 #define LANG_SIZE_RESERVED     0x3000 // reserved space for secondary language (12288 bytes)

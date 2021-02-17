@@ -72,6 +72,9 @@ extern bool fsensor_oq_result(void);
 //! @{
 extern void fsensor_st_block_chunk(int cnt);
 
+// debugging
+extern uint8_t fsensor_log;
+
 // There's really nothing to do in block_begin: the stepper ISR likely has
 // called us already at the end of the last block, making this integration
 // redundant. LA1.5 might not always do that during a coasting move, so attempt
@@ -80,14 +83,15 @@ extern void fsensor_st_block_chunk(int cnt);
 //! @}
 #endif //PAT9125
 
+#define VOLT_DIV_REF 5
 
-#if IR_SENSOR_ANALOG
+#ifdef IR_SENSOR_ANALOG
 #define IR_SENSOR_STEADY 10                       // [ms]
 
 enum class ClFsensorPCB:uint_least8_t
 {
     _Old=0,
-    _Rev03b=1,
+    _Rev04=1,
     _Undef=EEPROM_EMPTY_VALUE
 };
 
@@ -100,8 +104,21 @@ enum class ClFsensorActionNA:uint_least8_t
 
 extern ClFsensorPCB oFsensorPCB;
 extern ClFsensorActionNA oFsensorActionNA;
+extern const char* FsensorIRVersionText();
 
 extern bool fsensor_IR_check();
+constexpr uint16_t Voltage2Raw(float V){
+	return ( V * 1023 * OVERSAMPLENR / VOLT_DIV_REF ) + 0.5F;
+}
+constexpr float Raw2Voltage(uint16_t raw){
+	return VOLT_DIV_REF*(raw / (1023.F * OVERSAMPLENR) );
+}
+constexpr uint16_t IRsensor_Ldiode_TRESHOLD = Voltage2Raw(0.3F); // ~0.3V, raw value=982
+constexpr uint16_t IRsensor_Lmax_TRESHOLD = Voltage2Raw(1.5F); // ~1.5V (0.3*Vcc), raw value=4910
+constexpr uint16_t IRsensor_Hmin_TRESHOLD = Voltage2Raw(3.0F); // ~3.0V (0.6*Vcc), raw value=9821
+constexpr uint16_t IRsensor_Hopen_TRESHOLD = Voltage2Raw(4.6F); // ~4.6V (N.C. @ Ru~20-50k, Rd'=56k, Ru'=10k), raw value=15059
+constexpr uint16_t IRsensor_VMax_TRESHOLD = Voltage2Raw(5.F); // ~5V, raw value=16368
+
 #endif //IR_SENSOR_ANALOG
 
 #endif //FSENSOR_H

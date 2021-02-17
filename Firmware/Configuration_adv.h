@@ -62,8 +62,19 @@
 // before setting a PWM value. (Does not work with software PWM for fan on Sanguinololu)
 #define FAN_KICKSTART_TIME 800
 
-
-
+/**
+ * Auto-report all at once with M155 S<seconds> C[bitmask] with single timer
+ * 
+ * bit 0 = Auto-report temperatures
+ * bit 1 = Auto-report fans
+ * bit 2 = Auto-report position
+ * bit 3 = free
+ * bit 4 = free
+ * bit 5 = free
+ * bit 6 = free
+ * bit 7 = free
+*/
+#define AUTO_REPORT
 
 //===========================================================================
 //=============================Mechanical Settings===========================
@@ -152,7 +163,6 @@
 #define Z_HOME_RETRACT_MM 2
 //#define QUICK_HOME  //if this is defined, if both x and y are to be homed, a diagonal move will be performed initially.
 
-#define AXIS_RELATIVE_MODES {0, 0, 0, 0}
 #define MAX_STEP_FREQUENCY 40000 // Max step frequency for Ultimaker (5000 pps / half step). Toshiba steppers are 4x slower, but Prusa3D does not use those.
 //By default pololu step drivers require an active high signal. However, some high power drivers require an active low signal as step.
 #define INVERT_X_STEP_PIN 0
@@ -286,11 +296,14 @@
 #define LIN_ADVANCE
 
 #ifdef LIN_ADVANCE
-  #define LIN_ADVANCE_K 0  // Unit: mm compression per 1mm/s extruder speed
-  //#define LA_NOCOMPAT    // Disable Linear Advance 1.0 compatibility
-  //#define LA_LIVE_K      // Allow adjusting K in the Tune menu
-  //#define LA_DEBUG       // If enabled, this will generate debug information output over USB.
-  //#define LA_DEBUG_LOGIC // @wavexx: setup logic channels for isr debugging
+  #define LA_K_DEF    0        // Default K factor (Unit: mm compression per 1mm/s extruder speed)
+  #define LA_K_MAX    10       // Maximum acceptable K factor (exclusive, see notes in planner.cpp:plan_buffer_line)
+  #define LA_LA10_MIN LA_K_MAX // Lin. Advance 1.0 threshold value (inclusive)
+  //#define LA_FLOWADJ         // Adjust LA along with flow/M221 for uniform width
+  //#define LA_NOCOMPAT        // Disable Linear Advance 1.0 compatibility
+  //#define LA_LIVE_K          // Allow adjusting K in the Tune menu
+  //#define LA_DEBUG           // If enabled, this will generate debug information output over USB.
+  //#define LA_DEBUG_LOGIC     // @wavexx: setup logic channels for isr debugging
 #endif
 
 // Arc interpretation settings:
@@ -324,6 +337,11 @@ const unsigned int dropsegments=5; //everything with less than this number of st
 
 // Control heater 0 and heater 1 in parallel.
 //#define HEATERS_PARALLEL
+
+//LCD status clock interval timer to switch between
+// remaining print time
+// and time to change/pause/interaction
+#define CLOCK_INTERVAL_TIME 5
 
 //===========================================================================
 //=============================Buffers           ============================
@@ -373,6 +391,11 @@ const unsigned int dropsegments=5; //everything with less than this number of st
     #error EXTRUDER_RUNOUT_PREVENT currently incompatible with FILAMENTCHANGE
   #endif
 #endif
+
+/**
+ * Include capabilities in M115 output
+ */
+#define EXTENDED_CAPABILITIES_REPORT
 
 //===========================================================================
 //=============================  Define Defines  ============================
@@ -434,6 +457,10 @@ const unsigned int dropsegments=5; //everything with less than this number of st
 #if TEMP_SENSOR_BED == 0
   #undef BED_MINTEMP
   #undef BED_MAXTEMP
+#endif
+#if TEMP_SENSOR_AMBIENT == 0
+  #undef AMBIENT_MINTEMP
+  #undef AMBIENT_MAXTEMP
 #endif
 
 

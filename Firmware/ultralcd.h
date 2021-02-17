@@ -23,9 +23,11 @@ void lcd_setstatuspgm(const char* message);
 //! - always returns the display to the main status screen
 //! - always makes lcd_reset (which is slow and causes flicker)
 //! - does not update the message if there is already one (i.e. lcd_status_message_level > 0)
+void lcd_setalertstatus(const char* message);
 void lcd_setalertstatuspgm(const char* message);
 //! only update the alert message on the main status screen
 //! has no sideeffects, may be called multiple times
+void lcd_updatestatus(const char *message);
 void lcd_updatestatuspgm(const char *message);
 
 void lcd_reset_alert_level();
@@ -45,7 +47,6 @@ void lcd_pause_print();
 void lcd_resume_print();
 void lcd_print_stop();
 void prusa_statistics(int _message, uint8_t _col_nr = 0);
-void lcd_confirm_print();
 unsigned char lcd_choose_color();
 void lcd_load_filament_color_check();
 //void lcd_mylang();
@@ -55,8 +56,10 @@ extern bool lcd_selftest();
 
 void lcd_menu_statistics(); 
 
+void lcd_status_screen();                         // NOT static due to using inside "Marlin_main" module ("manage_inactivity()")
 void lcd_menu_extruder_info();                    // NOT static due to using inside "Marlin_main" module ("manage_inactivity()")
 void lcd_menu_show_sensors_state();               // NOT static due to using inside "Marlin_main" module ("manage_inactivity()")
+
 #ifdef TMC2130
 bool lcd_crash_detect_enabled();
 void lcd_crash_detect_enable();
@@ -123,7 +126,6 @@ extern CustomMsg custom_message_type;
 extern unsigned int custom_message_state;
 
 extern uint8_t farm_mode;
-extern int farm_no;
 extern int farm_timer;
 extern uint8_t farm_status;
 
@@ -137,6 +139,11 @@ extern uint8_t farm_status;
 #define SILENT_MODE_AUTO 2
 #define SILENT_MODE_OFF SILENT_MODE_POWER
 #endif
+
+#ifdef IR_SENSOR_ANALOG
+extern bool bMenuFSDetect;
+void printf_IRSensorAnalogBoardChange();
+#endif //IR_SENSOR_ANALOG
 
 extern int8_t SilentModeMenu;
 extern uint8_t SilentModeMenu_MMU;
@@ -198,6 +205,7 @@ void lcd_farm_sdcard_menu_w();
 
 void lcd_wait_for_heater();
 void lcd_wait_for_cool_down();
+void lcd_move_e(); // NOT static due to usage in Marlin_main
 void lcd_extr_cal_reset();
 
 void lcd_temp_cal_show_result(bool result);
@@ -250,12 +258,11 @@ enum class WizState : uint8_t
 
 void lcd_wizard(WizState state);
 
-#define VOLT_DIV_REF 5
-#if IR_SENSOR_ANALOG
-#define IRsensor_Hmin_TRESHOLD (3.0*1023*OVERSAMPLENR/VOLT_DIV_REF) // ~3.0V (0.6*Vcc)
-#define IRsensor_Lmax_TRESHOLD (1.5*1023*OVERSAMPLENR/VOLT_DIV_REF) // ~1.5V (0.3*Vcc)
-#define IRsensor_Hopen_TRESHOLD (4.6*1023*OVERSAMPLENR/VOLT_DIV_REF) // ~4.6V (N.C. @ Ru~20-50k, Rd'=56k, Ru'=10k)
-#define IRsensor_Ldiode_TRESHOLD (0.3*1023*OVERSAMPLENR/VOLT_DIV_REF) // ~0.3V
-#endif //IR_SENSOR_ANALOG
+extern void lcd_experimental_toggle();
+extern void lcd_experimental_menu();
+
+#ifdef PINDA_TEMP_COMP
+extern void lcd_pinda_temp_compensation_toggle();
+#endif //PINDA_TEMP_COMP
 
 #endif //ULTRALCD_H
