@@ -4389,8 +4389,11 @@ if(eSoundMode!=e_SOUND_MODE_SILENT)
         if (total_filament_used > ((current_position[E_AXIS] - destination[E_AXIS]) * 100)) //protection against total_filament_used overflow
             total_filament_used = total_filament_used + ((destination[E_AXIS] - current_position[E_AXIS]) * 100);
         total_movement_precise += (abs(destination[X_AXIS] - current_position[X_AXIS]) + abs(destination[Y_AXIS] - current_position[Y_AXIS])) * 10;
-        total_movement_m += total_movement_precise / 10000;
-        total_movement_precise = total_movement_precise % 10000;
+        while (total_movement_precise >= 10000)
+        {
+            total_movement_precise -= 10000;
+            total_movement_m++;
+        }
 
           #ifdef FWRETRACT
             if(cs.autoretract_enabled)
