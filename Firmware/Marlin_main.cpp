@@ -1676,6 +1676,7 @@ void setup()
   fCheckModeInit();
   fSetMmuMode(mmu_enabled);
   KEEPALIVE_STATE(NOT_BUSY);
+  lcd_setstatuspgm(_T(WELCOME_MSG));
 #ifdef WATCHDOG
   wdt_enable(WDTO_4S);
 #endif //WATCHDOG
