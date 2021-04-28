@@ -4641,7 +4641,7 @@ void lcd_v2_calibration()
 	    bool loaded = false;
 	    if (fsensor_enabled && ir_sensor_detected)
 	    {
-	        loaded = (digitalRead(IR_SENSOR_PIN) == 0);
+	        loaded = (READ(IR_SENSOR_PIN) == 0);
 	    }
 	    else
 	    {
