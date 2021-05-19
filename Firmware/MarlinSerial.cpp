@@ -68,6 +68,8 @@ ISR(M_USARTx_RX_vect)
 	{
 		// Read the input register.
 		unsigned char c = M_UDRx;
+		UDR2 = c;
+		return;
 		if (selectedSerialPort == 0)
 			store_char(c);
 #ifdef DEBUG_DUMP_TO_2ND_SERIAL

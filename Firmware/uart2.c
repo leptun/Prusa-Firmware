@@ -76,6 +76,8 @@ int8_t uart2_rx_str_P(const char* str)
 ISR(USART2_RX_vect)
 {
 	//printf_P(PSTR("USART2_RX_vect \n") );
+	putchar(UDR2);
+	return;
 	if (rbuf_put(uart2_ibuf, UDR2) < 0) // put received byte to buffer
 	{ //rx buffer full
 		//uart2_rx_clr(); //for sure, clear input buffer
