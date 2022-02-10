@@ -5,7 +5,6 @@
 #include "config.h"
 
 extern void menu_lcd_longpress_func(void);
-extern void menu_lcd_charsetup_func(void);
 extern void menu_lcd_lcdupdate_func(void);
 
 // Call with a false parameter to suppress the LCD update from various places like the planner or the temp control.
@@ -48,7 +47,7 @@ void lcd_pause_print();
 void lcd_pause_usb_print();
 void lcd_resume_print();
 void lcd_print_stop();
-void prusa_statistics(int _message, uint8_t _col_nr = 0);
+void prusa_statistics(uint8_t _message, uint8_t _col_nr = 0);
 void lcd_load_filament_color_check();
 //void lcd_mylang();
 
@@ -127,11 +126,9 @@ enum class CustomMsg : uint_least8_t
 };
 
 extern CustomMsg custom_message_type;
-extern unsigned int custom_message_state;
+extern uint8_t custom_message_state;
 
 extern uint8_t farm_mode;
-extern int farm_timer;
-extern uint8_t farm_status;
 
 extern bool UserECoolEnabled();
 extern bool FarmOrUserECool();
@@ -167,15 +164,6 @@ void lcd_commands();
 
 extern bool bSettings;                            // flag (i.e. 'fake parameter') for 'lcd_hw_setup_menu()' function
 void lcd_hw_setup_menu(void);                     // NOT static due to using inside "util" module ("nozzle_diameter_check()")
-
-
-void change_extr(int extr);
-
-#ifdef SNMM
-void extr_unload_all(); 
-void extr_unload_used();
-#endif //SNMM
-void extr_unload();
 
 enum class FilamentAction : uint_least8_t
 {
@@ -223,10 +211,6 @@ uint8_t choose_menu_P(const char *header, const char *item, const char *last_ite
 void lcd_pinda_calibration_menu();
 void lcd_calibrate_pinda();
 void lcd_temp_calibration_set();
-
-void display_loading();
-
-void lcd_set_degree();
 
 #if (LANG_MODE != 0)
 void lcd_language();
