@@ -2602,6 +2602,11 @@ msgstr "Není vložen filament. Pokračovat?"
 msgid "There is no filament loaded. Print cancelled."
 msgstr "Není vložen filament. Tisk zrušen."
 
+#. MSG_Z_CALIBRATION_PROMPT c=20 r=3
+#: ../../Firmware/messages.cpp:128 ../../Firmware/ultralcd.cpp:3752
+msgid "Z calibration recommended. Run it now?"
+msgstr "Doporučuje se kalibrace Z. Spustíte ji nyní?"
+
 #~ msgid "Remove old filament and press the knob to start loading new filament."
 #~ msgstr "Vyjmete stary filament a stisknete tlacitko pro zavedeni noveho."
 

@@ -2452,6 +2452,11 @@ msgstr ""
 msgid "You can always resume the Wizard from Calibration -> Wizard."
 msgstr ""
 
+#. MSG_Z_CALIBRATION_PROMPT c=20 r=3
+#: ../../Firmware/messages.cpp:128 ../../Firmware/ultralcd.cpp:3752
+msgid "Z calibration recommended. Run it now?"
+msgstr ""
+
 #. MSG_Z_CORRECTION c=13
 #: ../../Firmware/messages.cpp:306 ../../Firmware/ultralcd.cpp:3988
 msgid "Z-correct"

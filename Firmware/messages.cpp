@@ -125,7 +125,7 @@ const char MSG_SILENT[] PROGMEM_I1 = ISTR("Silent"); ////MSG_SILENT c=7
 const char MSG_NORMAL[] PROGMEM_I1 = ISTR("Normal"); ////MSG_NORMAL c=7
 const char MSG_STEALTH[] PROGMEM_I1 = ISTR("Stealth"); ////MSG_STEALTH c=7
 const char MSG_STEEL_SHEET_CHECK[] PROGMEM_I1 = ISTR("Is steel sheet on heatbed?"); ////MSG_STEEL_SHEET_CHECK c=20 r=3
-const char MSG_Z_CALIBRATION_PROMPT[] PROGMEM_I1 = ISTR("Z calibration recommended. Run it now?"); ////MSG_STEEL_SHEET_CHECK c=20 r=3
+const char MSG_Z_CALIBRATION_PROMPT[] PROGMEM_I1 = ISTR("Z calibration recommended. Run it now?"); ////MSG_Z_CALIBRATION_PROMPT c=20 r=3
 const char MSG_STOP_PRINT[] PROGMEM_I1 = ISTR("Stop print"); ////MSG_STOP_PRINT c=18
 const char MSG_STOPPED[] PROGMEM_I1 = ISTR("STOPPED."); ////MSG_STOPPED c=20
 const char MSG_PINDA_CALIBRATION[] PROGMEM_I1 = ISTR("PINDA cal."); ////MSG_PINDA_CALIBRATION c=13

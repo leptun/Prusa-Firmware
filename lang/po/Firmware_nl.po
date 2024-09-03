@@ -2627,6 +2627,11 @@ msgstr "Geen filament geladen. Doorgaan?"
 msgid "There is no filament loaded. Print cancelled."
 msgstr "Geen filament geladen. Printen geannuleerd."
 
+#. MSG_Z_CALIBRATION_PROMPT c=20 r=3
+#: ../../Firmware/messages.cpp:128 ../../Firmware/ultralcd.cpp:3752
+msgid "Z calibration recommended. Run it now?"
+msgstr "Z-kalibratie aanbevolen. Nu uitvoeren?"
+
 #~ msgid "Remove old filament and press the knob to start loading new filament."
 #~ msgstr ""
 #~ "Verwijder de oude filament en druk op de knop om nieuwe filament te laden."
